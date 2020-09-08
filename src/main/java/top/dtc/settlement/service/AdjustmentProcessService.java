@@ -24,7 +24,7 @@ public class AdjustmentProcessService {
 
     public void addAdjustment(Adjustment adjustment) {
         Settlement settlement = settlementService.getById(adjustment.settlementId);
-        if (settlement == null || settlement.state != SettlementStatus.WAITING || adjustment.totalAmount == null) {
+        if (settlement == null || settlement.state != SettlementStatus.PENDING || adjustment.totalAmount == null) {
             throw new SettlementException(ErrorMessage.ADJUSTMENT.ADDING_FAILED + adjustment);
         }
         settlement.adjustmentAmount = settlement.adjustmentAmount.add(adjustment.totalAmount);
@@ -38,7 +38,7 @@ public class AdjustmentProcessService {
         Adjustment adjustment = adjustmentService.getById(adjustmentId);
         if (adjustment != null) {
             Settlement settlement = settlementService.getById(adjustment.settlementId);
-            if (settlement == null || settlement.state != SettlementStatus.WAITING) {
+            if (settlement == null || settlement.state != SettlementStatus.PENDING) {
                 throw new SettlementException(ErrorMessage.ADJUSTMENT.REMOVING_FAILED(adjustmentId, adjustment.settlementId));
             }
             settlement.adjustmentAmount = settlement.adjustmentAmount.subtract(adjustment.totalAmount);

@@ -4,7 +4,9 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.ReconcileStatus;
+import top.dtc.data.core.model.AcqRoute;
 import top.dtc.data.core.model.Transaction;
+import top.dtc.data.core.service.AcqRouteService;
 import top.dtc.data.settlement.model.Receivable;
 import top.dtc.data.settlement.model.Reconcile;
 import top.dtc.data.settlement.model.SettlementConfig;
@@ -29,6 +31,9 @@ public class ReconcileProcessService {
 
     @Autowired
     private ReceivableService receivableService;
+
+    @Autowired
+    private AcqRouteService acqRouteService;
 
     @Autowired
     private SettlementConfigService settlementConfigService;
@@ -78,14 +83,10 @@ public class ReconcileProcessService {
     public Reconcile getSettlementReconcile(Transaction transaction, SettlementConfig settlementConfig) {
         this.verifyTransactionState(transaction);
         Reconcile reconcile = this.getReconcile(transaction.id);
-        BigDecimal payoutAmount =
-                transaction.totalAmount
-                        .multiply(
-                                BigDecimal.ONE.subtract(settlementConfig.baseRate.add(settlementConfig.markupRate))
-                        )
-                        .subtract(settlementConfig.saleFee)
-                        .setScale(2, HALF_UP);
-        reconcile.payoutAmount = payoutAmount;
+        reconcile.payoutAmount = transaction.totalAmount
+                .multiply(BigDecimal.ONE.subtract(settlementConfig.mdr))
+                .subtract(settlementConfig.saleFee)
+                .setScale(2, HALF_UP);
         this.setStatus(reconcile);
         return reconcile;
     }
@@ -96,11 +97,12 @@ public class ReconcileProcessService {
         reconcile.receivableId = receivableId;
         reconcile.grossAmount = transaction.totalAmount;
         reconcile.receivedAmount = receivedAmount;
-        SettlementConfig settlementConfig = settlementConfigService.getFirstByMerchantIdAndModuleIdAndCurrency(
+        SettlementConfig settlementConfig = settlementConfigService.getFirstByMerchantIdAndBrandAndCurrency(
                 transaction.merchantId,
-                transaction.moduleId,
+                transaction.brand,
                 transaction.requestCurrency);
-        BigDecimal reconcileAmount = transaction.totalAmount.multiply(BigDecimal.ONE.subtract(settlementConfig.baseRate)).setScale(2, HALF_UP);
+        AcqRoute acqRoute = acqRouteService.getTransactionRoute(transaction.terminalId, transaction.brand, transaction.processingCurrency, true);
+        BigDecimal reconcileAmount = transaction.totalAmount.multiply(BigDecimal.ONE.subtract(acqRoute.mdrCost)).setScale(2, HALF_UP);
         if (reconcileAmount.compareTo(receivedAmount) == 0) {
             reconcile.status = ReconcileStatus.MATCHED;
         }

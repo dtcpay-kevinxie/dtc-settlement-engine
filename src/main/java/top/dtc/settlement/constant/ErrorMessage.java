@@ -28,6 +28,9 @@ public class ErrorMessage {
             return String.format("Unable to include Transaction %s type is [%s]", transactionId, type);
         }
         public static final String EXCLUDE_FAILED = "Unable to exclude Transaction ";
+        public static String EXCLUDE_FAILED(Long transactionId) {
+            return String.format("Unable to exclude Transaction %s", transactionId);
+        }
         public static String DUPLICATED_PAY(Long transactionId, Long payableId) {
             return String.format("Transaction %s has been paid out in Payable %s", transactionId, payableId);
         }

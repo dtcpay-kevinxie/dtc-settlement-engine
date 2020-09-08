@@ -4,10 +4,10 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.ReserveStatus;
+import top.dtc.data.settlement.model.MerchantAccount;
 import top.dtc.data.settlement.model.Reserve;
-import top.dtc.data.settlement.model.ReserveConfig;
 import top.dtc.data.settlement.model.Settlement;
-import top.dtc.data.settlement.service.ReserveConfigService;
+import top.dtc.data.settlement.service.MerchantAccountService;
 import top.dtc.data.settlement.service.ReserveService;
 import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.exception.ReserveException;
@@ -20,23 +20,25 @@ public class ReserveProcessService {
     private ReserveService reserveService;
 
     @Autowired
-    private ReserveConfigService reserveConfigService;
+    private MerchantAccountService merchantAccountService;
 
     public void calculateReserve(Settlement settlement) {
         Reserve reserve;
-        ReserveConfig reserveConfig = reserveConfigService.getFirstByMerchantIdAndCurrency(settlement.merchantId, settlement.currency);
+        MerchantAccount merchantAccount =  merchantAccountService.getFirstByMerchantIdAndCurrency(settlement.merchantId, settlement.currency);
         if (settlement.reserveId == null) {
             // Create new Reserve
             reserve = new Reserve();
-            reserve.type = reserveConfig.type;
+            reserve.type = merchantAccount.reserveType;
+            reserve.reservePeriod = merchantAccount.reservePeriod;
             reserve.status = ReserveStatus.PENDING;
             reserve.reserveSettlementId = settlement.id;
             reserve.currency = settlement.currency;
             reserve.merchantId = settlement.merchantId;
             reserve.merchantName = settlement.merchantName;
-            reserve.reservePeriod = reserveConfig.reservePeriod;
             reserve.reservedDate = settlement.settleDate;
-            reserve.dateToRelease = reserve.reservedDate.plusDays(180);
+            if (merchantAccount.reservePeriod > 0) {
+                reserve.dateToRelease = reserve.reservedDate.plusDays(merchantAccount.reservePeriod);
+            }
         } else {
             // Reset existing Reserve
             reserve = reserveService.getById(settlement.reserveId);
@@ -49,17 +51,17 @@ public class ReserveProcessService {
         }
         switch (reserve.type) {
             case ROLLING:
-                if (reserveConfig.reservePercentage == null) {
+                if (merchantAccount.reserveRate == null) {
                     throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
                 }
-                reserve.reserveRate = reserveConfig.reservePercentage;
-                reserve.totalAmount = settlement.saleAmount.multiply(reserveConfig.reservePercentage);
+                reserve.reserveRate = merchantAccount.reserveRate;
+                reserve.totalAmount = settlement.saleAmount.multiply(merchantAccount.reserveRate);
                 break;
             case FIXED:
-                if (reserveConfig.reserveAmount == null) {
+                if (merchantAccount.reserveAmount == null) {
                     throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
                 }
-                reserve.totalAmount = reserveConfig.reserveAmount;
+                reserve.totalAmount = merchantAccount.reserveAmount;
                 break;
             default:
                 throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
