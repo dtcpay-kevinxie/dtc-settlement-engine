@@ -92,7 +92,7 @@ public class AletaReconcileService {
             BigDecimal receivedAmount = new BigDecimal(record.settlementAmount);
             Reconcile reconcile = reconcileProcessService.getReceivableReconcile(transaction, receivedAmount, receivable.id);
             reconcileService.saveOrUpdate(reconcile);
-            totalAmount.add(receivedAmount);
+            totalAmount = totalAmount.add(receivedAmount);
         }
         if (receivable.receivedAmount.compareTo(totalAmount) == 0) {
             receivable.status = ReconcileStatus.MATCHED;

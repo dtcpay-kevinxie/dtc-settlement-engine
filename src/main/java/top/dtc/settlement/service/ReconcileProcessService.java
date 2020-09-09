@@ -53,33 +53,6 @@ public class ReconcileProcessService {
         }
     }
 
-    public void verifyTransactionState(Transaction transaction) {
-        switch (transaction.state) {
-            case DENIED:
-            case EXPIRED:
-            case PENDING:
-                log.warn("Invalid Transaction {} with state {}", transaction.id, transaction.state);
-                break;
-            case SUCCESS:
-            case REFUNDED:
-            case REVERSED:
-            case AUTHORIZED:
-            case CAPTURED:
-                break;
-            default:
-                throw new ReconcileException(ErrorMessage.RECONCILE.INVALID_TRANSACTION_ID(transaction.id, transaction.state.desc));
-        }
-    }
-
-    public Reconcile getReconcile(Long transactionId) {
-        Reconcile reconcile = reconcileService.getById(transactionId);
-        if (reconcile == null) {
-            reconcile = new Reconcile();
-            reconcile.transactionId = transactionId;
-        }
-        return reconcile;
-    }
-
     public Reconcile getSettlementReconcile(Transaction transaction, SettlementConfig settlementConfig) {
         this.verifyTransactionState(transaction);
         Reconcile reconcile = this.getReconcile(transaction.id);
@@ -97,16 +70,40 @@ public class ReconcileProcessService {
         reconcile.receivableId = receivableId;
         reconcile.grossAmount = transaction.totalAmount;
         reconcile.receivedAmount = receivedAmount;
-        SettlementConfig settlementConfig = settlementConfigService.getFirstByMerchantIdAndBrandAndCurrency(
-                transaction.merchantId,
-                transaction.brand,
-                transaction.requestCurrency);
-        AcqRoute acqRoute = acqRouteService.getTransactionRoute(transaction.terminalId, transaction.brand, transaction.processingCurrency, true);
+//        AcqRoute acqRoute = acqRouteService.getTransactionRoute(transaction.terminalId, transaction.brand, transaction.processingCurrency, true);
+        AcqRoute acqRoute = acqRouteService.getById(transaction.acqRouteId);
         BigDecimal reconcileAmount = transaction.totalAmount.multiply(BigDecimal.ONE.subtract(acqRoute.mdrCost)).setScale(2, HALF_UP);
         if (reconcileAmount.compareTo(receivedAmount) == 0) {
             reconcile.status = ReconcileStatus.MATCHED;
         }
         this.setStatus(reconcile);
+        return reconcile;
+    }
+
+    private void verifyTransactionState(Transaction transaction) {
+        switch (transaction.state) {
+            case DENIED:
+            case EXPIRED:
+            case PENDING:
+                log.warn("Invalid Transaction {} with state {}", transaction.id, transaction.state);
+                break;
+            case SUCCESS:
+            case REFUNDED:
+            case REVERSED:
+            case AUTHORIZED:
+            case CAPTURED:
+                break;
+            default:
+                throw new ReconcileException(ErrorMessage.RECONCILE.INVALID_TRANSACTION_ID(transaction.id, transaction.state.desc));
+        }
+    }
+
+    private Reconcile getReconcile(Long transactionId) {
+        Reconcile reconcile = reconcileService.getById(transactionId);
+        if (reconcile == null) {
+            reconcile = new Reconcile();
+            reconcile.transactionId = transactionId;
+        }
         return reconcile;
     }
 

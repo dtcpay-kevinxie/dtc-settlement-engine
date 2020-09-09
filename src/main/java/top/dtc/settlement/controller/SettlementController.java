@@ -17,12 +17,12 @@ public class SettlementController {
     @Autowired
     private SettlementProcessService settlementProcessService;
 
-    @PostMapping(value = "/create/{merchantId}/{currency}")
-    public ApiResponse<?> createSettlement(@PathVariable("merchantId") Long merchantId, @PathVariable("currency") String currency, @RequestBody List<Long> transactionIds) {
+    @PostMapping(value = "/create/{merchantAccountId}")
+    public ApiResponse<?> createSettlement(@PathVariable("merchantAccountId") Long merchantAccountId, @RequestBody List<Long> transactionIds) {
         String errorMsg;
         try {
             log.debug("/create {}", transactionIds);
-            settlementProcessService.createSettlement(transactionIds, merchantId, currency);
+            settlementProcessService.createSettlement(transactionIds, merchantAccountId);
             return new ApiResponse<>(new ApiHeader(true));
         } catch (Exception e) {
             log.error("Cannot create settlement", e);
