@@ -3,10 +3,7 @@ package top.dtc.settlement.service;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.enums.InvoiceType;
-import top.dtc.common.enums.ScheduleType;
-import top.dtc.common.enums.SettlementStatus;
-import top.dtc.common.enums.TransactionState;
+import top.dtc.common.enums.*;
 import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.model.Merchant;
 import top.dtc.data.core.model.Transaction;
@@ -186,6 +183,10 @@ public class SettlementProcessService {
         if (settlement == null || settlement.state != SettlementStatus.SUBMITTED) {
             throw new SettlementException(ErrorMessage.SETTLEMENT.APPROVAL_FAILED + settlementId);
         }
+        Merchant merchant = merchantService.getById(settlement.merchantId);
+        if (merchant.status.id <= MerchantStatus.SETTLEMENT_DISABLED.id) {
+            throw new SettlementException(ErrorMessage.SETTLEMENT.STATUS_FAILED(merchant.id, merchant.status.desc));
+        }
         settlement.state = SettlementStatus.APPROVED;
         String prefix = getPrefix(settlement);
         InvoiceNumber invoiceNumber = invoiceNumberService.getFirstByPrefix(prefix);
@@ -337,9 +338,9 @@ public class SettlementProcessService {
             case MERCHANT_DYNAMIC_QR:
             case CONSUMER_QR:
                 settlement.saleCount++;
-                settlement.saleAmount = settlement.saleAmount.add(transaction.totalAmount);
+                settlement.saleAmount = settlement.saleAmount.add(transaction.totalAmount.subtract(transaction.processingFee));
                 settlement.saleProcessingFee = settlement.saleProcessingFee.add(settlementConfig.saleFee);
-                settlement.mdrFee = settlement.mdrFee.add(settlementConfig.mdr.multiply(transaction.totalAmount));
+                settlement.mdrFee = settlement.mdrFee.add(settlementConfig.mdr.multiply(transaction.totalAmount.subtract(transaction.processingFee)));
                 break;
             case REFUND:
                 settlement.refundCount++;

@@ -18,6 +18,9 @@ public class ErrorMessage {
         public static String INVALID(Long settlementId) {
             return String.format("Invalid Settlement [%s]", settlementId);
         }
+        public static String STATUS_FAILED(Long merchantId, String merchantStatus) {
+            return String.format("Merchant %s settlement disabled due to MerchantStatus [%s]", merchantId, merchantStatus);
+        }
         public static final String APPROVAL_FAILED = "Unable to approve Settlement ";
         public static final String REJECT_FAILED = "Unable to reject Settlement ";
         public static final String RETRIEVE_FAILED = "Unable to retrieve Settlement Submission.";

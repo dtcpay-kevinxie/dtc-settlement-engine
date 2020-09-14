@@ -17,6 +17,20 @@ public class SettlementController {
     @Autowired
     private SettlementProcessService settlementProcessService;
 
+    @PostMapping(value = "/scheduled")
+    public ApiResponse<?> scheduled() {
+        String errorMsg;
+        try {
+            log.debug("/scheduled");
+            settlementProcessService.processSettlement();
+            return new ApiResponse<>(new ApiHeader(true));
+        } catch (Exception e) {
+            log.error("Cannot process scheduled settlement", e);
+            errorMsg = e.getMessage();
+        }
+        return new ApiResponse<>(new ApiHeader(errorMsg));
+    }
+
     @PostMapping(value = "/create/{merchantAccountId}")
     public ApiResponse<?> createSettlement(@PathVariable("merchantAccountId") Long merchantAccountId, @RequestBody List<Long> transactionIds) {
         String errorMsg;
@@ -57,32 +71,6 @@ public class SettlementController {
         return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
     }
 
-    @PutMapping(value = "/approve/{settlementId}")
-    public ApiResponse<Long> approve(@PathVariable("settlementId") Long settlementId) {
-        String errorMsg = null;
-        try {
-            log.debug("/approve {}", settlementId);
-            settlementProcessService.approve(settlementId);
-        } catch (Exception e) {
-            log.error("Cannot approve settlement", e);
-            errorMsg = e.getMessage();
-        }
-        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
-    }
-
-    @PutMapping(value = "/reject/{settlementId}")
-    public ApiResponse<Long> reject(@PathVariable("settlementId") Long settlementId) {
-        String errorMsg = null;
-        try {
-            log.debug("/reject {}", settlementId);
-            settlementProcessService.reject(settlementId);
-        } catch (Exception e) {
-            log.error("Cannot reject settlement", e);
-            errorMsg = e.getMessage();
-        }
-        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
-    }
-
     @PutMapping(value = "/submit/{settlementId}")
     public ApiResponse<Long> submit(@PathVariable("settlementId") Long settlementId) {
         String errorMsg = null;
@@ -104,6 +92,32 @@ public class SettlementController {
             settlementProcessService.retrieveSubmission(settlementId);
         } catch (Exception e) {
             log.error("Cannot retrieve settlement submission", e);
+            errorMsg = e.getMessage();
+        }
+        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
+    }
+
+    @PutMapping(value = "/approve/{settlementId}")
+    public ApiResponse<Long> approve(@PathVariable("settlementId") Long settlementId) {
+        String errorMsg = null;
+        try {
+            log.debug("/approve {}", settlementId);
+            settlementProcessService.approve(settlementId);
+        } catch (Exception e) {
+            log.error("Cannot approve settlement", e);
+            errorMsg = e.getMessage();
+        }
+        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
+    }
+
+    @PutMapping(value = "/reject/{settlementId}")
+    public ApiResponse<Long> reject(@PathVariable("settlementId") Long settlementId) {
+        String errorMsg = null;
+        try {
+            log.debug("/reject {}", settlementId);
+            settlementProcessService.reject(settlementId);
+        } catch (Exception e) {
+            log.error("Cannot reject settlement", e);
             errorMsg = e.getMessage();
         }
         return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);

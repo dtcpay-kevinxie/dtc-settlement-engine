@@ -57,6 +57,7 @@ public class ReconcileProcessService {
         this.verifyTransactionState(transaction);
         Reconcile reconcile = this.getReconcile(transaction.id);
         reconcile.payoutAmount = transaction.totalAmount
+                .subtract(transaction.processingFee)
                 .multiply(BigDecimal.ONE.subtract(settlementConfig.mdr))
                 .subtract(settlementConfig.saleFee)
                 .setScale(2, HALF_UP);
@@ -70,9 +71,11 @@ public class ReconcileProcessService {
         reconcile.receivableId = receivableId;
         reconcile.grossAmount = transaction.totalAmount;
         reconcile.receivedAmount = receivedAmount;
-//        AcqRoute acqRoute = acqRouteService.getTransactionRoute(transaction.terminalId, transaction.brand, transaction.processingCurrency, true);
         AcqRoute acqRoute = acqRouteService.getById(transaction.acqRouteId);
-        BigDecimal reconcileAmount = transaction.totalAmount.multiply(BigDecimal.ONE.subtract(acqRoute.mdrCost)).setScale(2, HALF_UP);
+        BigDecimal reconcileAmount = transaction.totalAmount
+                .subtract(transaction.processingFee)
+                .multiply(BigDecimal.ONE.subtract(acqRoute.mdrCost))
+                .setScale(2, HALF_UP);
         if (reconcileAmount.compareTo(receivedAmount) == 0) {
             reconcile.status = ReconcileStatus.MATCHED;
         }

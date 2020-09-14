@@ -17,59 +17,25 @@ import javax.sql.DataSource;
 public class TransactionalConfig {
 
     @Autowired
-    @Qualifier("gw2DataSource")
-    DataSource gw2DataSource;
+    @Qualifier("coreDataSource")
+    DataSource coreDataSource;
 
     @Autowired
-    @Qualifier("payoutDataSource")
-    DataSource payoutDataSource;
+    @Qualifier("riskDataSource")
+    DataSource riskDataSource;
 
     @Autowired
-    @Qualifier("alipayDataSource")
-    DataSource alipayDataSource;
+    @Qualifier("settlementDataSource")
+    DataSource settlementDataSource;
 
-    @Autowired
-    @Qualifier("wechatDataSource")
-    DataSource wechatDataSource;
-
-    @Autowired
-    @Qualifier("amexDataSource")
-    DataSource amexDataSource;
-
-    @Autowired
-    @Qualifier("fdIndiaDataSource")
-    DataSource fdIndiaDataSource;
-
-    @Autowired
-    @Qualifier("tbankDataSource")
-    DataSource tbankDataSource;
-
-    @Autowired
-    @Qualifier("enetsDataSource")
-    DataSource enetsDataSource;
-
-    @Autowired
-    @Qualifier("eximbayDataSource")
-    DataSource eximbayDataSource;
-
-    @Autowired
-    @Qualifier("aletaDataSource")
-    DataSource aletaDataSource;
 
     @Primary
     @Bean
     public PlatformTransactionManager platformTransactionManager() {
         PlatformTransactionManager[] transactionManagers = new PlatformTransactionManager[]{
-                new DataSourceTransactionManager(gw2DataSource),
-                new DataSourceTransactionManager(payoutDataSource),
-                new DataSourceTransactionManager(alipayDataSource),
-                new DataSourceTransactionManager(wechatDataSource),
-                new DataSourceTransactionManager(fdIndiaDataSource),
-                new DataSourceTransactionManager(tbankDataSource),
-                new DataSourceTransactionManager(amexDataSource),
-                new DataSourceTransactionManager(enetsDataSource),
-                new DataSourceTransactionManager(aletaDataSource),
-                new DataSourceTransactionManager(eximbayDataSource)
+                new DataSourceTransactionManager(coreDataSource),
+                new DataSourceTransactionManager(riskDataSource),
+                new DataSourceTransactionManager(settlementDataSource)
         };
         return new ChainedTransactionManager(transactionManagers);
     }
