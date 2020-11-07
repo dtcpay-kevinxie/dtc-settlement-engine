@@ -7,9 +7,9 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import top.dtc.common.enums.ReconcileStatus;
 import top.dtc.data.core.model.Transaction;
 import top.dtc.data.core.service.TransactionService;
+import top.dtc.data.settlement.enums.ReconcileStatus;
 import top.dtc.data.settlement.model.Receivable;
 import top.dtc.data.settlement.model.Reconcile;
 import top.dtc.data.settlement.service.ReceivableService;
@@ -26,6 +26,7 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 
 @Log4j2
 @Service
@@ -45,6 +46,10 @@ public class AletaReconcileService {
 
     @Autowired
     private AletaProperties aletaProperties;
+
+    public void createReceivable(LocalDate date) {
+
+    }
 
     public boolean receivableReconcile(MultipartFile multipartFile) {
         String referenceNo = multipartFile.getOriginalFilename();
@@ -90,7 +95,10 @@ public class AletaReconcileService {
                 continue;
             }
             BigDecimal receivedAmount = new BigDecimal(record.settlementAmount);
-            Reconcile reconcile = reconcileProcessService.getReceivableReconcile(transaction, receivedAmount, receivable.id);
+            Reconcile reconcile = reconcileService.getById(transaction.id);
+            reconcile.receivableId = receivable.id;
+            reconcile.receivedAmount = receivedAmount;
+            reconcile.receivedCurrency = record.settlementCurrency;
             reconcileService.saveOrUpdate(reconcile);
             totalAmount = totalAmount.add(receivedAmount);
         }

@@ -3,13 +3,12 @@ package top.dtc.settlement.service;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.enums.ReconcileStatus;
 import top.dtc.data.core.model.AcqRoute;
 import top.dtc.data.core.model.Transaction;
 import top.dtc.data.core.service.AcqRouteService;
+import top.dtc.data.settlement.enums.ReconcileStatus;
 import top.dtc.data.settlement.model.Receivable;
 import top.dtc.data.settlement.model.Reconcile;
-import top.dtc.data.settlement.model.SettlementConfig;
 import top.dtc.data.settlement.service.ReceivableService;
 import top.dtc.data.settlement.service.ReconcileService;
 import top.dtc.data.settlement.service.SettlementConfigService;
@@ -53,23 +52,10 @@ public class ReconcileProcessService {
         }
     }
 
-    public Reconcile getSettlementReconcile(Transaction transaction, SettlementConfig settlementConfig) {
-        this.verifyTransactionState(transaction);
-        Reconcile reconcile = this.getReconcile(transaction.id);
-        reconcile.payoutAmount = transaction.totalAmount
-                .subtract(transaction.processingFee)
-                .multiply(BigDecimal.ONE.subtract(settlementConfig.mdr))
-                .subtract(settlementConfig.saleFee)
-                .setScale(2, HALF_UP);
-        this.setStatus(reconcile);
-        return reconcile;
-    }
-
     public Reconcile getReceivableReconcile(Transaction transaction, BigDecimal receivedAmount, Long receivableId) {
-        this.verifyTransactionState(transaction);
         Reconcile reconcile = this.getReconcile(transaction.id);
         reconcile.receivableId = receivableId;
-        reconcile.grossAmount = transaction.totalAmount;
+        reconcile.payoutAmount = transaction.totalAmount;
         reconcile.receivedAmount = receivedAmount;
         AcqRoute acqRoute = acqRouteService.getById(transaction.acqRouteId);
         BigDecimal reconcileAmount = transaction.totalAmount

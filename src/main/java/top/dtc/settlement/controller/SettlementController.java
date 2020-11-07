@@ -7,7 +7,7 @@ import top.dtc.settlement.model.api.ApiHeader;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.SettlementProcessService;
 
-import java.util.List;
+import java.time.LocalDate;
 
 @Log4j2
 @RestController
@@ -22,7 +22,7 @@ public class SettlementController {
         String errorMsg;
         try {
             log.debug("/scheduled");
-            settlementProcessService.processSettlement();
+            settlementProcessService.processSettlement(LocalDate.now());
             return new ApiResponse<>(new ApiHeader(true));
         } catch (Exception e) {
             log.error("Cannot process scheduled settlement", e);
@@ -31,45 +31,45 @@ public class SettlementController {
         return new ApiResponse<>(new ApiHeader(errorMsg));
     }
 
-    @PostMapping(value = "/create/{merchantAccountId}")
-    public ApiResponse<?> createSettlement(@PathVariable("merchantAccountId") Long merchantAccountId, @RequestBody List<Long> transactionIds) {
-        String errorMsg;
-        try {
-            log.debug("/create {}", transactionIds);
-            settlementProcessService.createSettlement(transactionIds, merchantAccountId);
-            return new ApiResponse<>(new ApiHeader(true));
-        } catch (Exception e) {
-            log.error("Cannot create settlement", e);
-            errorMsg = e.getMessage();
-        }
-        return new ApiResponse<>(new ApiHeader(errorMsg));
-    }
+//    @PostMapping(value = "/create/{merchantAccountId}")
+//    public ApiResponse<?> createSettlement(@PathVariable("merchantAccountId") Long merchantAccountId, @RequestBody List<Long> transactionIds) {
+//        String errorMsg;
+//        try {
+//            log.debug("/create {}", transactionIds);
+//            settlementProcessService.createSettlement(transactionIds, merchantAccountId);
+//            return new ApiResponse<>(new ApiHeader(true));
+//        } catch (Exception e) {
+//            log.error("Cannot create settlement", e);
+//            errorMsg = e.getMessage();
+//        }
+//        return new ApiResponse<>(new ApiHeader(errorMsg));
+//    }
 
-    @GetMapping(value = "/include/{settlementId}/{transactionId}")
-    public ApiResponse<Long> include(@PathVariable("settlementId") Long settlementId, @PathVariable("transactionId") Long transactionId) {
-        String errorMsg = null;
-        try {
-            log.debug("/include/{}/{}", settlementId, transactionId);
-            settlementProcessService.includeTransaction(settlementId, transactionId);
-        } catch (Exception e) {
-            log.error("Cannot include transaction", e);
-            errorMsg = e.getMessage();
-        }
-        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
-    }
-
-    @GetMapping(value = "/exclude/{settlementId}/{transactionId}")
-    public ApiResponse<Long> exclude(@PathVariable("settlementId") Long settlementId, @PathVariable("transactionId") Long transactionId) {
-        String errorMsg = null;
-        try {
-            log.debug("/exclude/{}/{}", settlementId, transactionId);
-            settlementProcessService.excludeTransaction(settlementId, transactionId);
-        } catch (Exception e) {
-            log.error("Cannot exclude transaction", e);
-            errorMsg = e.getMessage();
-        }
-        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
-    }
+//    @GetMapping(value = "/include/{settlementId}/{transactionId}")
+//    public ApiResponse<Long> include(@PathVariable("settlementId") Long settlementId, @PathVariable("transactionId") Long transactionId) {
+//        String errorMsg = null;
+//        try {
+//            log.debug("/include/{}/{}", settlementId, transactionId);
+//            settlementProcessService.includeTransaction(settlementId, transactionId);
+//        } catch (Exception e) {
+//            log.error("Cannot include transaction", e);
+//            errorMsg = e.getMessage();
+//        }
+//        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
+//    }
+//
+//    @GetMapping(value = "/exclude/{settlementId}/{transactionId}")
+//    public ApiResponse<Long> exclude(@PathVariable("settlementId") Long settlementId, @PathVariable("transactionId") Long transactionId) {
+//        String errorMsg = null;
+//        try {
+//            log.debug("/exclude/{}/{}", settlementId, transactionId);
+//            settlementProcessService.excludeTransaction(settlementId, transactionId);
+//        } catch (Exception e) {
+//            log.error("Cannot exclude transaction", e);
+//            errorMsg = e.getMessage();
+//        }
+//        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
+//    }
 
     @PutMapping(value = "/submit/{settlementId}")
     public ApiResponse<Long> submit(@PathVariable("settlementId") Long settlementId) {
