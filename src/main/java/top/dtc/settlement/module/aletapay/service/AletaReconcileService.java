@@ -7,9 +7,9 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import top.dtc.common.enums.ReconcileStatus;
 import top.dtc.data.core.model.Transaction;
 import top.dtc.data.core.service.TransactionService;
+import top.dtc.data.settlement.enums.ReconcileStatus;
 import top.dtc.data.settlement.model.Receivable;
 import top.dtc.data.settlement.model.Reconcile;
 import top.dtc.data.settlement.service.ReceivableService;
@@ -20,7 +20,6 @@ import top.dtc.settlement.exception.ReceivableException;
 import top.dtc.settlement.handler.XlsxHandler;
 import top.dtc.settlement.module.aletapay.core.properties.AletaProperties;
 import top.dtc.settlement.module.aletapay.model.AletaSettlementReport;
-import top.dtc.settlement.service.ReconcileProcessService;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -30,9 +29,6 @@ import java.nio.file.Paths;
 @Log4j2
 @Service
 public class AletaReconcileService {
-
-    @Autowired
-    private ReconcileProcessService reconcileProcessService;
 
     @Autowired
     private ReconcileService reconcileService;
@@ -46,7 +42,7 @@ public class AletaReconcileService {
     @Autowired
     private AletaProperties aletaProperties;
 
-    public boolean receivableReconcile(MultipartFile multipartFile) {
+    public boolean reconcile(MultipartFile multipartFile) {
         String referenceNo = multipartFile.getOriginalFilename();
         Receivable receivable = receivableService.getFirstByReferenceNo(referenceNo);
         if (receivable == null) {
@@ -90,9 +86,12 @@ public class AletaReconcileService {
                 continue;
             }
             BigDecimal receivedAmount = new BigDecimal(record.settlementAmount);
-            Reconcile reconcile = reconcileProcessService.getReceivableReconcile(transaction, receivedAmount, receivable.id);
+            Reconcile reconcile = reconcileService.getById(transaction.id);
+            reconcile.receivableId = receivable.id;
+            reconcile.receivedAmount = receivedAmount;
+            reconcile.receivedCurrency = record.settlementCurrency;
             reconcileService.saveOrUpdate(reconcile);
-            totalAmount.add(receivedAmount);
+            totalAmount = totalAmount.add(receivedAmount);
         }
         if (receivable.receivedAmount.compareTo(totalAmount) == 0) {
             receivable.status = ReconcileStatus.MATCHED;

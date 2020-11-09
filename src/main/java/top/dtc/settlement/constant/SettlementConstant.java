@@ -1,6 +1,11 @@
 package top.dtc.settlement.constant;
 
+import top.dtc.data.settlement.enums.ScheduleType;
+
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class SettlementConstant {
     public static final BigDecimal POWER_2_BIGDECIMAL = new BigDecimal(100);
@@ -17,18 +22,30 @@ public class SettlementConstant {
     }
 
     public static class MODULE {
-        public static class FOMO {
-            public static final String NAME = "fomo";
-        }
         public static class WECHAT {
             public static final String NAME = "wechat";
-        }
-        public static class GRAB_PAY {
-            public static final String NAME = "grabpay";
         }
         public static class ALETA_SECURE_PAY {
             public static final String NAME = "aleta";
         }
+    }
+
+    public static class SETTLEMENT_SCHEDULE {
+        public static final ArrayList<ScheduleType> DAILY = new ArrayList<>(Arrays.asList(ScheduleType.DAILY));
+        public static final ArrayList<ScheduleType> WEEKLY = new ArrayList<>(Arrays.asList(
+                ScheduleType.WEEKLY_MON,
+                ScheduleType.WEEKLY_TUE,
+                ScheduleType.WEEKLY_WED,
+                ScheduleType.WEEKLY_THU,
+                ScheduleType.WEEKLY_FRI,
+                ScheduleType.WEEKLY_SAT,
+                ScheduleType.WEEKLY_SUN
+        ));
+        public static final ArrayList<ScheduleType> MONTHLY = new ArrayList<>(Arrays.asList(ScheduleType.DAILY));
+    }
+
+    public static String getDesc(LocalDate txnDate) {
+        return String.format("Transaction Date : %s", txnDate);
     }
 
 //    public static final Charset CHARSET = StandardCharsets.UTF_8;

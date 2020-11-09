@@ -15,22 +15,35 @@ public class ErrorMessage {
     }
 
     public static final class SETTLEMENT {
-        public static String INVALID(Long settlementId) {
-            return String.format("Invalid Settlement [%s]", settlementId);
-        }
+
         public static final String APPROVAL_FAILED = "Unable to approve Settlement ";
         public static final String REJECT_FAILED = "Unable to reject Settlement ";
         public static final String RETRIEVE_FAILED = "Unable to retrieve Settlement Submission.";
+        public static final String EXCLUDE_FAILED = "Unable to exclude Transaction ";
+
+        public static String INVALID(Long settlementId) {
+            return String.format("Invalid Settlement [%s]", settlementId);
+        }
+
+        public static String STATUS_FAILED(Long merchantId, String merchantStatus) {
+            return String.format("Merchant %s settlement disabled due to MerchantStatus [%s]", merchantId, merchantStatus);
+        }
         public static String INCLUDE_FAILED(Long transactionId) {
             return String.format("Unable to include Transaction %s", transactionId);
         }
+
         public static String INCLUDE_FAILED(Long transactionId, String type) {
             return String.format("Unable to include Transaction %s type is [%s]", transactionId, type);
         }
-        public static final String EXCLUDE_FAILED = "Unable to exclude Transaction ";
+
+        public static String EXCLUDE_FAILED(Long transactionId) {
+            return String.format("Unable to exclude Transaction %s", transactionId);
+        }
+
         public static String DUPLICATED_PAY(Long transactionId, Long payableId) {
             return String.format("Transaction %s has been paid out in Payable %s", transactionId, payableId);
         }
+
     }
 
     public static final class ADJUSTMENT {

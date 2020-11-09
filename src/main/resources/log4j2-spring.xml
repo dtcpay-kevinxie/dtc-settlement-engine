@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<Configuration strict="true" name="ApplicationConfig"
-    packages="com.moonlit.logfaces.appenders.log4j2">
+<Configuration strict="true" name="ApplicationConfig" packages="com.moonlit.logfaces.appenders.log4j2">
 
     <Properties>
         <Property name="app">dtc-settlement-engine</Property>
@@ -9,67 +8,65 @@
 
     <Appenders>
         <Console name="STDOUT">
-            <PatternLayout pattern="${logpattern}" />
+            <PatternLayout pattern="${logpattern}"/>
         </Console>
-        <RollingFile name="ErrorFile" fileName="logs/${app}.err.log" 
-            filePattern="logs/${app}.err.log.%d{yyyyMMdd}.gz"
-            ignoreExceptions="false" append="true">
+        <RollingFile name="ErrorFile" fileName="logs/${app}.err.log"
+                     filePattern="logs/${app}.err.log.%d{yyyyMMdd}.gz"
+                     ignoreExceptions="false" append="true">
             <PatternLayout>
                 <Pattern>${logpattern}</Pattern>
             </PatternLayout>
             <Policies>
-                <TimeBasedTriggeringPolicy maxRandomDelay="120" />
+                <TimeBasedTriggeringPolicy maxRandomDelay="120"/>
             </Policies>
             <Filter type="ThresholdFilter" level="error"/>
         </RollingFile>
-        <RollingFile name="DebugFile" fileName="logs/${app}.debug.log" 
-            filePattern="logs/${app}.debug.log.%d{yyyyMMdd}.gz"
-            ignoreExceptions="false" append="true">
+        <RollingFile name="DebugFile" fileName="logs/${app}.debug.log"
+                     filePattern="logs/${app}.debug.log.%d{yyyyMMdd}.gz"
+                     ignoreExceptions="false" append="true">
             <PatternLayout>
                 <Pattern>${logpattern}</Pattern>
             </PatternLayout>
             <Policies>
-                <TimeBasedTriggeringPolicy maxRandomDelay="120" />
+                <TimeBasedTriggeringPolicy maxRandomDelay="120"/>
             </Policies>
             <Filter type="ThresholdFilter" level="debug"/>
         </RollingFile>
-        <RollingFile name="InfoFile" fileName="logs/${app}.info.log" 
-            filePattern="logs/${app}.info.log.%d{yyyyMMdd}.gz"
-            ignoreExceptions="false" append="true">
+        <RollingFile name="InfoFile" fileName="logs/${app}.info.log"
+                     filePattern="logs/${app}.info.log.%d{yyyyMMdd}.gz"
+                     ignoreExceptions="false" append="true">
             <PatternLayout>
                 <Pattern>${logpattern}</Pattern>
             </PatternLayout>
             <Policies>
-                <TimeBasedTriggeringPolicy maxRandomDelay="120" />
+                <TimeBasedTriggeringPolicy maxRandomDelay="120"/>
             </Policies>
             <Filter type="ThresholdFilter" level="info"/>
         </RollingFile>
-        <logFaces name="LFS"
-                  application="${env:LF_LOCATION}-${env:LF_SERVICE_TYPE}-${env:LF_SERVICE_NAME}-${env:LF_SERVER_KIND}"
-                  backup="STDOUT"
-                  protocol="tcp"
-                  port="${env:LF_SERVER_PORT}"
-                  queueSize="100"
-                  reconnectionDelay="5000"
-                  remoteHost="${env:LF_SERVER_ADDRESS}"/>
+        <logFaces
+                name="LFS"
+                application="${env:LF_LOCATION}-${env:LF_SERVICE_TYPE}-${env:LF_SERVICE_NAME}-${env:LF_SERVER_KIND}"
+                backup="STDOUT"
+                protocol="tcp"
+                format="json"
+                port="${env:LF_SERVER_PORT}"
+                queueSize="100"
+                reconnectionDelay="5000"
+                remoteHost="${env:LF_SERVER_ADDRESS}"
+        />
     </Appenders>
 
     <Loggers>
-        <!-- Packages which logging level depends on LOG_LEVEL environment variable -->
-        <Logger name="org.springframework" level="${env:LOG_LEVEL}" />
-        <Logger name="org.eclipse.jetty" level="${env:LOG_LEVEL}" />
-
-        <!-- Packages which needs to be in DEBUG mode for easy application debugging -->
-        <Logger name="com.mcpayment" level="TRACE" />
-        <Logger name="org.eclipse.jetty.io.IdleTimeout" level="OFF" />
+        <Logger name="org.springframework" level="INFO"/>
+        <Logger name="top.dtc" level="TRACE"/>
 
         <Root>
-            <AppenderRef ref="STDOUT" />
-            <AppenderRef ref="ErrorFile" />
-            <AppenderRef ref="DebugFile" />
-            <AppenderRef ref="InfoFile" />
-            <AppenderRef ref="LFS" />
-        </Root>  
+            <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="ErrorFile"/>
+            <AppenderRef ref="DebugFile"/>
+            <AppenderRef ref="InfoFile"/>
+            <AppenderRef ref="LFS"/>
+        </Root>
     </Loggers>
 
 </Configuration>
