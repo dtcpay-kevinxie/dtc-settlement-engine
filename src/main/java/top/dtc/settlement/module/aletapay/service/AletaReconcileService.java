@@ -20,20 +20,15 @@ import top.dtc.settlement.exception.ReceivableException;
 import top.dtc.settlement.handler.XlsxHandler;
 import top.dtc.settlement.module.aletapay.core.properties.AletaProperties;
 import top.dtc.settlement.module.aletapay.model.AletaSettlementReport;
-import top.dtc.settlement.service.ReconcileProcessService;
 
 import java.io.File;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDate;
 
 @Log4j2
 @Service
 public class AletaReconcileService {
-
-    @Autowired
-    private ReconcileProcessService reconcileProcessService;
 
     @Autowired
     private ReconcileService reconcileService;
@@ -47,11 +42,7 @@ public class AletaReconcileService {
     @Autowired
     private AletaProperties aletaProperties;
 
-    public void createReceivable(LocalDate date) {
-
-    }
-
-    public boolean receivableReconcile(MultipartFile multipartFile) {
+    public boolean reconcile(MultipartFile multipartFile) {
         String referenceNo = multipartFile.getOriginalFilename();
         Receivable receivable = receivableService.getFirstByReferenceNo(referenceNo);
         if (receivable == null) {

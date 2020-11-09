@@ -18,7 +18,9 @@ import top.dtc.data.settlement.model.Reconcile;
 import top.dtc.data.settlement.service.ReceivableService;
 import top.dtc.data.settlement.service.ReconcileService;
 import top.dtc.data.settlement.service.SettlementCalendarService;
+import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.constant.SettlementConstant;
+import top.dtc.settlement.exception.ReceivableException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -51,9 +53,8 @@ public class ReceivableProcessService {
     @Autowired
     private SettlementCalendarService settlementCalendarService;
 
-    public void processAllTodayReceivable() {
-        LocalDate today = LocalDate.now();
-        Map<ReceivableKey, List<Transaction>> txnReceivableMap = processReceivable(null, today.atStartOfDay(), today.plusDays(1).atStartOfDay());
+    public void processReceivable(LocalDate date) {
+        Map<ReceivableKey, List<Transaction>> txnReceivableMap = processReceivable(null, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
         if (txnReceivableMap == null) {
             return;
         }
@@ -67,11 +68,25 @@ public class ReceivableProcessService {
                     log.error("Undefined Settlement Host {}", module.name);
                     break;
             }
-
         }
     }
 
-    public Map<ReceivableKey, List<Transaction>> processReceivable(Long moduleId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+    public void createReceivable(Receivable receivable) {
+        receivableService.save(receivable);
+    }
+
+    public void removeReceivable(Long reconcileId) {
+        Receivable receivable = receivableService.getById(reconcileId);
+        if (receivable == null) {
+            throw new ReceivableException(ErrorMessage.RECEIVABLE.INVALID_RECEIVABLE_ID(reconcileId));
+        }
+        List<Long> transactionIds = reconcileService.getTransactionIdByReceivableId(reconcileId);
+        if (transactionIds != null && transactionIds.size() > 0) {
+            throw new ReceivableException(ErrorMessage.RECEIVABLE.RECEIVABLE_TRANSACTION_ID(reconcileId));
+        }
+    }
+
+    private Map<ReceivableKey, List<Transaction>> processReceivable(Long moduleId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
         log.debug("Receivable Process for {}, {} - {}", moduleId, startDateTime, endDateTime);
         List<Transaction> transactionList = transactionService.getReceivableTransactions(
                 moduleId, // null means ALL modules
@@ -104,6 +119,10 @@ public class ReceivableProcessService {
                 receivableKey.currency,
                 receivableKey.txnDate.plusDays(("SGD".equals(receivableKey.currency) ? 1 : 2)) // SGD: T+1; USD: T+2
         );
+        calculateReceivable(receivableKey, transactionList, receivableDate);
+    }
+
+    private void calculateReceivable(ReceivableKey receivableKey, List<Transaction> transactionList, LocalDate receivableDate) {
         Receivable receivable = receivableService.getFirstByReceivableDateAndPayerAndCurrency(
                 receivableDate,
                 SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME,
@@ -122,7 +141,6 @@ public class ReceivableProcessService {
         }
         for (Transaction transaction : transactionList) {
             AcqRoute acqRoute = acqRouteService.getById(transaction.acqRouteId);
-            BigDecimal receivableRate = BigDecimal.ONE.subtract(acqRoute.mdrCost);
             Reconcile reconcile = reconcileService.getById(transaction.id);
             if (reconcile != null) {
                 log.info("Transaction {} is exist with ReceivableId {}", transaction.id, reconcile.receivableId);

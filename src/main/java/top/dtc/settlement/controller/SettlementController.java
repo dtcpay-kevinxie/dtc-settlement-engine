@@ -3,6 +3,7 @@ package top.dtc.settlement.controller;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import top.dtc.common.constant.DateTime;
 import top.dtc.settlement.model.api.ApiHeader;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.SettlementProcessService;
@@ -26,6 +27,21 @@ public class SettlementController {
             return new ApiResponse<>(new ApiHeader(true));
         } catch (Exception e) {
             log.error("Cannot process scheduled settlement", e);
+            errorMsg = e.getMessage();
+        }
+        return new ApiResponse<>(new ApiHeader(errorMsg));
+    }
+
+    @GetMapping(value = "/process/{processDate}")
+    public ApiResponse<?> processSettlement(@PathVariable("processDate") String processDate) {
+        String errorMsg;
+        try {
+            log.debug("/settlement/process {}", processDate);
+            LocalDate date = LocalDate.parse(processDate, DateTime.FORMAT.YYMMDD);
+            settlementProcessService.processSettlement(date);
+            return new ApiResponse<>(new ApiHeader(true));
+        } catch (Exception e) {
+            log.error("Cannot process settlement", e);
             errorMsg = e.getMessage();
         }
         return new ApiResponse<>(new ApiHeader(errorMsg));

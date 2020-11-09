@@ -31,9 +31,6 @@ public class SettlementProcessService {
     private ReserveProcessService reserveProcessService;
 
     @Autowired
-    private ReconcileProcessService reconcileProcessService;
-
-    @Autowired
     private ReconcileService reconcileService;
 
     @Autowired
