@@ -117,7 +117,7 @@ public class ReceivableProcessService {
         LocalDate receivableDate = settlementCalendarService.getClosestSettleDate(
                 receivableKey.moduleId,
                 receivableKey.currency,
-                receivableKey.txnDate.plusDays(("SGD".equals(receivableKey.currency) ? 0 : 1)) // SGD: T+1; USD: T+2
+                receivableKey.txnDate.plusDays(("SGD".equals(receivableKey.currency) ? 1 : 2)) // SGD: T+1; USD: T+2
         );
         if (receivableDate == null) {
             throw new ReceivableException("No acquirer calendar found");
@@ -143,12 +143,12 @@ public class ReceivableProcessService {
             receivableService.save(receivable);
         }
         for (Transaction transaction : transactionList) {
-            AcqRoute acqRoute = acqRouteService.getById(transaction.acqRouteId);
             Reconcile reconcile = reconcileService.getById(transaction.id);
             if (reconcile != null) {
                 log.info("Transaction {} is exist with ReceivableId {}", transaction.id, reconcile.receivableId);
-                return;
+                continue;
             }
+            AcqRoute acqRoute = acqRouteService.getById(transaction.acqRouteId);
             initialReconcile(transaction, receivable.id);
             calculateAmount(receivable, transaction, acqRoute);
         }

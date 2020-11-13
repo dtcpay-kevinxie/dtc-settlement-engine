@@ -248,7 +248,7 @@ public class SettlementProcessService {
             settlement.chargebackProcessingFee = BigDecimal.ZERO;
             settlement.monthlyFee = BigDecimal.ZERO;
             settlement.annualFee = BigDecimal.ZERO;
-            settlement.invoiceAmount =BigDecimal.ZERO;
+            settlement.totalFee = BigDecimal.ZERO;
             settlement.vatAmount = BigDecimal.ZERO;
             settlement.settleFinalAmount = BigDecimal.ZERO;
             switch (settlement.scheduleType) {
