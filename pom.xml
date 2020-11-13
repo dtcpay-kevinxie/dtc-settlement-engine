@@ -42,7 +42,7 @@
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-settlement</artifactId>
-            <version>0.2.0-SNAPSHOT</version>
+            <version>0.3.0-SNAPSHOT</version>
         </dependency>
 
         <!-- HTTP -->

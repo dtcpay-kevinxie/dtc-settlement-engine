@@ -117,8 +117,11 @@ public class ReceivableProcessService {
         LocalDate receivableDate = settlementCalendarService.getClosestSettleDate(
                 receivableKey.moduleId,
                 receivableKey.currency,
-                receivableKey.txnDate.plusDays(("SGD".equals(receivableKey.currency) ? 1 : 2)) // SGD: T+1; USD: T+2
+                receivableKey.txnDate.plusDays(("SGD".equals(receivableKey.currency) ? 0 : 1)) // SGD: T+1; USD: T+2
         );
+        if (receivableDate == null) {
+            throw new ReceivableException("No acquirer calendar found");
+        }
         calculateReceivable(receivableKey, transactionList, receivableDate);
     }
 
