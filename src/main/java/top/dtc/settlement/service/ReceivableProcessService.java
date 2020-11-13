@@ -157,6 +157,7 @@ public class ReceivableProcessService {
 
     private void initialReconcile(Transaction transaction, Long receivableId) {
         Reconcile reconcile = new Reconcile();
+        reconcile.transactionId = transaction.id;
         reconcile.status = ReconcileStatus.PENDING;
         reconcile.requestAmount = transaction.totalAmount;
         reconcile.requestCurrency = transaction.requestCurrency;
@@ -182,6 +183,7 @@ public class ReceivableProcessService {
             default:
                 break;
         }
+        log.debug("Receivable Amount {}", receivable.amount);
     }
 
     @Data
