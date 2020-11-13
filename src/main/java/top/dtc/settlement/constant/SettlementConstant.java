@@ -1,5 +1,6 @@
 package top.dtc.settlement.constant;
 
+import top.dtc.common.enums.TransactionState;
 import top.dtc.data.settlement.enums.ScheduleType;
 
 import java.math.BigDecimal;
@@ -29,6 +30,10 @@ public class SettlementConstant {
             public static final String NAME = "aleta";
         }
     }
+    public static final ArrayList<TransactionState> STATE_FOR_SETTLE = new ArrayList<>(Arrays.asList(
+            TransactionState.SUCCESS,
+            TransactionState.REFUNDED
+    ));
 
     public static class SETTLEMENT_SCHEDULE {
         public static final ArrayList<ScheduleType> DAILY = new ArrayList<>(Arrays.asList(ScheduleType.DAILY));

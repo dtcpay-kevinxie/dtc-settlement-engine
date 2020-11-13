@@ -23,6 +23,8 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 
+import static top.dtc.settlement.constant.SettlementConstant.STATE_FOR_SETTLE;
+
 @Log4j2
 @Service
 public class SettlementProcessService {
@@ -211,7 +213,8 @@ public class SettlementProcessService {
                 settlementConfig.merchantId,
                 settlementConfig.currency,
                 cycleStart.atStartOfDay(),
-                cycleEnd.plusDays(1).atStartOfDay()
+                cycleEnd.plusDays(1).atStartOfDay(),
+                STATE_FOR_SETTLE
         );
         if (transactionList.size() < 1) {
             log.info("No unsettled transactions under MerchantAccount [{}] before Date [{}]", settlementConfig.id, cycleStart);
