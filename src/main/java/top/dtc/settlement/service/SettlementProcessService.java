@@ -23,6 +23,7 @@ import top.dtc.settlement.exception.SettlementException;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
 import static top.dtc.settlement.constant.SettlementConstant.STATE_FOR_SETTLE;
@@ -60,22 +61,21 @@ public class SettlementProcessService {
         log.info("Start process Daily settlement");
         List<SettlementConfig> dailySettlementList = settlementConfigService.getByScheduleTypeIn(SettlementConstant.SETTLEMENT_SCHEDULE.DAILY);
         for(SettlementConfig settlementConfig : dailySettlementList) {
-            packTransactionByDate(settlementConfig, today.minusDays(1), today); // Pack all transactions before Today 00:00
+            // Pack all transactions From Yesterday (00:00) to Yesterday (23:59)
+            packTransactionByDate(settlementConfig, today.minusDays(1), today.minusDays(1));
         }
 
         log.info("start processing weekly settlement");
         List<SettlementConfig> weeklySettlementList = settlementConfigService.getByScheduleTypeIn(SettlementConstant.SETTLEMENT_SCHEDULE.WEEKLY);
         for (SettlementConfig settlementConfig : weeklySettlementList) {
-            // Pack all transactions Between this Monday 00:00 and next Monday 00:00
-            packTransactionByDate(settlementConfig, today.with(DayOfWeek.MONDAY).minusWeeks(1), today.with(DayOfWeek.MONDAY));
+            // Pack all transactions Between this Monday 00:00 and this Sunday 23:59
+            packTransactionByDate(settlementConfig, today.minusDays(1).with(DayOfWeek.MONDAY), today.minusDays(1).with(DayOfWeek.SUNDAY));
         }
 
         log.info("start processing monthly settlement");
-        if (today.getDayOfMonth() == 1) {
-            List<SettlementConfig> monthlySettlementList = settlementConfigService.getByScheduleTypeIn(SettlementConstant.SETTLEMENT_SCHEDULE.MONTHLY);
-            for (SettlementConfig settlementConfig : monthlySettlementList) {
-                packTransactionByDate(settlementConfig, today, today.plusMonths(1));
-            }
+        List<SettlementConfig> monthlySettlementList = settlementConfigService.getByScheduleTypeIn(SettlementConstant.SETTLEMENT_SCHEDULE.MONTHLY);
+        for (SettlementConfig settlementConfig : monthlySettlementList) {
+            packTransactionByDate(settlementConfig, today.with(TemporalAdjusters.firstDayOfMonth()), today.with(TemporalAdjusters.lastDayOfMonth()));
         }
     }
 
