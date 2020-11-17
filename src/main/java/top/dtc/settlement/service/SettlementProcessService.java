@@ -12,10 +12,12 @@ import top.dtc.data.core.service.MerchantService;
 import top.dtc.data.core.service.TransactionService;
 import top.dtc.data.settlement.enums.AccountOwnerType;
 import top.dtc.data.settlement.enums.InvoiceType;
+import top.dtc.data.settlement.enums.ReserveStatus;
 import top.dtc.data.settlement.model.*;
 import top.dtc.data.settlement.service.*;
 import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.constant.SettlementConstant;
+import top.dtc.settlement.exception.ReserveException;
 import top.dtc.settlement.exception.SettlementException;
 
 import java.math.BigDecimal;
@@ -30,13 +32,13 @@ import static top.dtc.settlement.constant.SettlementConstant.STATE_FOR_SETTLE;
 public class SettlementProcessService {
 
     @Autowired
-    private ReserveProcessService reserveProcessService;
-
-    @Autowired
     private ReconcileService reconcileService;
 
     @Autowired
     private SettlementService settlementService;
+
+    @Autowired
+    private ReserveService reserveService;
 
     @Autowired
     private SettlementConfigService settlementConfigService;
@@ -76,68 +78,6 @@ public class SettlementProcessService {
             }
         }
     }
-
-//    public void createSettlement(List<Long> transactionIds, Long merchantAccountId) {
-//        MerchantAccount merchantAccount = merchantAccountService.getById(merchantAccountId);
-//        if (merchantAccount != null) {
-//            createSettlement(transactionIds, merchantAccount);
-//        }
-//    }
-
-    // Manually Add 1 transaction to existing settlement
-//    public void includeTransaction(Long settlementId, Long transactionId) {
-//        Settlement settlement = getOpenedSettlement(settlementId);
-//        Transaction transaction = transactionService.getById(transactionId);
-//        if (transaction ==  null
-//                || transaction.settlementStatus != SettlementStatus.PENDING
-//                || transaction.state != TransactionState.SUCCESS && transaction.state != TransactionState.REFUNDED
-//        ) {
-//            throw new SettlementException(ErrorMessage.SETTLEMENT.INCLUDE_FAILED(transactionId));
-//        }
-//        SettlementConfig settlementConfig = settlementConfigService.getFirstByMerchantIdAndBrandAndCurrency(transaction.merchantId, transaction.brand, transaction.requestCurrency);
-//        Reconcile reconcile = reconcileProcessService.getSettlementReconcile(transaction, settlementConfig);
-//        if (reconcile.settlementId != null || reconcile.payableId != null) {
-//            throw new SettlementException(ErrorMessage.SETTLEMENT.INCLUDE_FAILED(reconcile.transactionId));
-//        }
-//        reconcile.settlementId = settlementId;
-//        addTransactionToSettlement(settlement, transaction, settlementConfig);
-//        reconcileService.saveOrUpdate(reconcile);
-//        settlementService.updateById(settlement);
-//    }
-
-    // Manually Remove 1 transaction from settlement
-//    public void excludeTransaction(Long settlementId, Long transactionId) {
-//        Settlement settlement = getOpenedSettlement(settlementId);
-//        Transaction transaction = transactionService.getById(transactionId);
-//        if (transaction ==  null
-//                || transaction.settlementStatus != SettlementStatus.PENDING) {
-//            throw new SettlementException(ErrorMessage.SETTLEMENT.EXCLUDE_FAILED(transactionId));
-//        }
-//        Reconcile reconcile = reconcileService.getById(transaction.id);
-//        if (reconcile.payableId != null) {
-//            // Transaction has been paid out
-//            throw new SettlementException(ErrorMessage.SETTLEMENT.EXCLUDE_FAILED(transactionId));
-//        }
-//        reconcile.settlementId = null;
-//        reconcileService.saveOrUpdate(reconcile);
-//        SettlementConfig settlementConfig = settlementConfigService.getFirstByMerchantIdAndBrandAndCurrency(transaction.merchantId, transaction.brand, transaction.requestCurrency);
-//        switch (transaction.type) {
-//            case SALE:
-//            case CAPTURE:
-//            case MERCHANT_DYNAMIC_QR:
-//            case CONSUMER_QR:
-//                settlement.saleCount--;
-//                settlement.saleAmount = settlement.saleAmount.subtract(settlementConfig.saleFee);
-//                break;
-//            case REFUND:
-//                settlement.refundCount--;
-//                settlement.refundAmount = settlement.refundAmount.subtract(settlementConfig.refundFee);
-//                break;
-//            default:
-//                throw new SettlementException(ErrorMessage.SETTLEMENT.INCLUDE_FAILED(transaction.id, transaction.type.desc));
-//        }
-//        settlementService.updateById(settlement);
-//    }
 
     // Submit settlement to reviewer
     public void submitSettlement(Long settlementId) {
@@ -289,12 +229,13 @@ public class SettlementProcessService {
             }
             settlementService.save(settlement); // Get settlement id for reconcile
         }
-        calculateSettlement(transactionList, settlementConfig, settlement);
-        reserveProcessService.calculateReserve(settlement, settlementConfig);
+        calculateTransaction(transactionList, settlementConfig, settlement);
+        calculateReserve(settlement, settlementConfig);
+        calculateFinalAmount(settlement);
         settlementService.updateById(settlement);
     }
 
-    private void calculateSettlement(List<Transaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
+    private void calculateTransaction(List<Transaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
         ClientAccount clientAccount = clientAccountService.getClientAccount(
                 settlementConfig.merchantId, AccountOwnerType.PAYMENT_MERCHANT, settlementConfig.currency);
         settlement.remitInfoId = clientAccount.remitInfoId;
@@ -313,16 +254,16 @@ public class SettlementProcessService {
                 case CONSUMER_QR:
                     settlement.saleCount++;
                     settlement.saleAmount = settlement.saleAmount.add(transaction.totalAmount.subtract(transaction.processingFee));
-                    settlement.saleProcessingFee = settlement.saleProcessingFee.add(settlementConfig.saleFee);
-                    settlement.mdrFee = settlement.mdrFee.add(settlementConfig.mdr.multiply(transaction.totalAmount.subtract(transaction.processingFee)));
+                    settlement.saleProcessingFee = settlement.saleProcessingFee.add(settlementConfig.saleFee).negate();
+                    settlement.mdrFee = settlement.mdrFee.add(settlementConfig.mdr.multiply(transaction.totalAmount.subtract(transaction.processingFee)).negate());
                     BigDecimal payoutRate = BigDecimal.ONE.subtract(settlementConfig.mdr);
                     reconcile.payoutAmount = payoutRate.multiply(transaction.totalAmount.subtract(transaction.processingFee)).subtract(settlementConfig.saleFee);
                     break;
                 case REFUND:
                     settlement.refundCount++;
-                    settlement.refundAmount = settlement.refundAmount.add(settlementConfig.refundFee);
-                    settlement.refundProcessingFee = settlement.refundProcessingFee.add(settlementConfig.refundFee);
-                    reconcile.payoutAmount = transaction.totalAmount.negate().subtract(settlementConfig.refundFee);
+                    settlement.refundAmount = settlement.refundAmount.add(settlementConfig.refundFee).negate();
+                    settlement.refundProcessingFee = settlement.refundProcessingFee.add(settlementConfig.refundFee.negate());
+                    reconcile.payoutAmount = transaction.totalAmount.negate().add(settlementConfig.refundFee);
                     break;
                 default:
                     log.error("Invalid Transaction Type found {}", transaction);
@@ -332,6 +273,74 @@ public class SettlementProcessService {
             clientAccount.balance = clientAccount.balance.add(reconcile.payoutAmount);
         }
         clientAccountService.updateById(clientAccount);
+    }
+
+    public void calculateReserve(Settlement settlement, SettlementConfig settlementConfig) {
+        if (settlementConfig.reserveType == null) {
+            return;
+        }
+        Reserve reserve;
+        if (settlement.reserveId == null) {
+            // Create new Reserve
+            reserve = new Reserve();
+            reserve.type = settlementConfig.reserveType;
+            reserve.reservePeriod = settlementConfig.reservePeriod;
+            reserve.status = ReserveStatus.PENDING;
+            reserve.reserveSettlementId = settlement.id;
+            reserve.currency = settlement.currency;
+            reserve.merchantId = settlement.merchantId;
+            reserve.merchantName = settlement.merchantName;
+            reserve.reservedDate = settlement.settleDate;
+            if (settlementConfig.reservePeriod > 0) {
+                reserve.dateToRelease = reserve.reservedDate.plusDays(settlementConfig.reservePeriod);
+            }
+            settlement.reserveId = reserve.id;
+        } else {
+            // Reset existing Reserve
+            reserve = reserveService.getById(settlement.reserveId);
+            if (reserve == null) {
+                throw new ReserveException(ErrorMessage.RESERVE.INVALID_RESERVE_ID(settlement.reserveId));
+            }
+            if (reserve.status != ReserveStatus.PENDING) {
+                throw new ReserveException(ErrorMessage.RESERVE.RESET_FAILED(reserve.id, reserve.status.desc));
+            }
+        }
+        switch (reserve.type) {
+            case ROLLING:
+                if (settlementConfig.reserveRate == null) {
+                    throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
+                }
+                reserve.reserveRate = settlementConfig.reserveRate;
+                reserve.totalAmount = settlement.saleAmount.multiply(settlementConfig.reserveRate);
+                break;
+            case FIXED:
+                if (settlementConfig.reserveAmount == null) {
+                    throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
+                }
+                reserve.totalAmount = settlementConfig.reserveAmount;
+                break;
+            default:
+                throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
+        }
+        reserveService.saveOrUpdate(reserve);
+        settlement.reserveAmount = reserve.totalAmount.negate();
+    }
+
+    private void calculateFinalAmount(Settlement settlement) {
+        settlement.totalFee = settlement.mdrFee
+                .add(settlement.chargebackProcessingFee)
+                .add(settlement.saleProcessingFee)
+                .add(settlement.refundProcessingFee)
+                .add(settlement.annualFee)
+                .add(settlement.monthlyFee);
+        settlement.vatAmount = settlement.totalFee.multiply(new BigDecimal("0.07"));
+        settlement.settleFinalAmount = settlement.saleAmount
+                .add(settlement.refundAmount)
+                .add(settlement.adjustmentAmount)
+                .add(settlement.reserveAmount)
+                .add(settlement.releaseAmount)
+                .add(settlement.totalFee)
+                .add(settlement.vatAmount);
     }
 
     private String getPrefix(Settlement settlement) {
