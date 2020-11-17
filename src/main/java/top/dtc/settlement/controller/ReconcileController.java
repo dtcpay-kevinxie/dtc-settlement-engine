@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import top.dtc.settlement.model.api.ApiHeader;
+import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.module.aletapay.service.AletaReconcileService;
 
@@ -20,17 +20,15 @@ public class ReconcileController {
     private AletaReconcileService aletaReconcileService;
 
     @PostMapping(value = "/aleta")
-    public ApiResponse aletaReconcile(@RequestParam("file") MultipartFile multipartFile) {
-        String errorMsg;
+    public ApiResponse<?> aletaReconcile(@RequestParam("file") MultipartFile multipartFile) {
         try {
             log.debug("/aleta {}", multipartFile.getOriginalFilename());
             aletaReconcileService.reconcile(multipartFile);
-            return new ApiResponse<>(new ApiHeader(true));
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot aletaReconcile", e);
-            errorMsg = e.getMessage();
+            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
         }
-        return new ApiResponse<>(new ApiHeader(errorMsg));
     }
 
 }
