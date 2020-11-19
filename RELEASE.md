@@ -4,6 +4,14 @@
 
 * Update application.yml
 * Change jetty to undertow
+* Update data-settlement version
+* Update Aleta settlement day calculation
+* Fix reconcile transactionId bug
+* Fix invoice amount bug
+* Fix transaction state bug
+* Fix Settlement finalAmount calculation
+* ApiHeader
+* Settlement Batch command
 
 [0.1.0] - 09 Nov 2020
 

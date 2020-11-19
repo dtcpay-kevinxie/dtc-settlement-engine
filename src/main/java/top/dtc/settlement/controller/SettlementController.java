@@ -4,7 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.common.constant.DateTime;
-import top.dtc.settlement.model.api.ApiHeader;
+import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.SettlementProcessService;
 
@@ -20,31 +20,27 @@ public class SettlementController {
 
     @PostMapping(value = "/scheduled")
     public ApiResponse<?> scheduled() {
-        String errorMsg;
         try {
             log.debug("/scheduled");
             settlementProcessService.processSettlement(LocalDate.now());
-            return new ApiResponse<>(new ApiHeader(true));
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process scheduled settlement", e);
-            errorMsg = e.getMessage();
+            return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
         }
-        return new ApiResponse<>(new ApiHeader(errorMsg));
     }
 
     @GetMapping(value = "/process/{processDate}")
     public ApiResponse<?> processSettlement(@PathVariable("processDate") String processDate) {
-        String errorMsg;
         try {
             log.debug("/settlement/process {}", processDate);
             LocalDate date = LocalDate.parse(processDate, DateTime.FORMAT.YYMMDD);
             settlementProcessService.processSettlement(date);
-            return new ApiResponse<>(new ApiHeader(true));
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process settlement", e);
-            errorMsg = e.getMessage();
+            return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
         }
-        return new ApiResponse<>(new ApiHeader(errorMsg));
     }
 
 //    @PostMapping(value = "/create/{merchantAccountId}")
@@ -88,55 +84,51 @@ public class SettlementController {
 //    }
 
     @PutMapping(value = "/submit/{settlementId}")
-    public ApiResponse<Long> submit(@PathVariable("settlementId") Long settlementId) {
-        String errorMsg = null;
+    public ApiResponse<?> submit(@PathVariable("settlementId") Long settlementId) {
         try {
             log.debug("/submit {}", settlementId);
             settlementProcessService.submitSettlement(settlementId);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot submit settlement", e);
-            errorMsg = e.getMessage();
+            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
         }
-        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
     }
 
     @PutMapping(value = "/retrieve/{settlementId}")
-    public ApiResponse<Long> retrieve(@PathVariable("settlementId") Long settlementId) {
-        String errorMsg = null;
+    public ApiResponse<?> retrieve(@PathVariable("settlementId") Long settlementId) {
         try {
             log.debug("/retrieve {}", settlementId);
             settlementProcessService.retrieveSubmission(settlementId);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot retrieve settlement submission", e);
-            errorMsg = e.getMessage();
+            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
         }
-        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
     }
 
     @PutMapping(value = "/approve/{settlementId}")
-    public ApiResponse<Long> approve(@PathVariable("settlementId") Long settlementId) {
-        String errorMsg = null;
+    public ApiResponse<?> approve(@PathVariable("settlementId") Long settlementId) {
         try {
             log.debug("/approve {}", settlementId);
             settlementProcessService.approve(settlementId);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot approve settlement", e);
-            errorMsg = e.getMessage();
+            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
         }
-        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
     }
 
     @PutMapping(value = "/reject/{settlementId}")
-    public ApiResponse<Long> reject(@PathVariable("settlementId") Long settlementId) {
-        String errorMsg = null;
+    public ApiResponse<?> reject(@PathVariable("settlementId") Long settlementId) {
         try {
             log.debug("/reject {}", settlementId);
             settlementProcessService.reject(settlementId);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot reject settlement", e);
-            errorMsg = e.getMessage();
+            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
         }
-        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
     }
 
 }
