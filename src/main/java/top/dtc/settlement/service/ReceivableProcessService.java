@@ -55,7 +55,7 @@ public class ReceivableProcessService {
     private SettlementCalendarService settlementCalendarService;
 
     public void processReceivable(LocalDate date) {
-        Map<ReceivableKey, List<Transaction>> txnReceivableMap = processReceivable(null, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+        Map<ReceivableKey, List<Transaction>> txnReceivableMap = processReceivable(null, date.minusDays(1).atStartOfDay(), date.atStartOfDay());
         if (txnReceivableMap == null) {
             return;
         }
