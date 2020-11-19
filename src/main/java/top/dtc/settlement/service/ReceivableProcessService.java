@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.dtc.common.enums.SettlementStatus;
 import top.dtc.data.core.model.AcqRoute;
 import top.dtc.data.core.model.Module;
 import top.dtc.data.core.model.Transaction;
@@ -63,6 +64,9 @@ public class ReceivableProcessService {
             switch (module.name) {
                 case SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME:
                     processAletaReceivable(key, txnReceivableMap.get(key));
+                    break;
+                case SettlementConstant.MODULE.GLOBAL_PAYMENT.NAME:
+                    processGlobalPaymentReceivable(key, txnReceivableMap.get(key));
                     break;
                 default:
                     log.error("Undefined Settlement Host {}", module.name);
@@ -123,6 +127,13 @@ public class ReceivableProcessService {
             throw new ReceivableException("No acquirer calendar found");
         }
         calculateReceivable(receivableKey, transactionList, receivableDate);
+    }
+
+    private void processGlobalPaymentReceivable(ReceivableKey receivableKey, List<Transaction> transactionList) {
+        //TODO : Add GP settlement cycle and generate Receivable
+        List<Long> ids = new ArrayList<>();
+        transactionList.forEach(transaction -> {ids.add(transaction.id);});
+        transactionService.updateSettlementStatusByIdIn(SettlementStatus.ACQ_SETTLED, ids);
     }
 
     private void calculateReceivable(ReceivableKey receivableKey, List<Transaction> transactionList, LocalDate receivableDate) {

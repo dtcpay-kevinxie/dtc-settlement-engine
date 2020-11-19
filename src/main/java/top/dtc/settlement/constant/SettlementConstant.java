@@ -29,6 +29,9 @@ public class SettlementConstant {
         public static class ALETA_SECURE_PAY {
             public static final String NAME = "aleta";
         }
+        public static class GLOBAL_PAYMENT {
+            public static final String NAME = "globalPayment";
+        }
     }
     public static final ArrayList<TransactionState> STATE_FOR_SETTLE = new ArrayList<>(Arrays.asList(
             TransactionState.SUCCESS,
