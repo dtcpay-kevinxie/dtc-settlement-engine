@@ -46,7 +46,7 @@ public class SettlementConstant {
                 ScheduleType.WEEKLY_SAT,
                 ScheduleType.WEEKLY_SUN
         ));
-        public static final ArrayList<ScheduleType> MONTHLY = new ArrayList<>(Arrays.asList(ScheduleType.DAILY));
+        public static final ArrayList<ScheduleType> MONTHLY = new ArrayList<>(Arrays.asList(ScheduleType.MONTHLY));
     }
 
     public static String getDesc(LocalDate txnDate) {

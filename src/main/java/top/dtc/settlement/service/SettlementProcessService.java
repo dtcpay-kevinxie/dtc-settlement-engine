@@ -157,7 +157,8 @@ public class SettlementProcessService {
                 STATE_FOR_SETTLE
         );
         if (transactionList.size() < 1) {
-            log.info("No unsettled transactions under MerchantAccount [{}] before Date [{}]", settlementConfig.id, cycleStart);
+            log.info("No unsettled transactions under SettlementConfig [{}] between [{} ~ {}]",
+                    settlementConfig.id, cycleStart.atStartOfDay(), cycleEnd.plusDays(1).atStartOfDay());
             return;
         }
         Settlement settlement = settlementService.getSettlement(settlementConfig.merchantId, cycleStart, cycleEnd, settlementConfig.currency);
@@ -227,23 +228,31 @@ public class SettlementProcessService {
                     settlement.settleDate = LocalDate.now().plusDays(1);
                     break;
             }
-            settlementService.save(settlement); // Get settlement id for reconcile
         }
-        calculateTransaction(transactionList, settlementConfig, settlement);
+        boolean isSettlementUpdated = calculateTransaction(transactionList, settlementConfig, settlement);
+        if (!isSettlementUpdated) {
+            log.debug("Settlement Not Updated");
+            return;
+        }
         calculateReserve(settlement, settlementConfig);
         calculateFinalAmount(settlement);
         settlementService.updateById(settlement);
     }
 
-    private void calculateTransaction(List<Transaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
+    private boolean calculateTransaction(List<Transaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
         ClientAccount clientAccount = clientAccountService.getClientAccount(
                 settlementConfig.merchantId, AccountOwnerType.PAYMENT_MERCHANT, settlementConfig.currency);
-        settlement.remitInfoId = clientAccount.remitInfoId;
+        boolean isSettlementUpdated = false;
         for (Transaction transaction : transactionList) {
             Reconcile reconcile = reconcileService.getById(transaction.id);
             if (reconcile.settlementId != null || reconcile.payoutAmount != null || reconcile.payoutCurrency != null) {
                 // Transaction has been packed into settlement.
                 continue;
+            }
+            isSettlementUpdated = true;
+            if (settlement.id == null) {
+                log.info("New Settlement Created.");
+                settlementService.save(settlement); // Get settlement id for reconcile
             }
             reconcile.settlementId = settlement.id;
             reconcile.payoutCurrency = transaction.requestCurrency;
@@ -273,6 +282,8 @@ public class SettlementProcessService {
             clientAccount.balance = clientAccount.balance.add(reconcile.payoutAmount);
         }
         clientAccountService.updateById(clientAccount);
+        settlement.remitInfoId = clientAccount.remitInfoId;
+        return isSettlementUpdated;
     }
 
     public void calculateReserve(Settlement settlement, SettlementConfig settlementConfig) {
