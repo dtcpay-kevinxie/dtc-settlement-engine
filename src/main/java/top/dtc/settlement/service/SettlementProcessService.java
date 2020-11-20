@@ -42,6 +42,9 @@ public class SettlementProcessService {
     private ReserveService reserveService;
 
     @Autowired
+    private PayableService payableService;
+
+    @Autowired
     private SettlementConfigService settlementConfigService;
 
     @Autowired
@@ -55,6 +58,9 @@ public class SettlementProcessService {
 
     @Autowired
     private ClientAccountService clientAccountService;
+
+    @Autowired
+    private ClientAccountProcessService clientAccountProcessService;
 
     // Process All types of auto-settlement
     public void processSettlement(LocalDate today) {
@@ -129,10 +135,10 @@ public class SettlementProcessService {
         settlementService.updateById(settlement);
         List<Long> transactionIds = reconcileService.getTransactionIdBySettlementId(settlementId);
         transactionService.updateSettlementStatusByIdIn(SettlementStatus.APPROVED, transactionIds);
-        //TODO : Update Payable in Reconcile
         invoiceNumberService.saveOrUpdate(invoiceNumber);
-
         //TODO : Send notification to Payout Team
+//        createPayable(settlement);
+        clientAccountProcessService.calculateBalance(settlement.merchantId, AccountOwnerType.PAYMENT_MERCHANT, settlement.currency);
     }
 
     // Reviewer reject settlement submitted
@@ -160,6 +166,12 @@ public class SettlementProcessService {
             log.info("No unsettled transactions under SettlementConfig [{}] between [{} ~ {}]",
                     settlementConfig.id, cycleStart.atStartOfDay(), cycleEnd.plusDays(1).atStartOfDay());
             return;
+        }
+        ClientAccount clientAccount = clientAccountService.getClientAccount(
+                settlementConfig.merchantId, AccountOwnerType.PAYMENT_MERCHANT, settlementConfig.currency);
+        if (clientAccount == null) {
+            log.error("No ClientAccount under {}", settlementConfig);
+            throw new SettlementException("No ClientAccount Found");
         }
         Settlement settlement = settlementService.getSettlement(settlementConfig.merchantId, cycleStart, cycleEnd, settlementConfig.currency);
         if (settlement != null) {
@@ -228,6 +240,7 @@ public class SettlementProcessService {
                     settlement.settleDate = LocalDate.now().plusDays(1);
                     break;
             }
+            settlement.remitInfoId = clientAccount.remitInfoId;
         }
         boolean isSettlementUpdated = calculateTransaction(transactionList, settlementConfig, settlement);
         if (!isSettlementUpdated) {
@@ -237,11 +250,10 @@ public class SettlementProcessService {
         calculateReserve(settlement, settlementConfig);
         calculateFinalAmount(settlement);
         settlementService.updateById(settlement);
+        clientAccountProcessService.calculateBalance(clientAccount);
     }
 
     private boolean calculateTransaction(List<Transaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
-        ClientAccount clientAccount = clientAccountService.getClientAccount(
-                settlementConfig.merchantId, AccountOwnerType.PAYMENT_MERCHANT, settlementConfig.currency);
         boolean isSettlementUpdated = false;
         for (Transaction transaction : transactionList) {
             Reconcile reconcile = reconcileService.getById(transaction.id);
@@ -272,17 +284,14 @@ public class SettlementProcessService {
                     settlement.refundCount++;
                     settlement.refundAmount = settlement.refundAmount.add(settlementConfig.refundFee).negate();
                     settlement.refundProcessingFee = settlement.refundProcessingFee.add(settlementConfig.refundFee.negate());
-                    reconcile.payoutAmount = transaction.totalAmount.negate().add(settlementConfig.refundFee);
+                    reconcile.payoutAmount = transaction.totalAmount.negate().add(settlementConfig.refundFee.negate());
                     break;
                 default:
                     log.error("Invalid Transaction Type found {}", transaction);
                     continue;
             }
             reconcileService.updateById(reconcile);
-            clientAccount.balance = clientAccount.balance.add(reconcile.payoutAmount);
         }
-        clientAccountService.updateById(clientAccount);
-        settlement.remitInfoId = clientAccount.remitInfoId;
         return isSettlementUpdated;
     }
 
@@ -362,6 +371,35 @@ public class SettlementProcessService {
                 .append("-")
                 .append(settlement.scheduleType.id);
         return sb.toString();
+    }
+
+    private void createPayable(Settlement settlement) {
+        Payable settlementPayable = new Payable();
+        settlementPayable.amount = settlement.settleFinalAmount;
+        settlementPayable.currency = settlement.currency;
+        settlementPayable.beneficiary = settlement.merchantName;
+        settlementPayable.remitInfoId = settlement.remitInfoId;
+//        settlementPayable.payDate = settlement.settleDate;
+
+        if (settlement.releasedReserveId != null) {
+            Reserve releasedReserve = reserveService.getById(settlement.releasedReserveId);
+            releasedReserve.releaseSettlementId = settlement.id;
+            releasedReserve.releasedDate = settlement.settleDate;
+            releasedReserve.status = ReserveStatus.RELEASED;
+        }
+
+        if (settlement.reserveId != null) {
+            Reserve reserve = reserveService.getById(settlement.reserveId);
+            Payable reservePayable = new Payable();
+            reservePayable.amount = reserve.totalAmount;
+            reservePayable.currency = reserve.currency;
+            reservePayable.remitInfoId = settlement.remitInfoId;
+//            reservePayable.payDate = reserve.dateToRelease;
+            payableService.save(reservePayable);
+        }
+
+        //TODO : Send Settlement data, Reserve data to Xero API
+        // Payable date for reserve? Settlement invoice for payable? Payable reference?
     }
 
 }

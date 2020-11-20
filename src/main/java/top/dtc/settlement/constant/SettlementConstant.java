@@ -1,5 +1,6 @@
 package top.dtc.settlement.constant;
 
+import top.dtc.common.enums.SettlementStatus;
 import top.dtc.common.enums.TransactionState;
 import top.dtc.data.settlement.enums.ScheduleType;
 
@@ -33,9 +34,19 @@ public class SettlementConstant {
             public static final String NAME = "globalPayment";
         }
     }
+
     public static final ArrayList<TransactionState> STATE_FOR_SETTLE = new ArrayList<>(Arrays.asList(
             TransactionState.SUCCESS,
             TransactionState.REFUNDED
+    ));
+
+    public static final ArrayList<SettlementStatus> NOT_SETTLED = new ArrayList<>(Arrays.asList(
+            SettlementStatus.PENDING,
+            SettlementStatus.SUBMITTED
+    ));
+
+    public static final ArrayList<SettlementStatus> REJECT_SETTLE = new ArrayList<>(Arrays.asList(
+            SettlementStatus.REJECTED
     ));
 
     public static class SETTLEMENT_SCHEDULE {
