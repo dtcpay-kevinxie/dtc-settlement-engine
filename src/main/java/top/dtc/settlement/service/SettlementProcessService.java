@@ -365,7 +365,7 @@ public class SettlementProcessService {
 
     private String getPrefix(Settlement settlement) {
         StringBuilder sb = new StringBuilder()
-                .append(String.valueOf(settlement.merchantId), 8, '0')
+                .append(settlement.merchantId)
                 .append("-")
                 .append(settlement.currency)
                 .append("-")
