@@ -9,14 +9,14 @@ import top.dtc.common.core.config.EnableUnirestJSON;
 import top.dtc.common.core.config.EnableWeb;
 import top.dtc.common.core.data.config.EnableDataAspect;
 import top.dtc.data.core.core.config.EnableDataCore;
+import top.dtc.data.finance.core.config.EnableDataFinance;
 import top.dtc.data.risk.core.config.EnableDataRisk;
-import top.dtc.data.settlement.core.config.EnableDataSettlement;
 
 @DtcApplication
 @EnableWeb
 @EnableDataCore
 @EnableDataRisk
-@EnableDataSettlement
+@EnableDataFinance
 @EnableDataAspect
 @EnableFastjsonHttpMessageConverter
 @EnableUnirestJSON

@@ -3,7 +3,7 @@ package top.dtc.settlement.controller;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import top.dtc.data.settlement.model.Adjustment;
+import top.dtc.data.finance.model.Adjustment;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.AdjustmentProcessService;

@@ -2,7 +2,7 @@ package top.dtc.settlement.constant;
 
 import top.dtc.common.enums.SettlementStatus;
 import top.dtc.common.enums.TransactionState;
-import top.dtc.data.settlement.enums.ScheduleType;
+import top.dtc.data.finance.enums.ScheduleType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

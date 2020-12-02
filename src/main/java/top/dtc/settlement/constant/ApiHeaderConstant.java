@@ -21,4 +21,9 @@ public class ApiHeaderConstant {
         public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("02999", errMsg); }
     }
 
+    // STARTS WITH "03"
+    public static class OTC {
+        public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("03999", errMsg); }
+    }
+
 }

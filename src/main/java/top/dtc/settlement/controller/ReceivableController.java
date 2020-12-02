@@ -4,7 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.common.constant.DateTime;
-import top.dtc.data.settlement.model.Receivable;
+import top.dtc.data.finance.model.Receivable;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.ReceivableProcessService;

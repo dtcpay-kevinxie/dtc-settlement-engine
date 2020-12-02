@@ -9,11 +9,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import top.dtc.data.core.model.Transaction;
 import top.dtc.data.core.service.TransactionService;
-import top.dtc.data.settlement.enums.ReconcileStatus;
-import top.dtc.data.settlement.model.Receivable;
-import top.dtc.data.settlement.model.Reconcile;
-import top.dtc.data.settlement.service.ReceivableService;
-import top.dtc.data.settlement.service.ReconcileService;
+import top.dtc.data.finance.enums.ReceivableStatus;
+import top.dtc.data.finance.model.PayoutReconcile;
+import top.dtc.data.finance.model.Receivable;
+import top.dtc.data.finance.service.PayoutReconcileService;
+import top.dtc.data.finance.service.ReceivableService;
 import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.constant.SettlementConstant;
 import top.dtc.settlement.exception.ReceivableException;
@@ -25,13 +25,14 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 
 @Log4j2
 @Service
 public class AletaReconcileService {
 
     @Autowired
-    private ReconcileService reconcileService;
+    private PayoutReconcileService payoutReconcileService;
 
     @Autowired
     private ReceivableService receivableService;
@@ -42,9 +43,9 @@ public class AletaReconcileService {
     @Autowired
     private AletaProperties aletaProperties;
 
-    public boolean reconcile(MultipartFile multipartFile) {
+    public boolean reconcile(MultipartFile multipartFile, Long receivableId) {
         String referenceNo = multipartFile.getOriginalFilename();
-        Receivable receivable = receivableService.getFirstByReferenceNo(referenceNo);
+        Receivable receivable = receivableService.getById(receivableId);
         if (receivable == null) {
             throw new ReceivableException(ErrorMessage.RECEIVABLE.INVALID_RECEIVABLE_REF(referenceNo));
         }
@@ -86,17 +87,18 @@ public class AletaReconcileService {
                 continue;
             }
             BigDecimal receivedAmount = new BigDecimal(record.settlementAmount);
-            Reconcile reconcile = reconcileService.getById(transaction.id);
-            reconcile.receivableId = receivable.id;
-            reconcile.receivedAmount = receivedAmount;
-            reconcile.receivedCurrency = record.settlementCurrency;
-            reconcileService.saveOrUpdate(reconcile);
+            PayoutReconcile payoutReconcile = payoutReconcileService.getById(transaction.id);
+            payoutReconcile.receivableId = receivable.id;
+            payoutReconcile.receivedAmount = receivedAmount;
+            payoutReconcile.receivedCurrency = record.settlementCurrency;
+            payoutReconcileService.saveOrUpdate(payoutReconcile);
             totalAmount = totalAmount.add(receivedAmount);
         }
         if (receivable.receivedAmount.compareTo(totalAmount) == 0) {
-            receivable.status = ReconcileStatus.MATCHED;
+            receivable.status = ReceivableStatus.RECEIVED;
+            receivable.writeOffDate = LocalDate.now();
         } else {
-            receivable.status = ReconcileStatus.UNMATCHED;
+            receivable.status = ReceivableStatus.PARTIAL;
         }
         receivableService.updateById(receivable);
     }

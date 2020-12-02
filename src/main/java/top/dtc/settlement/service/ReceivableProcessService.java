@@ -13,12 +13,13 @@ import top.dtc.data.core.model.Transaction;
 import top.dtc.data.core.service.AcqRouteService;
 import top.dtc.data.core.service.ModuleService;
 import top.dtc.data.core.service.TransactionService;
-import top.dtc.data.settlement.enums.ReconcileStatus;
-import top.dtc.data.settlement.model.Receivable;
-import top.dtc.data.settlement.model.Reconcile;
-import top.dtc.data.settlement.service.ReceivableService;
-import top.dtc.data.settlement.service.ReconcileService;
-import top.dtc.data.settlement.service.SettlementCalendarService;
+import top.dtc.data.finance.enums.ReceivableStatus;
+import top.dtc.data.finance.enums.ReconcileStatus;
+import top.dtc.data.finance.model.PayoutReconcile;
+import top.dtc.data.finance.model.Receivable;
+import top.dtc.data.finance.service.PayoutReconcileService;
+import top.dtc.data.finance.service.ReceivableService;
+import top.dtc.data.finance.service.SettlementCalendarService;
 import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.constant.SettlementConstant;
 import top.dtc.settlement.exception.ReceivableException;
@@ -46,7 +47,7 @@ public class ReceivableProcessService {
     private ModuleService moduleService;
 
     @Autowired
-    private ReconcileService reconcileService;
+    private PayoutReconcileService payoutReconcileService;
 
     @Autowired
     private ReceivableService receivableService;
@@ -84,7 +85,7 @@ public class ReceivableProcessService {
         if (receivable == null) {
             throw new ReceivableException(ErrorMessage.RECEIVABLE.INVALID_RECEIVABLE_ID(reconcileId));
         }
-        List<Long> transactionIds = reconcileService.getTransactionIdByReceivableId(reconcileId);
+        List<Long> transactionIds = payoutReconcileService.getTransactionIdByReceivableId(reconcileId);
         if (transactionIds != null && transactionIds.size() > 0) {
             throw new ReceivableException(ErrorMessage.RECEIVABLE.RECEIVABLE_TRANSACTION_ID(reconcileId));
         }
@@ -137,7 +138,7 @@ public class ReceivableProcessService {
     }
 
     private void calculateReceivable(ReceivableKey receivableKey, List<Transaction> transactionList, LocalDate receivableDate) {
-        Receivable receivable = receivableService.getFirstByReceivableDateAndPayerAndCurrency(
+        Receivable receivable = receivableService.getReceivableByDateAndPayerAndCurrency(
                 receivableDate,
                 SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME,
                 receivableKey.currency
@@ -145,7 +146,7 @@ public class ReceivableProcessService {
         if (receivable == null) {
             // Create new Receivable
             receivable = new Receivable();
-            receivable.status = ReconcileStatus.PENDING;
+            receivable.status = ReceivableStatus.NOT_RECEIVED;
             receivable.amount = BigDecimal.ZERO;
             receivable.currency = receivableKey.currency;
             receivable.payer = SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME;
@@ -154,7 +155,7 @@ public class ReceivableProcessService {
             receivableService.save(receivable);
         }
         for (Transaction transaction : transactionList) {
-            Reconcile reconcile = reconcileService.getById(transaction.id);
+            PayoutReconcile reconcile = payoutReconcileService.getById(transaction.id);
             if (reconcile != null) {
                 log.info("Transaction {} is exist with ReceivableId {}", transaction.id, reconcile.receivableId);
                 continue;
@@ -167,13 +168,13 @@ public class ReceivableProcessService {
     }
 
     private void initialReconcile(Transaction transaction, Long receivableId) {
-        Reconcile reconcile = new Reconcile();
-        reconcile.transactionId = transaction.id;
-        reconcile.status = ReconcileStatus.PENDING;
-        reconcile.requestAmount = transaction.totalAmount;
-        reconcile.requestCurrency = transaction.requestCurrency;
-        reconcile.receivableId = receivableId;
-        reconcileService.save(reconcile);
+        PayoutReconcile payoutReconcile = new PayoutReconcile();
+        payoutReconcile.transactionId = transaction.id;
+        payoutReconcile.status = ReconcileStatus.PENDING;
+        payoutReconcile.requestAmount = transaction.totalAmount;
+        payoutReconcile.requestCurrency = transaction.requestCurrency;
+        payoutReconcile.receivableId = receivableId;
+        payoutReconcileService.save(payoutReconcile);
     }
 
     private void calculateAmount(Receivable receivable, Transaction transaction, AcqRoute acqRoute) {
