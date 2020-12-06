@@ -13,6 +13,7 @@ import top.dtc.data.core.model.Transaction;
 import top.dtc.data.core.service.AcqRouteService;
 import top.dtc.data.core.service.ModuleService;
 import top.dtc.data.core.service.TransactionService;
+import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.enums.ReconcileStatus;
 import top.dtc.data.finance.model.PayoutReconcile;
@@ -85,9 +86,14 @@ public class ReceivableProcessService {
         if (receivable == null) {
             throw new ReceivableException(ErrorMessage.RECEIVABLE.INVALID_RECEIVABLE_ID(reconcileId));
         }
-        List<Long> transactionIds = payoutReconcileService.getTransactionIdByReceivableId(reconcileId);
-        if (transactionIds != null && transactionIds.size() > 0) {
-            throw new ReceivableException(ErrorMessage.RECEIVABLE.RECEIVABLE_TRANSACTION_ID(reconcileId));
+        if (receivable.type == InvoiceType.PAYMENT) {
+            List<Long> transactionIds = payoutReconcileService.getTransactionIdByReceivableId(reconcileId);
+            if (transactionIds != null && transactionIds.size() > 0) {
+                throw new ReceivableException(ErrorMessage.RECEIVABLE.RECEIVABLE_TRANSACTION_ID(reconcileId));
+            }
+            receivableService.removeById(receivable.id);
+        } else if (receivable.type == InvoiceType.OTC) {
+
         }
     }
 
@@ -146,6 +152,7 @@ public class ReceivableProcessService {
         if (receivable == null) {
             // Create new Receivable
             receivable = new Receivable();
+            receivable.type = InvoiceType.PAYMENT;
             receivable.status = ReceivableStatus.NOT_RECEIVED;
             receivable.amount = BigDecimal.ZERO;
             receivable.currency = receivableKey.currency;

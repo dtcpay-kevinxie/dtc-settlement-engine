@@ -65,7 +65,6 @@ public class ErrorMessage {
     }
 
     public static final class RECEIVABLE {
-
         public static String RECEIVABLE_TRANSACTION_ID(Long receivableId) {
             return String.format("There are Transactions under Receivable %s", receivableId);
         }
@@ -78,6 +77,21 @@ public class ErrorMessage {
             return String.format("Couldn't find Receivable by referenceNo [%s]", referenceNo);
         }
 
+        public static final String INVALID_RECEIVABLE_PARA = "Receivable referenceNo/amount/receivableId is invalid.";
+        public static final String INVALID_RECEIVABLE_STATUS = "Invalid Receivable Status";
+
+    }
+
+    public static final class PAYABLE {
+        public static final String INVALID_PAYABLE_REF = "Invalid Payable Status";
+        public static String OTC_NOT_RECEIVED(Long otcId) {
+            return String.format("Fund of OTC Order %s not yet received.", otcId);
+        }
+        public static final String PAYABLE_WROTE_OFF = "Payable is written-off already";
+    }
+
+    public static final class OTC {
+        public static final String HIGH_RISK_OTC = "The OTC is in high risk, please check client risk level";
     }
 
 }

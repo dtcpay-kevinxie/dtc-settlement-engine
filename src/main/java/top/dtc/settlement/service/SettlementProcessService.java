@@ -27,6 +27,7 @@ import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
+import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.PAYABLE_WROTE_OFF;
 import static top.dtc.settlement.constant.SettlementConstant.STATE_FOR_SETTLE;
 
 @Log4j2
@@ -191,8 +192,6 @@ public class SettlementProcessService {
             Merchant merchant = merchantService.getById(settlementConfig.merchantId);
             settlement.merchantName = merchant.fullName;
             settlement.adjustmentAmount = BigDecimal.ZERO;
-            settlement.reserveAmount = BigDecimal.ZERO;
-            settlement.releaseAmount = BigDecimal.ZERO;
             settlement.saleCount = 0;
             settlement.refundCount = 0;
             settlement.chargebackCount = 0;
@@ -248,10 +247,10 @@ public class SettlementProcessService {
             log.debug("Settlement Not Updated");
             return;
         }
-        calculateSettlementPayable(settlement); // Settlement Payable calculation is before Reserve Payable calculation
-        calculateReserve(settlement, settlementConfig);
         calculateFinalAmount(settlement);
+        Reserve reserve = calculateReserve(settlement, settlementConfig);
         settlementService.updateById(settlement);
+        calculatePayable(settlement, reserve);
         clientAccountProcessService.calculateBalance(clientAccount);
     }
 
@@ -284,7 +283,7 @@ public class SettlementProcessService {
                     break;
                 case REFUND:
                     settlement.refundCount++;
-                    settlement.refundAmount = settlement.refundAmount.add(settlementConfig.refundFee).negate();
+                    settlement.refundAmount = settlement.refundAmount.add(transaction.totalAmount.negate());
                     settlement.refundProcessingFee = settlement.refundProcessingFee.add(settlementConfig.refundFee.negate());
                     payoutReconcile.payoutAmount = transaction.totalAmount.negate().add(settlementConfig.refundFee.negate());
                     break;
@@ -297,9 +296,9 @@ public class SettlementProcessService {
         return isSettlementUpdated;
     }
 
-    public void calculateReserve(Settlement settlement, SettlementConfig settlementConfig) {
+    public Reserve calculateReserve(Settlement settlement, SettlementConfig settlementConfig) {
         if (settlementConfig.reserveType == null) {
-            return;
+            return null;
         }
         Reserve reserve;
         if (settlement.reserveId == null) {
@@ -318,7 +317,7 @@ public class SettlementProcessService {
             }
             settlement.reserveId = reserve.id;
         } else {
-            // Reset existing Reserve
+            // Get existing Reserve
             reserve = reserveService.getById(settlement.reserveId);
             if (reserve == null) {
                 throw new ReserveException(ErrorMessage.RESERVE.INVALID_RESERVE_ID(settlement.reserveId));
@@ -345,7 +344,7 @@ public class SettlementProcessService {
                 throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
         }
         reserveService.saveOrUpdate(reserve);
-        settlement.reserveAmount = reserve.totalAmount.negate();
+        return reserve;
     }
 
     private void calculateFinalAmount(Settlement settlement) {
@@ -359,8 +358,6 @@ public class SettlementProcessService {
         settlement.settleFinalAmount = settlement.saleAmount
                 .add(settlement.refundAmount)
                 .add(settlement.adjustmentAmount)
-                .add(settlement.reserveAmount)
-                .add(settlement.releaseAmount)
                 .add(settlement.totalFee)
                 .add(settlement.vatAmount);
     }
@@ -376,42 +373,39 @@ public class SettlementProcessService {
         return sb.toString();
     }
 
-    private void calculateSettlementPayable(Settlement settlement) {
-        Payable payable = payableService.getPayableBySettlementId(settlement.id);
-        if (payable == null) {
-            Payable settlementPayable = new Payable();
-            settlementPayable.amount = settlement.settleFinalAmount;
-            settlementPayable.currency = settlement.currency;
-            settlementPayable.beneficiary = settlement.merchantName;
-            settlementPayable.remitInfoId = settlement.remitInfoId;
-            settlementPayable.payableDate = settlement.settleDate;
-            payableService.save(settlementPayable);
-        } else if (payable.status != PayableStatus.UNPAID) {
-            throw new SettlementException("Payable wrote-off already");
-        } else {
-            payable.amount = settlement.settleFinalAmount;
+    private void calculatePayable(Settlement settlement, Reserve reserve) {
+        Payable settlementPayable = payableService.getPayableBySettlementId(settlement.id);
+        if (settlementPayable == null) {
+            settlementPayable = new Payable();
+        } else if (settlementPayable.status != PayableStatus.UNPAID) {
+            throw new SettlementException(PAYABLE_WROTE_OFF);
         }
-//        settlementPayable.payDate = settlement.settleDate;
-
-        if (settlement.releasedReserveId != null) {
-            Reserve releasedReserve = reserveService.getById(settlement.releasedReserveId);
-            releasedReserve.releaseSettlementId = settlement.id;
-            releasedReserve.releasedDate = settlement.settleDate;
-            releasedReserve.status = ReserveStatus.RELEASED;
-        }
-
-        if (settlement.reserveId != null) {
-            Reserve reserve = reserveService.getById(settlement.reserveId);
-            Payable reservePayable = new Payable();
-            reservePayable.amount = reserve.totalAmount;
+        settlementPayable.status = PayableStatus.UNPAID;
+        settlementPayable.type = InvoiceType.PAYMENT;
+        settlementPayable.currency = settlement.currency;
+        settlementPayable.beneficiary = settlement.merchantName;
+        settlementPayable.remitInfoId = settlement.remitInfoId;
+        settlementPayable.payableDate = settlement.settleDate;
+        if (reserve != null) {
+            Payable reservePayable = payableService.getPayableByReserveId(reserve.id);
+            if (reservePayable == null) {
+                reservePayable = new Payable();
+            } else if (reservePayable.status != PayableStatus.UNPAID) {
+                throw new SettlementException(PAYABLE_WROTE_OFF);
+            }
+            reservePayable.status = PayableStatus.UNPAID;
+            reservePayable.type = InvoiceType.RESERVE;
             reservePayable.currency = reserve.currency;
+            reservePayable.amount = reserve.totalAmount;
             reservePayable.remitInfoId = settlement.remitInfoId;
-//            reservePayable.payDate = reserve.dateToRelease;
-            payableService.save(reservePayable);
+            reservePayable.beneficiary = settlement.merchantName;
+            reservePayable.payableDate = reserve.dateToRelease;
+            payableService.saveOrUpdate(reservePayable);
+            settlementPayable.amount = settlement.settleFinalAmount.subtract(reserve.totalAmount);
+        } else {
+            settlementPayable.amount = settlement.settleFinalAmount;
         }
-
-        //TODO : Send Settlement data, Reserve data to Xero API
-        // Payable date for reserve? Settlement invoice for payable? Payable reference?
+        payableService.saveOrUpdate(settlementPayable);
     }
 
 }
