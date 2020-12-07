@@ -50,6 +50,9 @@ public class SettlementProcessService {
     private SettlementConfigService settlementConfigService;
 
     @Autowired
+    private ReserveConfigService reserveConfigService;
+
+    @Autowired
     private InvoiceNumberService invoiceNumberService;
 
     @Autowired
@@ -248,7 +251,7 @@ public class SettlementProcessService {
             return;
         }
         calculateFinalAmount(settlement);
-        Reserve reserve = calculateReserve(settlement, settlementConfig);
+        Reserve reserve = calculateReserve(settlement);
         settlementService.updateById(settlement);
         calculatePayable(settlement, reserve);
         clientAccountProcessService.calculateBalance(clientAccount);
@@ -296,24 +299,25 @@ public class SettlementProcessService {
         return isSettlementUpdated;
     }
 
-    public Reserve calculateReserve(Settlement settlement, SettlementConfig settlementConfig) {
-        if (settlementConfig.reserveType == null) {
+    public Reserve calculateReserve(Settlement settlement) {
+        ReserveConfig reserveConfig = reserveConfigService.getOneByClientIdAndClientTypeAndCurrency(settlement.merchantId, ClientType.PAYMENT_MERCHANT, settlement.currency);
+        if (reserveConfig == null) {
             return null;
         }
         Reserve reserve;
         if (settlement.reserveId == null) {
             // Create new Reserve
             reserve = new Reserve();
-            reserve.type = settlementConfig.reserveType;
-            reserve.reservePeriod = settlementConfig.reservePeriod;
+            reserve.type = reserveConfig.type;
+            reserve.reservePeriod = reserveConfig.period;
             reserve.status = ReserveStatus.PENDING;
             reserve.reserveSettlementId = settlement.id;
             reserve.currency = settlement.currency;
             reserve.merchantId = settlement.merchantId;
             reserve.merchantName = settlement.merchantName;
             reserve.reservedDate = settlement.settleDate;
-            if (settlementConfig.reservePeriod > 0) {
-                reserve.dateToRelease = reserve.reservedDate.plusDays(settlementConfig.reservePeriod);
+            if (reserveConfig.period > 0) {
+                reserve.dateToRelease = reserve.reservedDate.plusDays(reserveConfig.period);
             }
             settlement.reserveId = reserve.id;
         } else {
@@ -328,17 +332,17 @@ public class SettlementProcessService {
         }
         switch (reserve.type) {
             case ROLLING:
-                if (settlementConfig.reserveRate == null) {
+                if (reserveConfig.percentage == null) {
                     throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
                 }
-                reserve.reserveRate = settlementConfig.reserveRate;
-                reserve.totalAmount = settlement.saleAmount.multiply(settlementConfig.reserveRate);
+                reserve.reserveRate = reserveConfig.percentage;
+                reserve.totalAmount = settlement.saleAmount.multiply(reserveConfig.percentage);
                 break;
             case FIXED:
-                if (settlementConfig.reserveAmount == null) {
+                if (reserveConfig.amount == null) {
                     throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
                 }
-                reserve.totalAmount = settlementConfig.reserveAmount;
+                reserve.totalAmount = reserveConfig.amount;
                 break;
             default:
                 throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
