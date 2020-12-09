@@ -4,8 +4,12 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.common.constant.DateTime;
+import top.dtc.data.finance.model.Payable;
+import top.dtc.data.finance.model.Receivable;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
+import top.dtc.settlement.service.PayableProcessService;
+import top.dtc.settlement.service.ReceivableProcessService;
 import top.dtc.settlement.service.SettlementProcessService;
 
 import java.time.LocalDate;
@@ -17,6 +21,12 @@ public class SettlementController {
 
     @Autowired
     private SettlementProcessService settlementProcessService;
+
+    @Autowired
+    private ReceivableProcessService receivableProcessService;
+
+    @Autowired
+    private PayableProcessService payableProcessService;
 
     @PostMapping(value = "/scheduled")
     public ApiResponse<?> scheduled() {
@@ -42,46 +52,6 @@ public class SettlementController {
             return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
         }
     }
-
-//    @PostMapping(value = "/create/{merchantAccountId}")
-//    public ApiResponse<?> createSettlement(@PathVariable("merchantAccountId") Long merchantAccountId, @RequestBody List<Long> transactionIds) {
-//        String errorMsg;
-//        try {
-//            log.debug("/create {}", transactionIds);
-//            settlementProcessService.createSettlement(transactionIds, merchantAccountId);
-//            return new ApiResponse<>(new ApiHeader(true));
-//        } catch (Exception e) {
-//            log.error("Cannot create settlement", e);
-//            errorMsg = e.getMessage();
-//        }
-//        return new ApiResponse<>(new ApiHeader(errorMsg));
-//    }
-
-//    @GetMapping(value = "/include/{settlementId}/{transactionId}")
-//    public ApiResponse<Long> include(@PathVariable("settlementId") Long settlementId, @PathVariable("transactionId") Long transactionId) {
-//        String errorMsg = null;
-//        try {
-//            log.debug("/include/{}/{}", settlementId, transactionId);
-//            settlementProcessService.includeTransaction(settlementId, transactionId);
-//        } catch (Exception e) {
-//            log.error("Cannot include transaction", e);
-//            errorMsg = e.getMessage();
-//        }
-//        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
-//    }
-//
-//    @GetMapping(value = "/exclude/{settlementId}/{transactionId}")
-//    public ApiResponse<Long> exclude(@PathVariable("settlementId") Long settlementId, @PathVariable("transactionId") Long transactionId) {
-//        String errorMsg = null;
-//        try {
-//            log.debug("/exclude/{}/{}", settlementId, transactionId);
-//            settlementProcessService.excludeTransaction(settlementId, transactionId);
-//        } catch (Exception e) {
-//            log.error("Cannot exclude transaction", e);
-//            errorMsg = e.getMessage();
-//        }
-//        return new ApiResponse<>(new ApiHeader(errorMsg), settlementId);
-//    }
 
     @PutMapping(value = "/submit/{settlementId}")
     public ApiResponse<?> submit(@PathVariable("settlementId") Long settlementId) {
@@ -127,6 +97,30 @@ public class SettlementController {
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot reject settlement", e);
+            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/write-off/receivable")
+    public ApiResponse<?> writeOffPaymentReceivable(@RequestBody Receivable paymentReceivable) {
+        try {
+            log.debug("/write-off/receivable {}", paymentReceivable);
+            paymentReceivable = receivableProcessService.writeOff(paymentReceivable.id, paymentReceivable.receivedAmount, paymentReceivable.description, paymentReceivable.referenceNo);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentReceivable);
+        } catch (Exception e) {
+            log.error("Cannot process writeOffOtcReceivable", e);
+            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/write-off/payable")
+    public ApiResponse<?> writeOffSettlementPayable(@RequestBody Payable settlementPayable) {
+        try {
+            log.debug("/write-off/payable {}", settlementPayable);
+            settlementPayable = payableProcessService.writeOff(settlementPayable.id, settlementPayable.remark, settlementPayable.referenceNo);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, settlementPayable);
+        } catch (Exception e) {
+            log.error("Cannot process writeOffOtcReceivable", e);
             return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
         }
     }

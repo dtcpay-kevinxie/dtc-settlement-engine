@@ -3,7 +3,7 @@ package top.dtc.settlement.service;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.exception.ValidationException;
+import top.dtc.common.service.CommonNotificationService;
 import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.enums.OtcType;
@@ -27,12 +27,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static top.dtc.settlement.constant.ErrorMessage.OTC.HIGH_RISK_OTC;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.INVALID_PAYABLE_REF;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.OTC_NOT_RECEIVED;
-import static top.dtc.settlement.constant.ErrorMessage.RECEIVABLE.INVALID_RECEIVABLE_PARA;
-import static top.dtc.settlement.constant.ErrorMessage.RECEIVABLE.INVALID_RECEIVABLE_STATUS;
 
 @Log4j2
 @Service
@@ -65,46 +64,78 @@ public class OtcProcessService {
     @Autowired
     private ReceivableService receivableService;
 
+    @Autowired
+    private ReceivableProcessService receivableProcessService;
+
+    @Autowired
+    private CommonNotificationService commonNotificationService;
+
     private boolean isOtcHighRisk(Otc otc) {
         RiskMatrix riskMatrix = riskMatrixService.getOneByClientIdAndClientType(otc.clientId, otc.clientType);
-        return riskMatrix.riskLevel == RiskLevel.SEVERE || riskMatrix.riskLevel == RiskLevel.HIGH;
+        boolean isHighRisk = riskMatrix.riskLevel == RiskLevel.SEVERE || riskMatrix.riskLevel == RiskLevel.HIGH;
+        if (isHighRisk) {
+            KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
+            commonNotificationService.send(
+                    6,
+                    "risk@dtc.top",
+                    Map.of("id", otc.id.toString(),
+                            "client_id", otc.clientId.toString(),
+                            "client_name", kycNonIndividual.registerName,
+                            "risk_level", riskMatrix.riskLevel.desc)
+            );
+
+        }
+        return isHighRisk;
     }
 
     public void scheduled() {
         List<Otc> otcList = otcService.getByStatus(OtcStatus.AGREED);
-        otcList.forEach(otc -> {
-            if (isOtcHighRisk(otc)) {
-                //TODO : Send email to R&C Team
-                return;
-            }
-            Payable payable = payableService.getPayableByOtcId(otc.id);
-            Receivable receivable = receivableService.getReceivableByOtcId(otc.id);
-            if (payable == null) {
-                KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
-                payable = new Payable();
-                payable.status = PayableStatus.UNPAID;
-                payable.type = InvoiceType.OTC;
-                payable.beneficiary = kycNonIndividual.registerName;
-                receivable = new Receivable();
-                receivable.status = ReceivableStatus.NOT_RECEIVED;
-                receivable.type = InvoiceType.OTC;
-                receivable.payer = kycNonIndividual.registerName;
-                generateReceivableAndPayable(otc, receivable, payable);
-                linkOtc(otc, receivable, payable);
-            } else {
-                // Reset Payable and Receivable details
-                generateReceivableAndPayable(otc, receivable, payable);
-            }
-        });
+        otcList.forEach(this::generateReceivableAndPayable);
     }
 
-    private void generateReceivableAndPayable(Otc otc, Receivable receivable, Payable payable) {
+    public boolean generateReceivableAndPayable(Otc otc) {
+        if (isOtcHighRisk(otc)) {
+            return false;
+        }
+        Payable payable = payableService.getPayableByOtcId(otc.id);
+        Receivable receivable = receivableService.getReceivableByOtcId(otc.id);
+        if (payable == null) {
+            KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
+            payable = new Payable();
+            payable.status = PayableStatus.UNPAID;
+            payable.type = InvoiceType.OTC;
+            payable.beneficiary = kycNonIndividual.registerName;
+            receivable = new Receivable();
+            receivable.status = ReceivableStatus.NOT_RECEIVED;
+            receivable.type = InvoiceType.OTC;
+            receivable.payer = kycNonIndividual.registerName;
+            if (generateReceivableAndPayable(otc, receivable, payable)) {
+                linkOtc(otc, receivable, payable);
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            // Reset Payable and Receivable details
+            return generateReceivableAndPayable(otc, receivable, payable);
+        }
+    }
+
+    public Receivable writeOffOtcReceivable(Long receivalbeId, BigDecimal amount, String desc, String referenceNo) {
+        Receivable receivable = receivableProcessService.writeOff(receivalbeId, amount, desc, referenceNo);
+        if (receivable.status == ReceivableStatus.RECEIVED) {
+            updateOtcStatus(receivable);
+        }
+        return receivable;
+    }
+
+    private boolean generateReceivableAndPayable(Otc otc, Receivable receivable, Payable payable) {
         if (otc.type == OtcType.BUYING) {
             // Receive fiat from client
             RemitInfo remitInfo = remitInfoService.getById(otc.remitInfoId);
             if (remitInfo == null) {
                 log.error("Invalid RemitInfo {}", otc.remitInfoId);
-                return;
+                return false;
             }
             receivable.bankName = remitInfo.beneficiaryBankName;
             receivable.bankAccount = remitInfo.beneficiaryAccount;
@@ -129,10 +160,11 @@ public class OtcProcessService {
             payable.remitInfoId = otc.remitInfoId;
         } else {
             log.error("Invalid OtcType {}", otc.type);
-            return;
+            return false;
         }
         payableService.saveOrUpdate(payable);
         receivableService.saveOrUpdate(receivable);
+        return true;
     }
 
     private void linkOtc(Otc otc, Receivable receivable, Payable payable) {
@@ -148,44 +180,22 @@ public class OtcProcessService {
         receivableSubService.save(receivableSub);
     }
 
-    public void writeOffOtcReceivable(Long receivalbeId, BigDecimal amount, String desc, String referenceNo) {
-        if (StringUtils.isBlank(referenceNo) || amount == null || receivalbeId == null) {
-            throw new ValidationException(INVALID_RECEIVABLE_PARA);
-        }
-        Receivable receivable = receivableService.getById(receivalbeId);
-        receivable.description = desc;
-        switch (receivable.status) {
-            case NOT_RECEIVED:
-                receivable.referenceNo = referenceNo;
-                receivable.receivedCurrency = receivable.currency;
-                receivable.receivedAmount = amount;
-                break;
-            case PARTIAL:
-                receivable.referenceNo += ";" + referenceNo;
-                receivable.receivedAmount = receivable.receivedAmount.add(amount);
-                break;
-            default:
-                throw new ValidationException(INVALID_RECEIVABLE_STATUS);
-        }
-        if (receivable.receivedAmount.compareTo(receivable.amount) >= 0) {
-            receivable.status = ReceivableStatus.RECEIVED;
-            List<Long> otcIdList = receivableSubService.getSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
-            otcIdList.forEach(otcId -> {
-                Otc otc = otcService.getById(otcId);
-                if (!isOtcHighRisk(otc)) {
-                    otc.status = OtcStatus.RECEIVED;
-                    otc.receivedTime = LocalDateTime.now();
-                    otcService.updateById(otc);
-                }
-            });
-            receivable.writeOffDate = LocalDate.now();
-        } else {
-            receivable.status = ReceivableStatus.PARTIAL;
-        }
-        receivableService.updateById(receivable);
+    private void updateOtcStatus(Receivable receivable) {
+        List<Long> otcIdList = receivableSubService.getSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
+        otcIdList.forEach(otcId -> {
+            Otc otc = otcService.getById(otcId);
+            if (!isOtcHighRisk(otc)) {
+                otc.status = OtcStatus.RECEIVED;
+                otc.receivedTime = LocalDateTime.now();
+                otcService.updateById(otc);
+            } else {
+                // Throw Exception to interrupt Receivable write-off, Money will not send out
+                throw new OtcException(HIGH_RISK_OTC);
+            }
+        });
     }
 
-    public void writeOffOtcPayable(Long payableId, String referenceNo) {
+    public Payable writeOffOtcPayable(Long payableId, String referenceNo) {
         if (StringUtils.isBlank(referenceNo)) {
             throw new OtcException(INVALID_PAYABLE_REF);
         }
@@ -200,9 +210,8 @@ public class OtcProcessService {
             otc.completedTime = LocalDateTime.now();
             otcService.updateById(otc);
             //TODO : Send receipt email to Client and Ops
-        } else {
-            throw new OtcException(HIGH_RISK_OTC);
         }
+        return payable;
     }
 
 }
