@@ -7,6 +7,8 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.SettlementStatus;
+import top.dtc.common.exception.ValidationException;
+import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.model.AcqRoute;
 import top.dtc.data.core.model.Module;
 import top.dtc.data.core.model.Transaction;
@@ -33,6 +35,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static top.dtc.settlement.constant.ErrorMessage.RECEIVABLE.*;
 
 @Log4j2
 @Service
@@ -95,6 +99,38 @@ public class ReceivableProcessService {
         } else if (receivable.type == InvoiceType.OTC) {
 
         }
+    }
+
+    public Receivable writeOff(Long receivableId, BigDecimal receivedAmount, String desc, String referenceNo) {
+        if (receivableId == null || receivedAmount == null || StringUtils.isBlank(referenceNo)) {
+            throw new ReceivableException(INVALID_RECEIVABLE_PARA);
+        }
+        Receivable receivable = receivableService.getById(receivableId);
+        if (receivable == null || receivable.type != InvoiceType.PAYMENT) {
+            throw new ReceivableException(INVALID_RECEIVABLE);
+        }
+        receivable.description = desc;
+        switch (receivable.status) {
+            case NOT_RECEIVED:
+                receivable.referenceNo = referenceNo;
+                receivable.receivedCurrency = receivable.currency;
+                receivable.receivedAmount = receivedAmount;
+                break;
+            case PARTIAL:
+                receivable.referenceNo += ";" + referenceNo;
+                receivable.receivedAmount = receivable.receivedAmount.add(receivedAmount);
+                break;
+            default:
+                throw new ValidationException(INVALID_RECEIVABLE_STATUS);
+        }
+        if (receivable.receivedAmount.compareTo(receivable.amount) >= 0) {
+            receivable.status = ReceivableStatus.RECEIVED;
+            receivable.writeOffDate = LocalDate.now();
+        } else {
+            receivable.status = ReceivableStatus.PARTIAL;
+        }
+        receivableService.updateById(receivable);
+        return receivable;
     }
 
     private Map<ReceivableKey, List<Transaction>> processReceivable(Long moduleId, LocalDateTime startDateTime, LocalDateTime endDateTime) {

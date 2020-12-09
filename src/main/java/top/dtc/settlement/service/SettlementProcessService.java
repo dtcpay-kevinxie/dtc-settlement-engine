@@ -141,7 +141,6 @@ public class SettlementProcessService {
         List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
         transactionService.updateSettlementStatusByIdIn(SettlementStatus.APPROVED, transactionIds);
         invoiceNumberService.saveOrUpdate(invoiceNumber);
-        //TODO : Send notification to Payout Team
 //        createPayable(settlement);
         clientAccountProcessService.calculateBalance(settlement.merchantId, ClientType.PAYMENT_MERCHANT, settlement.currency);
     }
@@ -156,15 +155,15 @@ public class SettlementProcessService {
         settlementService.updateById(settlement);
         List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
         transactionService.updateSettlementStatusByIdIn(SettlementStatus.REJECTED, transactionIds);
-        //TODO : Send notification to Payout Team
     }
 
     private void packTransactionByDate(SettlementConfig settlementConfig, LocalDate cycleStart, LocalDate cycleEnd) {
         List<Transaction> transactionList = transactionService.getTransactionsForSettlement(
-                settlementConfig.merchantId,
-                settlementConfig.currency,
                 cycleStart.atStartOfDay(),
                 cycleEnd.plusDays(1).atStartOfDay(),
+                settlementConfig.merchantId,
+                settlementConfig.brand,
+                settlementConfig.currency,
                 STATE_FOR_SETTLE
         );
         if (transactionList.size() < 1) {
@@ -299,7 +298,7 @@ public class SettlementProcessService {
         return isSettlementUpdated;
     }
 
-    public Reserve calculateReserve(Settlement settlement) {
+    private Reserve calculateReserve(Settlement settlement) {
         ReserveConfig reserveConfig = reserveConfigService.getOneByClientIdAndClientTypeAndCurrency(settlement.merchantId, ClientType.PAYMENT_MERCHANT, settlement.currency);
         if (reserveConfig == null) {
             return null;

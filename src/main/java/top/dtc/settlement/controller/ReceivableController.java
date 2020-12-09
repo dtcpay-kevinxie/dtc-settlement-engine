@@ -28,7 +28,7 @@ public class ReceivableController {
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process receivable", e);
-            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
+            return new ApiResponse<>(ApiHeaderConstant.RECEIVABLE.OTHER_ERROR(e.getMessage()));
         }
     }
 
@@ -40,11 +40,11 @@ public class ReceivableController {
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot add Receivable", e);
-            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
+            return new ApiResponse<>(ApiHeaderConstant.RECEIVABLE.OTHER_ERROR(e.getMessage()));
         }
     }
 
-    @PostMapping(value = "/remove")
+    @PostMapping(value = "/remove/{receivableId}")
     public ApiResponse<?> removeReceivable(@PathVariable("receivableId") Long receivableId) {
         try {
             log.debug("/remove {}", receivableId);
@@ -52,7 +52,7 @@ public class ReceivableController {
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot remove Receivable", e);
-            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
+            return new ApiResponse<>(ApiHeaderConstant.RECEIVABLE.OTHER_ERROR(e.getMessage()));
         }
     }
 

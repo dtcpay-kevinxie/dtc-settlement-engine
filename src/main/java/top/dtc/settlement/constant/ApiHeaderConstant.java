@@ -21,9 +21,22 @@ public class ApiHeaderConstant {
         public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("02999", errMsg); }
     }
 
-    // STARTS WITH "03"
+    // STARTS WITH "11"
     public static class OTC {
-        public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("03999", errMsg); }
+        public static ApiHeader GENERAL_FAILED(String errMsg) { return new ApiHeader("11001", errMsg); }
     }
 
+    // STARTS WITH "12"
+    public static class RECEIVABLE {
+        public static final ApiHeader INVALID_RECEIVABLE = new ApiHeader("12001", "Invalid Receivable");
+        public static final ApiHeader INVALID_TYPE = new ApiHeader("12002", "Invalid Receivable Type");
+        public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("12999", errMsg); }
+    }
+
+    // STARTS WITH "13"
+    public static class PAYABLE {
+        public static final ApiHeader INVALID_PAYABLE = new ApiHeader("13001", "Invalid Payable");
+        public static final ApiHeader INVALID_TYPE = new ApiHeader("13002", "Invalid Payable Type");
+        public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("13999", errMsg); }
+    }
 }
