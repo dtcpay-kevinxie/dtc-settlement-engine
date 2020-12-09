@@ -25,8 +25,8 @@ public class TransactionalConfig {
     DataSource riskDataSource;
 
     @Autowired
-    @Qualifier("settlementDataSource")
-    DataSource settlementDataSource;
+    @Qualifier("financeDataSource")
+    DataSource financeDataSource;
 
 
     @Primary
@@ -35,7 +35,7 @@ public class TransactionalConfig {
         PlatformTransactionManager[] transactionManagers = new PlatformTransactionManager[]{
                 new DataSourceTransactionManager(coreDataSource),
                 new DataSourceTransactionManager(riskDataSource),
-                new DataSourceTransactionManager(settlementDataSource)
+                new DataSourceTransactionManager(financeDataSource)
         };
         return new ChainedTransactionManager(transactionManagers);
     }
