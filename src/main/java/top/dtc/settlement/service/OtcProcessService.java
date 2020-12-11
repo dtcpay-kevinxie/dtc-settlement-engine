@@ -22,6 +22,7 @@ import top.dtc.data.risk.model.RiskMatrix;
 import top.dtc.data.risk.service.KycNonIndividualService;
 import top.dtc.data.risk.service.KycWalletAddressService;
 import top.dtc.data.risk.service.RiskMatrixService;
+import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.exception.OtcException;
 
 import java.math.BigDecimal;
@@ -37,6 +38,9 @@ import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.OTC_NOT_RECEIVED;
 @Log4j2
 @Service
 public class OtcProcessService {
+
+    @Autowired
+    private NotificationProperties notificationProperties;
 
     @Autowired
     private OtcService otcService;
@@ -78,7 +82,7 @@ public class OtcProcessService {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
             commonNotificationService.send(
                     6,
-                    "risk@dtc.top",
+                    notificationProperties.otcHighRiskRecipient,
                     Map.of("id", otc.id.toString(),
                             "client_id", otc.clientId.toString(),
                             "client_name", kycNonIndividual.registerName,
