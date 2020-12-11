@@ -92,6 +92,9 @@ public class OtcProcessService {
         List<Otc> otcList = otcService.getByStatus(OtcStatus.AGREED);
         otcList.forEach(this::generateReceivableAndPayable);
     }
+    public boolean generateReceivableAndPayable(Long otcId) {
+        return generateReceivableAndPayable(otcService.getById(otcId));
+    }
 
     public boolean generateReceivableAndPayable(Otc otc) {
         if (isOtcHighRisk(otc)) {

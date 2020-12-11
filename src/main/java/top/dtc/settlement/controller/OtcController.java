@@ -44,7 +44,7 @@ public class OtcController {
     @PostMapping("/agreed")
     public ApiResponse<?> agreed(@RequestBody Otc otc) {
         try {
-            log.debug("/agreed");
+            log.debug("/agreed {}", otc);
             boolean success = otcProcessService.generateReceivableAndPayable(otc);
             if (success) {
                 commonNotificationService.send(
