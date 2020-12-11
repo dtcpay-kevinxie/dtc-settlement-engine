@@ -3,6 +3,7 @@ package top.dtc.settlement.service;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import top.dtc.common.service.CommonNotificationService;
 import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.enums.OtcStatus;
@@ -96,6 +97,7 @@ public class OtcProcessService {
         return generateReceivableAndPayable(otcService.getById(otcId));
     }
 
+    @Transactional
     public boolean generateReceivableAndPayable(Otc otc) {
         if (isOtcHighRisk(otc)) {
             return false;
