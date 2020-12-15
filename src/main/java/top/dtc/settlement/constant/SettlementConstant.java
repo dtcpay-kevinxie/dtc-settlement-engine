@@ -1,6 +1,8 @@
 package top.dtc.settlement.constant;
 
-import top.dtc.data.settlement.enums.ScheduleType;
+import top.dtc.common.enums.SettlementStatus;
+import top.dtc.common.enums.TransactionState;
+import top.dtc.data.finance.enums.ScheduleType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,7 +30,24 @@ public class SettlementConstant {
         public static class ALETA_SECURE_PAY {
             public static final String NAME = "aleta";
         }
+        public static class GLOBAL_PAYMENT {
+            public static final String NAME = "globalPayment";
+        }
     }
+
+    public static final ArrayList<TransactionState> STATE_FOR_SETTLE = new ArrayList<>(Arrays.asList(
+            TransactionState.SUCCESS,
+            TransactionState.REFUNDED
+    ));
+
+    public static final ArrayList<SettlementStatus> NOT_SETTLED = new ArrayList<>(Arrays.asList(
+            SettlementStatus.PENDING,
+            SettlementStatus.SUBMITTED
+    ));
+
+    public static final ArrayList<SettlementStatus> REJECT_SETTLE = new ArrayList<>(Arrays.asList(
+            SettlementStatus.REJECTED
+    ));
 
     public static class SETTLEMENT_SCHEDULE {
         public static final ArrayList<ScheduleType> DAILY = new ArrayList<>(Arrays.asList(ScheduleType.DAILY));
@@ -41,7 +60,7 @@ public class SettlementConstant {
                 ScheduleType.WEEKLY_SAT,
                 ScheduleType.WEEKLY_SUN
         ));
-        public static final ArrayList<ScheduleType> MONTHLY = new ArrayList<>(Arrays.asList(ScheduleType.DAILY));
+        public static final ArrayList<ScheduleType> MONTHLY = new ArrayList<>(Arrays.asList(ScheduleType.MONTHLY));
     }
 
     public static String getDesc(LocalDate txnDate) {

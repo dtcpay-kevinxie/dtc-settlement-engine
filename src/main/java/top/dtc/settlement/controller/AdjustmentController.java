@@ -3,8 +3,8 @@ package top.dtc.settlement.controller;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import top.dtc.data.settlement.model.Adjustment;
-import top.dtc.settlement.model.api.ApiHeader;
+import top.dtc.data.finance.model.Adjustment;
+import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.AdjustmentProcessService;
 
@@ -17,31 +17,27 @@ public class AdjustmentController {
     private AdjustmentProcessService adjustmentProcessService;
 
     @PostMapping(value = "/add")
-    public ApiResponse addAdjustment(@RequestBody Adjustment adjustment) {
-        String errorMsg;
+    public ApiResponse<?> addAdjustment(@RequestBody Adjustment adjustment) {
         try {
             log.debug("/add {}", adjustment);
             adjustmentProcessService.addAdjustment(adjustment);
-            return new ApiResponse<>(new ApiHeader(true));
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot addAdjustment", e);
-            errorMsg = e.getMessage();
+            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
         }
-        return new ApiResponse<>(new ApiHeader(errorMsg));
     }
 
     @DeleteMapping(value = "/remove")
-    public ApiResponse removeAdjustment(@PathVariable("adjustmentId") Long adjustmentId) {
-        String errorMsg;
+    public ApiResponse<?> removeAdjustment(@PathVariable("adjustmentId") Long adjustmentId) {
         try {
             log.debug("/remove {}", adjustmentId);
             adjustmentProcessService.removeAdjustment(adjustmentId);
-            return new ApiResponse<>(new ApiHeader(true));
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot removeAdjustment", e);
-            errorMsg = e.getMessage();
+            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
         }
-        return new ApiResponse<>(new ApiHeader(errorMsg));
     }
 
 }

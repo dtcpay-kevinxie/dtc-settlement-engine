@@ -11,17 +11,18 @@ public class ApiHeader {
 
     public boolean success;
 
-    public Integer errorCode;
+    public String errCode;
 
-    public String errorMessage;
+    public String errMsg;
 
     public ApiHeader(boolean success) {
         this.success = success;
     }
 
-    public ApiHeader(String errorMessage) {
+    public ApiHeader(String errCode, String errMsg) {
         this.success = false;
-        this.errorMessage = errorMessage;
+        this.errCode = errCode;
+        this.errMsg = errMsg;
     }
 
 }

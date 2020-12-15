@@ -6,39 +6,12 @@ server:
     key-store: conf/key/${SSL_KEYSTORE_PATH}
     key-store-password: ${SSL_KEYSTORE_PASSWORD}
 
-#wechat:
-#  key: ${WECHAT_KEY}
-#  appId: ${WECHAT_OFFICIAL_ACCOUNT_ID}
-#  mchId: ${WECHAT_MERCHANT_ID}
-#  certPassword: ${WECHAT_CERT_PASSWORD}
-#  certLocalPath: ${WECHAT_CERT_LOCAL_PATH}
-#  wechatMainNode:  ${WECHAT_MAIN_NODE}
-#  wechatSpareNode: ${WECHAT_SPARE_NODE}
-#  wechatTLS: ${WECHAT_TLS}
-#  localPath: ${WECHAT_LOCALPATH}
-
-#grabpay:
-#  localPath: ${GRABPAY_LOCAL_PATH}
-
 aleta:
   localPath: ${ALETA_LOCAL_PATH}
-
-#nets:
-#  ftp:
-#    url: ${ENETS_HTTPS_URL}
-#    username: ${ENETS_HTTPS_USERNAME}
-#    password: ${ENETS_HTTPS_PASSWORD}
-#    downloadType: ${ENETS_HTTPS_DOWNLOAD_TYPE}
-#    mids: ${ENET_MIDS}
-#    localPath: ${ENETS_HTTPS_LOCALPATH}
-#    sender: ${ENETS_EMAIL_SENDER}
-#    recipients: ${ENETS_EMAIL_RECIPIENTS}
 
 http:
   schedulerUrl: ${HTTP_SCHEDULER_URL}
 
-payout:
-  moduleName: ${PAYOUT_MODULENAME}
-  reconcileHost: ${PAYOUT_RECONCILE_HOST}
-  sender: ${PAYOUT_EMAIL_SENDER}
-  recipients: ${PAYOUT_EMAIL_RECIPIENTS}
+notification:
+  otc-agreed-recipient: ${NOTIFICATION_OTC_AGREED_RECIPIENT}
+  otc-high-risk-recipient: ${NOTIFICATION_OTC_HIGH_RISK_RECIPIENT}

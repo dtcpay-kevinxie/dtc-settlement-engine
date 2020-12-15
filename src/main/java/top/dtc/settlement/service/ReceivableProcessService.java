@@ -6,18 +6,23 @@ import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.dtc.common.enums.SettlementStatus;
+import top.dtc.common.exception.ValidationException;
+import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.model.AcqRoute;
 import top.dtc.data.core.model.Module;
 import top.dtc.data.core.model.Transaction;
 import top.dtc.data.core.service.AcqRouteService;
 import top.dtc.data.core.service.ModuleService;
 import top.dtc.data.core.service.TransactionService;
-import top.dtc.data.settlement.enums.ReconcileStatus;
-import top.dtc.data.settlement.model.Receivable;
-import top.dtc.data.settlement.model.Reconcile;
-import top.dtc.data.settlement.service.ReceivableService;
-import top.dtc.data.settlement.service.ReconcileService;
-import top.dtc.data.settlement.service.SettlementCalendarService;
+import top.dtc.data.finance.enums.InvoiceType;
+import top.dtc.data.finance.enums.ReceivableStatus;
+import top.dtc.data.finance.enums.ReconcileStatus;
+import top.dtc.data.finance.model.PayoutReconcile;
+import top.dtc.data.finance.model.Receivable;
+import top.dtc.data.finance.service.PayoutReconcileService;
+import top.dtc.data.finance.service.ReceivableService;
+import top.dtc.data.finance.service.SettlementCalendarService;
 import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.constant.SettlementConstant;
 import top.dtc.settlement.exception.ReceivableException;
@@ -30,6 +35,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static top.dtc.settlement.constant.ErrorMessage.RECEIVABLE.*;
 
 @Log4j2
 @Service
@@ -45,7 +52,7 @@ public class ReceivableProcessService {
     private ModuleService moduleService;
 
     @Autowired
-    private ReconcileService reconcileService;
+    private PayoutReconcileService payoutReconcileService;
 
     @Autowired
     private ReceivableService receivableService;
@@ -54,7 +61,7 @@ public class ReceivableProcessService {
     private SettlementCalendarService settlementCalendarService;
 
     public void processReceivable(LocalDate date) {
-        Map<ReceivableKey, List<Transaction>> txnReceivableMap = processReceivable(null, date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+        Map<ReceivableKey, List<Transaction>> txnReceivableMap = processReceivable(null, date.minusDays(1).atStartOfDay(), date.atStartOfDay());
         if (txnReceivableMap == null) {
             return;
         }
@@ -63,6 +70,9 @@ public class ReceivableProcessService {
             switch (module.name) {
                 case SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME:
                     processAletaReceivable(key, txnReceivableMap.get(key));
+                    break;
+                case SettlementConstant.MODULE.GLOBAL_PAYMENT.NAME:
+                    processGlobalPaymentReceivable(key, txnReceivableMap.get(key));
                     break;
                 default:
                     log.error("Undefined Settlement Host {}", module.name);
@@ -80,10 +90,47 @@ public class ReceivableProcessService {
         if (receivable == null) {
             throw new ReceivableException(ErrorMessage.RECEIVABLE.INVALID_RECEIVABLE_ID(reconcileId));
         }
-        List<Long> transactionIds = reconcileService.getTransactionIdByReceivableId(reconcileId);
-        if (transactionIds != null && transactionIds.size() > 0) {
-            throw new ReceivableException(ErrorMessage.RECEIVABLE.RECEIVABLE_TRANSACTION_ID(reconcileId));
+        if (receivable.type == InvoiceType.PAYMENT) {
+            List<Long> transactionIds = payoutReconcileService.getTransactionIdByReceivableId(reconcileId);
+            if (transactionIds != null && transactionIds.size() > 0) {
+                throw new ReceivableException(ErrorMessage.RECEIVABLE.RECEIVABLE_TRANSACTION_ID(reconcileId));
+            }
+            receivableService.removeById(receivable.id);
+        } else if (receivable.type == InvoiceType.OTC) {
+
         }
+    }
+
+    public Receivable writeOff(Long receivableId, BigDecimal receivedAmount, String desc, String referenceNo) {
+        if (receivableId == null || receivedAmount == null || StringUtils.isBlank(referenceNo)) {
+            throw new ReceivableException(INVALID_RECEIVABLE_PARA);
+        }
+        Receivable receivable = receivableService.getById(receivableId);
+        if (receivable == null || receivable.type != InvoiceType.PAYMENT) {
+            throw new ReceivableException(INVALID_RECEIVABLE);
+        }
+        receivable.description = desc;
+        switch (receivable.status) {
+            case NOT_RECEIVED:
+                receivable.referenceNo = referenceNo;
+                receivable.receivedCurrency = receivable.currency;
+                receivable.receivedAmount = receivedAmount;
+                break;
+            case PARTIAL:
+                receivable.referenceNo += ";" + referenceNo;
+                receivable.receivedAmount = receivable.receivedAmount.add(receivedAmount);
+                break;
+            default:
+                throw new ValidationException(INVALID_RECEIVABLE_STATUS);
+        }
+        if (receivable.receivedAmount.compareTo(receivable.amount) >= 0) {
+            receivable.status = ReceivableStatus.RECEIVED;
+            receivable.writeOffDate = LocalDate.now();
+        } else {
+            receivable.status = ReceivableStatus.PARTIAL;
+        }
+        receivableService.updateById(receivable);
+        return receivable;
     }
 
     private Map<ReceivableKey, List<Transaction>> processReceivable(Long moduleId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
@@ -119,11 +166,21 @@ public class ReceivableProcessService {
                 receivableKey.currency,
                 receivableKey.txnDate.plusDays(("SGD".equals(receivableKey.currency) ? 1 : 2)) // SGD: T+1; USD: T+2
         );
+        if (receivableDate == null) {
+            throw new ReceivableException("No acquirer calendar found");
+        }
         calculateReceivable(receivableKey, transactionList, receivableDate);
     }
 
+    private void processGlobalPaymentReceivable(ReceivableKey receivableKey, List<Transaction> transactionList) {
+        //TODO : Add GP settlement cycle and generate Receivable
+        List<Long> ids = new ArrayList<>();
+        transactionList.forEach(transaction -> {ids.add(transaction.id);});
+        transactionService.updateSettlementStatusByIdIn(SettlementStatus.ACQ_SETTLED, ids);
+    }
+
     private void calculateReceivable(ReceivableKey receivableKey, List<Transaction> transactionList, LocalDate receivableDate) {
-        Receivable receivable = receivableService.getFirstByReceivableDateAndPayerAndCurrency(
+        Receivable receivable = receivableService.getReceivableByDateAndPayerAndCurrency(
                 receivableDate,
                 SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME,
                 receivableKey.currency
@@ -131,7 +188,8 @@ public class ReceivableProcessService {
         if (receivable == null) {
             // Create new Receivable
             receivable = new Receivable();
-            receivable.status = ReconcileStatus.PENDING;
+            receivable.type = InvoiceType.PAYMENT;
+            receivable.status = ReceivableStatus.NOT_RECEIVED;
             receivable.amount = BigDecimal.ZERO;
             receivable.currency = receivableKey.currency;
             receivable.payer = SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME;
@@ -140,12 +198,12 @@ public class ReceivableProcessService {
             receivableService.save(receivable);
         }
         for (Transaction transaction : transactionList) {
-            AcqRoute acqRoute = acqRouteService.getById(transaction.acqRouteId);
-            Reconcile reconcile = reconcileService.getById(transaction.id);
+            PayoutReconcile reconcile = payoutReconcileService.getById(transaction.id);
             if (reconcile != null) {
                 log.info("Transaction {} is exist with ReceivableId {}", transaction.id, reconcile.receivableId);
-                return;
+                continue;
             }
+            AcqRoute acqRoute = acqRouteService.getById(transaction.acqRouteId);
             initialReconcile(transaction, receivable.id);
             calculateAmount(receivable, transaction, acqRoute);
         }
@@ -153,12 +211,13 @@ public class ReceivableProcessService {
     }
 
     private void initialReconcile(Transaction transaction, Long receivableId) {
-        Reconcile reconcile = new Reconcile();
-        reconcile.status = ReconcileStatus.PENDING;
-        reconcile.requestAmount = transaction.totalAmount;
-        reconcile.requestCurrency = transaction.requestCurrency;
-        reconcile.receivableId = receivableId;
-        reconcileService.save(reconcile);
+        PayoutReconcile payoutReconcile = new PayoutReconcile();
+        payoutReconcile.transactionId = transaction.id;
+        payoutReconcile.status = ReconcileStatus.PENDING;
+        payoutReconcile.requestAmount = transaction.totalAmount;
+        payoutReconcile.requestCurrency = transaction.requestCurrency;
+        payoutReconcile.receivableId = receivableId;
+        payoutReconcileService.save(payoutReconcile);
     }
 
     private void calculateAmount(Receivable receivable, Transaction transaction, AcqRoute acqRoute) {
@@ -179,6 +238,7 @@ public class ReceivableProcessService {
             default:
                 break;
         }
+        log.debug("Receivable Amount {}", receivable.amount);
     }
 
     @Data
