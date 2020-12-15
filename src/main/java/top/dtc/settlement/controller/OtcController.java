@@ -2,7 +2,10 @@ package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import top.dtc.common.service.CommonNotificationService;
 import top.dtc.data.core.model.Otc;
 import top.dtc.data.finance.model.Payable;
@@ -74,7 +77,7 @@ public class OtcController {
         }
     }
 
-    @DeleteMapping(value = "/write-off/payable")
+    @PostMapping(value = "/write-off/payable")
     public ApiResponse<?> writeOffOtcPayable(@RequestBody Payable otcPayable) {
         try {
             log.debug("/write-off/payable {}", otcPayable);
