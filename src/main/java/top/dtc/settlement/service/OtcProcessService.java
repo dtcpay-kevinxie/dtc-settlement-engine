@@ -3,6 +3,7 @@ package top.dtc.settlement.service;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import top.dtc.common.service.CommonNotificationService;
 import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.enums.OtcStatus;
@@ -21,6 +22,7 @@ import top.dtc.data.risk.model.RiskMatrix;
 import top.dtc.data.risk.service.KycNonIndividualService;
 import top.dtc.data.risk.service.KycWalletAddressService;
 import top.dtc.data.risk.service.RiskMatrixService;
+import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.exception.OtcException;
 
 import java.math.BigDecimal;
@@ -36,6 +38,9 @@ import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.OTC_NOT_RECEIVED;
 @Log4j2
 @Service
 public class OtcProcessService {
+
+    @Autowired
+    private NotificationProperties notificationProperties;
 
     @Autowired
     private OtcService otcService;
@@ -77,7 +82,7 @@ public class OtcProcessService {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
             commonNotificationService.send(
                     6,
-                    "risk@dtc.top",
+                    notificationProperties.otcHighRiskRecipient,
                     Map.of("id", otc.id.toString(),
                             "client_id", otc.clientId.toString(),
                             "client_name", kycNonIndividual.registerName,
@@ -92,7 +97,11 @@ public class OtcProcessService {
         List<Otc> otcList = otcService.getByStatus(OtcStatus.AGREED);
         otcList.forEach(this::generateReceivableAndPayable);
     }
+    public boolean generateReceivableAndPayable(Long otcId) {
+        return generateReceivableAndPayable(otcService.getById(otcId));
+    }
 
+    @Transactional
     public boolean generateReceivableAndPayable(Otc otc) {
         if (isOtcHighRisk(otc)) {
             return false;

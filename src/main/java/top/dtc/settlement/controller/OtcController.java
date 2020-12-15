@@ -7,8 +7,8 @@ import top.dtc.common.service.CommonNotificationService;
 import top.dtc.data.core.model.Otc;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.Receivable;
-import top.dtc.data.finance.service.PayableSubService;
 import top.dtc.settlement.constant.ApiHeaderConstant;
+import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.model.api.ApiHeader;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.OtcProcessService;
@@ -24,7 +24,7 @@ public class OtcController {
     private OtcProcessService otcProcessService;
 
     @Autowired
-    private PayableSubService payableSubService;
+    private NotificationProperties notificationProperties;
 
     @Autowired
     private CommonNotificationService commonNotificationService;
@@ -44,12 +44,12 @@ public class OtcController {
     @PostMapping("/agreed")
     public ApiResponse<?> agreed(@RequestBody Otc otc) {
         try {
-            log.debug("/agreed");
-            boolean success = otcProcessService.generateReceivableAndPayable(otc);
+            log.debug("/agreed {}", otc);
+            boolean success = otcProcessService.generateReceivableAndPayable(otc.id);
             if (success) {
                 commonNotificationService.send(
                         5,
-                        "finance@dtc.top",
+                        notificationProperties.otcAgreedRecipient,
                         Map.of("id", otc.id.toString(),
                                 "file_url", otc.fileUrl,
                                 "operator", otc.operator)

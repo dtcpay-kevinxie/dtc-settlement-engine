@@ -11,3 +11,7 @@ aleta:
 
 http:
   schedulerUrl: ${HTTP_SCHEDULER_URL}
+
+notification:
+  otc-agreed-recipient: ${NOTIFICATION_OTC_AGREED_RECIPIENT}
+  otc-high-risk-recipient: ${NOTIFICATION_OTC_HIGH_RISK_RECIPIENT}
