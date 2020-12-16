@@ -218,6 +218,8 @@ public class OtcProcessService {
             otc.status = OtcStatus.COMPLETED;
             otc.completedTime = LocalDateTime.now();
             otcService.updateById(otc);
+            payable.status = PayableStatus.PAID;
+            payableService.updateById(payable);
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
             commonNotificationService.send(
                     6,
