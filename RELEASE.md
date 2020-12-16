@@ -4,7 +4,6 @@
 
 * Update application.yml
 * Change jetty to undertow
-* Update data-settlement version
 * Update Aleta settlement day calculation
 * Fix reconcile transactionId bug
 * Fix invoice amount bug
@@ -12,6 +11,11 @@
 * Fix Settlement finalAmount calculation
 * ApiHeader
 * Settlement Batch command
+* Update parent data-finance data-risk
+* Make generatePayableAndReceivable Transactional
+* Email Notification
+* Fix PostMapping bug
+* Update data-risk
 
 [0.1.0] - 09 Nov 2020
 
