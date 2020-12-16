@@ -106,7 +106,7 @@ public class ReceivableProcessService {
             throw new ReceivableException(INVALID_RECEIVABLE_PARA);
         }
         Receivable receivable = receivableService.getById(receivableId);
-        if (receivable == null || receivable.type != InvoiceType.PAYMENT) {
+        if (receivable == null) {
             throw new ReceivableException(INVALID_RECEIVABLE);
         }
         receivable.description = desc;

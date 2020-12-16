@@ -102,9 +102,9 @@ public class SettlementController {
     }
 
     @PostMapping(value = "/write-off/receivable")
-    public ApiResponse<?> writeOffPaymentReceivable(@RequestBody Receivable paymentReceivable) {
+    public ApiResponse<?> writeOffSettlementReceivable(@RequestBody Receivable paymentReceivable) {
         try {
-            log.debug("/write-off/receivable {}", paymentReceivable);
+            log.debug("/settlement/write-off/receivable {}", paymentReceivable);
             paymentReceivable = receivableProcessService.writeOff(paymentReceivable.id, paymentReceivable.receivedAmount, paymentReceivable.description, paymentReceivable.referenceNo);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentReceivable);
         } catch (Exception e) {
@@ -116,7 +116,7 @@ public class SettlementController {
     @PostMapping(value = "/write-off/payable")
     public ApiResponse<?> writeOffSettlementPayable(@RequestBody Payable settlementPayable) {
         try {
-            log.debug("/write-off/payable {}", settlementPayable);
+            log.debug("/settlement/write-off/payable {}", settlementPayable);
             settlementPayable = payableProcessService.writeOff(settlementPayable.id, settlementPayable.remark, settlementPayable.referenceNo);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, settlementPayable);
         } catch (Exception e) {
