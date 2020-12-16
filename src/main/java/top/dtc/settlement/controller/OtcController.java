@@ -51,7 +51,7 @@ public class OtcController {
             boolean success = otcProcessService.generateReceivableAndPayable(otc.id);
             if (success) {
                 commonNotificationService.send(
-                        5,
+                        4,
                         notificationProperties.otcAgreedRecipient,
                         Map.of("id", otc.id.toString(),
                                 "file_url", otc.fileUrl,

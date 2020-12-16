@@ -81,7 +81,7 @@ public class OtcProcessService {
         if (isHighRisk) {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
             commonNotificationService.send(
-                    6,
+                    5,
                     notificationProperties.otcHighRiskRecipient,
                     Map.of("id", otc.id.toString(),
                             "client_id", otc.clientId.toString(),
@@ -218,7 +218,18 @@ public class OtcProcessService {
             otc.status = OtcStatus.COMPLETED;
             otc.completedTime = LocalDateTime.now();
             otcService.updateById(otc);
-            //TODO : Send receipt email to Client and Ops
+            KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
+            commonNotificationService.send(
+                    6,
+                    kycNonIndividual.email,
+                    Map.of("id", otc.id.toString(),
+                            "amount", otc.quantity.toString(),
+                            "item", otc.item,
+                            "price", otc.price.toString(),
+                            "txn_fee", otc.transactionFee.toString(),
+                            "total_amount", otc.totalPrice.toString()
+                    )
+            );
         }
         return payable;
     }
