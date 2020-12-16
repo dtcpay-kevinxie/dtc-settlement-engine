@@ -197,6 +197,9 @@ public class OtcProcessService {
                 otc.status = OtcStatus.RECEIVED;
                 otc.receivedTime = LocalDateTime.now();
                 otcService.updateById(otc);
+                Payable payable = payableService.getPayableByOtcId(otcId);
+                payable.payableDate = LocalDate.now(); //TODO: Payable Date should be same day if before 3PM NYT, +1 Day if after
+                payableService.updateById(payable);
             } else {
                 // Throw Exception to interrupt Receivable write-off, Money will not send out
                 throw new OtcException(HIGH_RISK_OTC);
