@@ -81,7 +81,7 @@ public class OtcProcessService {
         if (isHighRisk) {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
             commonNotificationService.send(
-                    6,
+                    5,
                     notificationProperties.otcHighRiskRecipient,
                     Map.of("id", otc.id.toString(),
                             "client_id", otc.clientId.toString(),
@@ -197,6 +197,9 @@ public class OtcProcessService {
                 otc.status = OtcStatus.RECEIVED;
                 otc.receivedTime = LocalDateTime.now();
                 otcService.updateById(otc);
+                Payable payable = payableService.getPayableByOtcId(otcId);
+                payable.payableDate = LocalDate.now(); //TODO: Payable Date should be same day if before 3PM NYT, +1 Day if after
+                payableService.updateById(payable);
             } else {
                 // Throw Exception to interrupt Receivable write-off, Money will not send out
                 throw new OtcException(HIGH_RISK_OTC);
@@ -218,7 +221,20 @@ public class OtcProcessService {
             otc.status = OtcStatus.COMPLETED;
             otc.completedTime = LocalDateTime.now();
             otcService.updateById(otc);
-            //TODO : Send receipt email to Client and Ops
+            payable.status = PayableStatus.PAID;
+            payableService.updateById(payable);
+            KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
+            commonNotificationService.send(
+                    6,
+                    kycNonIndividual.email,
+                    Map.of("id", otc.id.toString(),
+                            "amount", otc.quantity.toString(),
+                            "item", otc.item,
+                            "price", otc.price.toString(),
+                            "txn_fee", otc.transactionFee.toString(),
+                            "total_amount", otc.totalPrice.toString()
+                    )
+            );
         }
         return payable;
     }

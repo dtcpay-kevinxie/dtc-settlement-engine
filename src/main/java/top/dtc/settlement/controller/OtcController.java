@@ -51,7 +51,7 @@ public class OtcController {
             boolean success = otcProcessService.generateReceivableAndPayable(otc.id);
             if (success) {
                 commonNotificationService.send(
-                        5,
+                        4,
                         notificationProperties.otcAgreedRecipient,
                         Map.of("id", otc.id.toString(),
                                 "file_url", otc.fileUrl,
@@ -68,7 +68,7 @@ public class OtcController {
     @PostMapping(value = "/write-off/receivable")
     public ApiResponse<?> writeOffOtcReceivable(@RequestBody Receivable otcReceivable) {
         try {
-            log.debug("/write-off/receivable {}", otcReceivable);
+            log.debug("/otc/write-off/receivable {}", otcReceivable);
             otcReceivable = otcProcessService.writeOffOtcReceivable(otcReceivable.id, otcReceivable.receivedAmount, otcReceivable.description, otcReceivable.referenceNo);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, otcReceivable);
         } catch (Exception e) {
@@ -80,7 +80,7 @@ public class OtcController {
     @PostMapping(value = "/write-off/payable")
     public ApiResponse<?> writeOffOtcPayable(@RequestBody Payable otcPayable) {
         try {
-            log.debug("/write-off/payable {}", otcPayable);
+            log.debug("/otc/write-off/payable {}", otcPayable);
             otcPayable = otcProcessService.writeOffOtcPayable(otcPayable.id, otcPayable.referenceNo);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, otcPayable);
         } catch (Exception e) {
