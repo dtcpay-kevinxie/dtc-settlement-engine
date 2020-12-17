@@ -18,4 +18,4 @@ notification:
 
 etherscan:
   api-url-prefix: ${ETHERSCAN_API_URL_PREFIX}
-  api-key: &{ETHERSCAN_API_KEY}
+  api-key: ${ETHERSCAN_API_KEY}
