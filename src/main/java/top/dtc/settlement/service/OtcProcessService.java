@@ -15,6 +15,7 @@ import top.dtc.data.finance.enums.PayableStatus;
 import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.model.*;
 import top.dtc.data.finance.service.*;
+import top.dtc.data.risk.enums.MainNet;
 import top.dtc.data.risk.enums.RiskLevel;
 import top.dtc.data.risk.model.KycNonIndividual;
 import top.dtc.data.risk.model.KycWalletAddress;
@@ -24,6 +25,7 @@ import top.dtc.data.risk.service.KycWalletAddressService;
 import top.dtc.data.risk.service.RiskMatrixService;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.exception.OtcException;
+import top.dtc.settlement.module.etherscan.service.EtherscanService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -71,6 +73,9 @@ public class OtcProcessService {
 
     @Autowired
     private ReceivableProcessService receivableProcessService;
+
+    @Autowired
+    private EtherscanService etherscanService;
 
     @Autowired
     private CommonNotificationService commonNotificationService;
@@ -130,8 +135,12 @@ public class OtcProcessService {
         }
     }
 
+    @Transactional
     public Receivable writeOffOtcReceivable(Long receivalbeId, BigDecimal amount, String desc, String referenceNo) {
         Receivable receivable = receivableProcessService.writeOff(receivalbeId, amount, desc, referenceNo);
+        if (MainNet.ERC20.desc.equals(receivable.bankName)) {
+            etherscanService.validateErc20Receivable(amount, receivable.bankAccount, referenceNo);
+        }
         if (receivable.status == ReceivableStatus.RECEIVED) {
             updateOtcStatus(receivable);
         }
@@ -140,7 +149,7 @@ public class OtcProcessService {
 
     private boolean generateReceivableAndPayable(Otc otc, Receivable receivable, Payable payable) {
         if (otc.type == OtcType.BUYING) {
-            // Receive fiat from client
+            // Receive fiat from client, otc.remitInfoId is DTC remit info id
             RemitInfo remitInfo = remitInfoService.getById(otc.remitInfoId);
             if (remitInfo == null) {
                 log.error("Invalid RemitInfo {}", otc.remitInfoId);
@@ -155,6 +164,7 @@ public class OtcProcessService {
             payable.currency = otc.item;
             payable.amount = otc.quantity;
             payable.recipientAddressId = otc.recipientAddressId;
+            payable.payableDate = LocalDate.now().plusDays(2);
         } else if (otc.type == OtcType.SELLING) {
             // Receive crypto from client
             KycWalletAddress recipientAddress = kycWalletAddressService.getById(otc.recipientAddressId);
@@ -163,10 +173,11 @@ public class OtcProcessService {
             receivable.currency = otc.item;
             receivable.amount = otc.quantity;
             receivable.receivableDate = LocalDate.now();
-            // Pay fiat to client
+            // Pay fiat to client, otc.remitInfoId is client remit info id
             payable.currency = otc.priceInCurrency;
             payable.amount = otc.totalPrice;
             payable.remitInfoId = otc.remitInfoId;
+            payable.payableDate = LocalDate.now().plusDays(1);
         } else {
             log.error("Invalid OtcType {}", otc.type);
             return false;
@@ -222,6 +233,8 @@ public class OtcProcessService {
             otc.completedTime = LocalDateTime.now();
             otcService.updateById(otc);
             payable.status = PayableStatus.PAID;
+            payable.referenceNo = referenceNo;
+            payable.writeOffDate = LocalDate.now();
             payableService.updateById(payable);
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
             commonNotificationService.send(

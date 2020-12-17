@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.4.0] - 
+
+* Add Etherscan API to validate txnHash
+
 [0.3.0] - 17 Dec 2020
 
 * Fix OTC Receivable write-off bug
