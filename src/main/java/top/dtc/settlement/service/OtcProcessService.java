@@ -240,11 +240,10 @@ public class OtcProcessService {
             commonNotificationService.send(
                     6,
                     kycNonIndividual.email,
-                    Map.of("id", otc.id.toString(),
-                            "amount", otc.quantity.toString(),
-                            "item", otc.item,
+                    Map.of("client_name", payable.beneficiary,
+                            "id", otc.id.toString(),
+                            "order_detail", String.format("%s %s %s", otc.type.desc, otc.quantity, otc.item),
                             "price", otc.price.toString(),
-                            "txn_fee", otc.transactionFee.toString(),
                             "total_amount", otc.totalPrice.toString()
                     )
             );
