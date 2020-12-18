@@ -32,9 +32,10 @@ public class EtherscanService {
             EtherscanTxnVo respObject = JSON.parseObject(respStr.getBody(), EtherscanTxnVo.class);
             if (respObject != null && respObject.result != null) {
                 String txnInput = respObject.result.input;
-//                String methodId = txnInput.substring(0, 10);
+                String methodId = txnInput.substring(0, 10);
                 String addressTo = txnInput.substring(10, 74);
                 String value = txnInput.substring(74);
+                log.debug("methodId={} \n addressTo={} \n value={}", methodId, addressTo, value);
                 if (!addressTo.contains(bankAccount.substring(2))) { // remove "0x" from address
                     throw new ValidationException("Transaction Recipient Unmatched");
                 }
