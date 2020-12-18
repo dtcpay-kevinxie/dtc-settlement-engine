@@ -35,7 +35,7 @@ public class EtherscanService {
 //                String methodId = txnInput.substring(0, 10);
                 String addressTo = txnInput.substring(10, 74);
                 String value = txnInput.substring(74);
-                if (!addressTo.contains(bankAccount)) {
+                if (!addressTo.contains(bankAccount.substring(2))) { // remove "0x" from address
                     throw new ValidationException("Transaction Recipient Unmatched");
                 }
                 if (new BigInteger(value, 16).compareTo(amount.multiply(new BigDecimal(1000000)).toBigInteger()) != 0) {
