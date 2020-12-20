@@ -164,7 +164,6 @@ public class OtcProcessService {
             payable.currency = otc.item;
             payable.amount = otc.quantity;
             payable.recipientAddressId = otc.recipientAddressId;
-            payable.payableDate = LocalDate.now().plusDays(2);
         } else if (otc.type == OtcType.SELLING) {
             // Receive crypto from client
             KycWalletAddress recipientAddress = kycWalletAddressService.getById(otc.recipientAddressId);
@@ -177,7 +176,6 @@ public class OtcProcessService {
             payable.currency = otc.priceInCurrency;
             payable.amount = otc.totalPrice;
             payable.remitInfoId = otc.remitInfoId;
-            payable.payableDate = LocalDate.now().plusDays(1);
         } else {
             log.error("Invalid OtcType {}", otc.type);
             return false;
