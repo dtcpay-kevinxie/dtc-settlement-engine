@@ -1,7 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.4.0] - 
+[0.4.0] - 22 Dec 2020
 
+* Change PayableDate logic
+* Change OTC email notification format
 * Add Etherscan API to validate txnHash
 
 [0.3.0] - 17 Dec 2020
