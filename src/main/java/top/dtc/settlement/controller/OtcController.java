@@ -65,6 +65,18 @@ public class OtcController {
         }
     }
 
+    @PostMapping("/cancelled")
+    public ApiResponse<?> cancelled(@RequestBody Otc otc) {
+        try {
+            log.debug("/cancelled {}", otc);
+            otcProcessService.deleteReceivableAndPayable(otc);
+            return new ApiResponse<>(new ApiHeader(true));
+        } catch (Exception e) {
+            log.error("Can't cancel Receivable and Payable", e);
+            return new ApiResponse<>(ApiHeaderConstant.OTC.GENERAL_FAILED(e.getMessage()));
+        }
+    }
+
     @PostMapping(value = "/write-off/receivable")
     public ApiResponse<?> writeOffOtcReceivable(@RequestBody Receivable otcReceivable) {
         try {

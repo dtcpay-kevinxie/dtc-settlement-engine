@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.5.0] - 04 Jan 2021
+
+* Add cancel OTC Receivable and Payable logic
+
 [0.4.0] - 22 Dec 2020
 
 * Change PayableDate logic

@@ -25,6 +25,8 @@ import top.dtc.data.risk.service.KycWalletAddressService;
 import top.dtc.data.risk.service.RiskMatrixService;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.exception.OtcException;
+import top.dtc.settlement.exception.PayableException;
+import top.dtc.settlement.exception.ReceivableException;
 import top.dtc.settlement.module.etherscan.service.EtherscanService;
 
 import java.math.BigDecimal;
@@ -34,8 +36,9 @@ import java.util.List;
 import java.util.Map;
 
 import static top.dtc.settlement.constant.ErrorMessage.OTC.HIGH_RISK_OTC;
-import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.INVALID_PAYABLE_REF;
-import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.OTC_NOT_RECEIVED;
+import static top.dtc.settlement.constant.ErrorMessage.OTC.INVALID_OTC;
+import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.*;
+import static top.dtc.settlement.constant.ErrorMessage.RECEIVABLE.CANCEL_RECEIVABLE_ERROR;
 
 @Log4j2
 @Service
@@ -102,6 +105,7 @@ public class OtcProcessService {
         List<Otc> otcList = otcService.getByStatus(OtcStatus.AGREED);
         otcList.forEach(this::generateReceivableAndPayable);
     }
+
     public boolean generateReceivableAndPayable(Long otcId) {
         return generateReceivableAndPayable(otcService.getById(otcId));
     }
@@ -145,6 +149,28 @@ public class OtcProcessService {
             updateOtcStatus(receivable);
         }
         return receivable;
+    }
+
+    @Transactional
+    public void deleteReceivableAndPayable(Otc otc) {
+        if (otc == null || otc.status == OtcStatus.RECEIVED || otc.status == OtcStatus.COMPLETED || otc.status == OtcStatus.CANCELLED) {
+            throw new OtcException(INVALID_OTC);
+        }
+        Payable payable = payableService.getPayableByOtcId(otc.id);
+        if (payable == null || payable.status != PayableStatus.UNPAID) {
+            throw new PayableException(CANCEL_PAYABLE_ERROR);
+        }
+        Long payableSubId = payableSubService.getOneSubIdByPayableIdAndType(payable.id, InvoiceType.OTC);
+        payableSubService.removeById(payableSubId);
+        payableService.removeById(payable.id);
+
+        Receivable receivable = receivableService.getReceivableByOtcId(otc.id);
+        if (receivable == null || receivable.status != ReceivableStatus.NOT_RECEIVED) {
+            throw new ReceivableException(CANCEL_RECEIVABLE_ERROR);
+        }
+        List<Long> receivableSubIds = receivableSubService.getSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
+        receivableSubIds.forEach(receivableSubId -> {receivableSubService.removeById(receivableSubId);});
+        receivableService.removeById(receivable.id);
     }
 
     private boolean generateReceivableAndPayable(Otc otc, Receivable receivable, Payable payable) {
