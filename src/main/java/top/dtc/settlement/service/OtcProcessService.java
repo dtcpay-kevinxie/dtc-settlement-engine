@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 
 import static top.dtc.settlement.constant.ErrorMessage.OTC.HIGH_RISK_OTC;
-import static top.dtc.settlement.constant.ErrorMessage.OTC.INVALID_OTC;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.*;
 import static top.dtc.settlement.constant.ErrorMessage.RECEIVABLE.CANCEL_RECEIVABLE_ERROR;
 
@@ -153,9 +152,6 @@ public class OtcProcessService {
 
     @Transactional
     public void deleteReceivableAndPayable(Otc otc) {
-        if (otc == null || otc.status == OtcStatus.RECEIVED || otc.status == OtcStatus.COMPLETED || otc.status == OtcStatus.CANCELLED) {
-            throw new OtcException(INVALID_OTC);
-        }
         Payable payable = payableService.getPayableByOtcId(otc.id);
         if (payable == null || payable.status != PayableStatus.UNPAID) {
             throw new PayableException(CANCEL_PAYABLE_ERROR);
