@@ -69,7 +69,7 @@ public class OtcController {
     public ApiResponse<?> cancelled(@RequestBody Otc otc) {
         try {
             log.debug("/cancelled {}", otc);
-            otcProcessService.deleteReceivableAndPayable(otc);
+            otcProcessService.cancelReceivableAndPayable(otc);
             return new ApiResponse<>(new ApiHeader(true));
         } catch (Exception e) {
             log.error("Can't cancel Receivable and Payable", e);

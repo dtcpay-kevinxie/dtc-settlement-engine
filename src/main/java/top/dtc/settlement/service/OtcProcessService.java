@@ -151,15 +151,14 @@ public class OtcProcessService {
     }
 
     @Transactional
-    public void deleteReceivableAndPayable(Otc otc) {
+    public void cancelReceivableAndPayable(Otc otc) {
         Payable payable = payableService.getPayableByOtcId(otc.id);
         if (payable != null) {
             if (payable.status != PayableStatus.UNPAID) {
                 throw new PayableException(CANCEL_PAYABLE_ERROR);
             }
-            Long payableSubId = payableSubService.getOneSubIdByPayableIdAndType(payable.id, InvoiceType.OTC);
-            payableSubService.removeById(payableSubId);
-            payableService.removeById(payable.id);
+            payable.status = PayableStatus.CANCELLED;
+            payableService.updateById(payable);
         }
 
         Receivable receivable = receivableService.getReceivableByOtcId(otc.id);
@@ -167,9 +166,8 @@ public class OtcProcessService {
             if (receivable.status != ReceivableStatus.NOT_RECEIVED) {
                 throw new ReceivableException(CANCEL_RECEIVABLE_ERROR);
             }
-            List<Long> receivableSubIds = receivableSubService.getSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
-            receivableSubIds.forEach(receivableSubId -> {receivableSubService.removeById(receivableSubId);});
-            receivableService.removeById(receivable.id);
+            receivable.status = ReceivableStatus.CANCELLED;
+            receivableService.updateById(receivable);
         }
     }
 
