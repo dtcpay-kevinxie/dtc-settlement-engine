@@ -153,20 +153,24 @@ public class OtcProcessService {
     @Transactional
     public void deleteReceivableAndPayable(Otc otc) {
         Payable payable = payableService.getPayableByOtcId(otc.id);
-        if (payable == null || payable.status != PayableStatus.UNPAID) {
-            throw new PayableException(CANCEL_PAYABLE_ERROR);
+        if (payable != null) {
+            if (payable.status != PayableStatus.UNPAID) {
+                throw new PayableException(CANCEL_PAYABLE_ERROR);
+            }
+            Long payableSubId = payableSubService.getOneSubIdByPayableIdAndType(payable.id, InvoiceType.OTC);
+            payableSubService.removeById(payableSubId);
+            payableService.removeById(payable.id);
         }
-        Long payableSubId = payableSubService.getOneSubIdByPayableIdAndType(payable.id, InvoiceType.OTC);
-        payableSubService.removeById(payableSubId);
-        payableService.removeById(payable.id);
 
         Receivable receivable = receivableService.getReceivableByOtcId(otc.id);
-        if (receivable == null || receivable.status != ReceivableStatus.NOT_RECEIVED) {
-            throw new ReceivableException(CANCEL_RECEIVABLE_ERROR);
+        if (receivable != null) {
+            if (receivable.status != ReceivableStatus.NOT_RECEIVED) {
+                throw new ReceivableException(CANCEL_RECEIVABLE_ERROR);
+            }
+            List<Long> receivableSubIds = receivableSubService.getSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
+            receivableSubIds.forEach(receivableSubId -> {receivableSubService.removeById(receivableSubId);});
+            receivableService.removeById(receivable.id);
         }
-        List<Long> receivableSubIds = receivableSubService.getSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
-        receivableSubIds.forEach(receivableSubId -> {receivableSubService.removeById(receivableSubId);});
-        receivableService.removeById(receivable.id);
     }
 
     private boolean generateReceivableAndPayable(Otc otc, Receivable receivable, Payable payable) {
