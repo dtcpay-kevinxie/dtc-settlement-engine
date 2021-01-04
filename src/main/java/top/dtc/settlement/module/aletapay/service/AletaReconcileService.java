@@ -23,6 +23,7 @@ import top.dtc.settlement.module.aletapay.model.AletaSettlementReport;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
@@ -94,7 +95,7 @@ public class AletaReconcileService {
             payoutReconcileService.saveOrUpdate(payoutReconcile);
             totalAmount = totalAmount.add(receivedAmount);
         }
-        if (receivable.receivedAmount.compareTo(totalAmount) == 0) {
+        if (receivable.receivedAmount.setScale(2, RoundingMode.HALF_UP).compareTo(totalAmount.setScale(2, RoundingMode.HALF_UP)) == 0) {
             receivable.status = ReceivableStatus.RECEIVED;
             receivable.writeOffDate = LocalDate.now();
         } else {

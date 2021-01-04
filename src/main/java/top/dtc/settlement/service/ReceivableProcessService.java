@@ -28,6 +28,7 @@ import top.dtc.settlement.constant.SettlementConstant;
 import top.dtc.settlement.exception.ReceivableException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -123,7 +124,7 @@ public class ReceivableProcessService {
             default:
                 throw new ValidationException(INVALID_RECEIVABLE_STATUS);
         }
-        if (receivable.receivedAmount.compareTo(receivable.amount) >= 0) {
+        if (receivable.receivedAmount.setScale(2, RoundingMode.HALF_UP).compareTo(receivable.amount.setScale(2, RoundingMode.HALF_UP)) >= 0) {
             receivable.status = ReceivableStatus.RECEIVED;
             receivable.writeOffDate = LocalDate.now();
         } else {

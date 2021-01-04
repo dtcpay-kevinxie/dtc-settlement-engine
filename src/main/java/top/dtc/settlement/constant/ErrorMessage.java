@@ -80,6 +80,7 @@ public class ErrorMessage {
         public static final String INVALID_RECEIVABLE_PARA = "Receivable referenceNo/amount/receivableId is invalid.";
         public static final String INVALID_RECEIVABLE = "Invalid Receivable";
         public static final String INVALID_RECEIVABLE_STATUS = "Invalid Receivable Status";
+        public static final String CANCEL_RECEIVABLE_ERROR = "Can not cancel receivable.";
 
     }
 
@@ -87,6 +88,7 @@ public class ErrorMessage {
         public static final String INVALID_PAYABLE = "Invalid Payable";
         public static final String INVALID_PAYABLE_REF = "Invalid Payable Status";
         public static final String INVALID_PAYABLE_PARA = "Payable referenceNo/payableId is invalid.";
+        public static final String CANCEL_PAYABLE_ERROR = "Can not cancel payable.";
         public static String OTC_NOT_RECEIVED(Long otcId) {
             return String.format("Fund of OTC Order %s not yet received.", otcId);
         }
@@ -98,6 +100,7 @@ public class ErrorMessage {
 
     public static final class OTC {
         public static final String HIGH_RISK_OTC = "The OTC is in high risk, please stop transaction and check client risk level.";
+        public static final String INVALID_OTC = "Invalid OTC";
     }
 
 }
