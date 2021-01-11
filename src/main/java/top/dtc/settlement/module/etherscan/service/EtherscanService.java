@@ -61,7 +61,7 @@ public class EtherscanService {
             startBlock = new BigInteger(dtcOpsAddress.lastTxnBlock).add(BigInteger.ONE).toString();
         }
         String url = etherscanProperties.apiUrlPrefix + "/api?"
-                + "module=proxy"
+                + "module=account"
                 + "&" + "action=tokenTx"
                 + "&" + "address=" + dtcOpsAddress.address
                 + "&" + "startblock=" + startBlock
