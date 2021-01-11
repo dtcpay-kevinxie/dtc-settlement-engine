@@ -455,7 +455,7 @@ public class OtcProcessService {
             OtcKey key = (OtcKey) o;
             return Objects.equals(recipientAddress, key.recipientAddress) &&
                     Objects.equals(senderAddress, key.senderAddress) &&
-                    Objects.equals(amount, key.amount);
+                    amount.compareTo(key.amount) == 0;
         }
 
         @Override
