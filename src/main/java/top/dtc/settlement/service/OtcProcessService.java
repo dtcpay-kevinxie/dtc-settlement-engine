@@ -217,7 +217,7 @@ public class OtcProcessService {
     }
 
     private void updateOtcStatus(Receivable receivable) {
-        Long otcId = receivableSubService.getOneReceivableIdBySubIdAndType(receivable.id, InvoiceType.OTC);
+        Long otcId = receivableSubService.getOneSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
         Otc otc = otcService.getById(otcId);
         if (!isOtcHighRisk(otc)) {
             otc.status = OtcStatus.RECEIVED;
