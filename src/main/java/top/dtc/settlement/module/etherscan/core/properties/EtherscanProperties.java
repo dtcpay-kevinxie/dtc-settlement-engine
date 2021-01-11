@@ -13,4 +13,6 @@ public class EtherscanProperties {
 
     public String apiKey;
 
+    public String maxEndBlock;
+
 }

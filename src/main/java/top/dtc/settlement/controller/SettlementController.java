@@ -8,9 +8,7 @@ import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.Receivable;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
-import top.dtc.settlement.service.PayableProcessService;
-import top.dtc.settlement.service.ReceivableProcessService;
-import top.dtc.settlement.service.SettlementProcessService;
+import top.dtc.settlement.service.PaymentSettlementService;
 
 import java.time.LocalDate;
 
@@ -20,19 +18,13 @@ import java.time.LocalDate;
 public class SettlementController {
 
     @Autowired
-    private SettlementProcessService settlementProcessService;
-
-    @Autowired
-    private ReceivableProcessService receivableProcessService;
-
-    @Autowired
-    private PayableProcessService payableProcessService;
+    private PaymentSettlementService paymentSettlementService;
 
     @PostMapping(value = "/scheduled")
     public ApiResponse<?> scheduled() {
         try {
             log.debug("/scheduled");
-            settlementProcessService.processSettlement(LocalDate.now());
+            paymentSettlementService.processSettlement(LocalDate.now());
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process scheduled settlement", e);
@@ -45,7 +37,7 @@ public class SettlementController {
         try {
             log.debug("/settlement/process {}", processDate);
             LocalDate date = LocalDate.parse(processDate, DateTime.FORMAT.YYMMDD);
-            settlementProcessService.processSettlement(date);
+            paymentSettlementService.processSettlement(date);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process settlement", e);
@@ -57,7 +49,7 @@ public class SettlementController {
     public ApiResponse<?> submit(@PathVariable("settlementId") Long settlementId) {
         try {
             log.debug("/submit {}", settlementId);
-            settlementProcessService.submitSettlement(settlementId);
+            paymentSettlementService.submitSettlement(settlementId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot submit settlement", e);
@@ -69,7 +61,7 @@ public class SettlementController {
     public ApiResponse<?> retrieve(@PathVariable("settlementId") Long settlementId) {
         try {
             log.debug("/retrieve {}", settlementId);
-            settlementProcessService.retrieveSubmission(settlementId);
+            paymentSettlementService.retrieveSubmission(settlementId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot retrieve settlement submission", e);
@@ -81,7 +73,7 @@ public class SettlementController {
     public ApiResponse<?> approve(@PathVariable("settlementId") Long settlementId) {
         try {
             log.debug("/approve {}", settlementId);
-            settlementProcessService.approve(settlementId);
+            paymentSettlementService.approve(settlementId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot approve settlement", e);
@@ -93,7 +85,7 @@ public class SettlementController {
     public ApiResponse<?> reject(@PathVariable("settlementId") Long settlementId) {
         try {
             log.debug("/reject {}", settlementId);
-            settlementProcessService.reject(settlementId);
+            paymentSettlementService.reject(settlementId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot reject settlement", e);
@@ -105,7 +97,7 @@ public class SettlementController {
     public ApiResponse<?> writeOffSettlementReceivable(@RequestBody Receivable paymentReceivable) {
         try {
             log.debug("/settlement/write-off/receivable {}", paymentReceivable);
-            paymentReceivable = receivableProcessService.writeOff(paymentReceivable.id, paymentReceivable.receivedAmount, paymentReceivable.description, paymentReceivable.referenceNo);
+            paymentReceivable = paymentSettlementService.writeOffReceivable(paymentReceivable.id, paymentReceivable.receivedAmount, paymentReceivable.description, paymentReceivable.referenceNo);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentReceivable);
         } catch (Exception e) {
             log.error("Cannot process writeOffOtcReceivable", e);
@@ -117,7 +109,7 @@ public class SettlementController {
     public ApiResponse<?> writeOffSettlementPayable(@RequestBody Payable settlementPayable) {
         try {
             log.debug("/settlement/write-off/payable {}", settlementPayable);
-            settlementPayable = payableProcessService.writeOff(settlementPayable.id, settlementPayable.remark, settlementPayable.referenceNo);
+            settlementPayable = paymentSettlementService.writeOffPayable(settlementPayable.id, settlementPayable.remark, settlementPayable.referenceNo);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, settlementPayable);
         } catch (Exception e) {
             log.error("Cannot process writeOffOtcReceivable", e);
