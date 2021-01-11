@@ -324,10 +324,13 @@ public class OtcProcessService {
                 .stream()
                 .map(etherTxn -> {
                     BigDecimal amount = new BigDecimal(etherTxn.value).movePointLeft(Integer.parseInt(etherTxn.tokenDecimal));
-                    OtcKey comparingOtc = new OtcKey(etherTxn.from, etherTxn.to, amount);
+//                    OtcKey comparingOtc = new OtcKey(etherTxn.from, etherTxn.to, amount);
                     for (OtcKey otcKey : otcKeys) {
-                        log.debug("Comparing {} with {}", otcKey, comparingOtc);
-                        if (otcKey.equals(comparingOtc)) {
+                        log.debug("Comparing {} with {}", otcKey, etherTxn);
+                        if (otcKey.recipientAddress.equals(etherTxn.to)
+                                && otcKey.senderAddress.equals(etherTxn.from)
+                                && otcKey.amount.compareTo(amount) == 0
+                        ) {
                             processDetectedOtc(otcKey.otc, etherTxn.hash);
                             otcKeys.remove(otcKey);
                             return otcKey;
