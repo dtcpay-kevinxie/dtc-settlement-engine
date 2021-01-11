@@ -327,8 +327,8 @@ public class OtcProcessService {
 //                    OtcKey comparingOtc = new OtcKey(etherTxn.from, etherTxn.to, amount);
                     for (OtcKey otcKey : otcKeys) {
                         log.debug("Comparing {} with {}", otcKey, etherTxn);
-                        if (otcKey.recipientAddress.equals(etherTxn.to)
-                                && otcKey.senderAddress.equals(etherTxn.from)
+                        if (otcKey.recipientAddress.equalsIgnoreCase(etherTxn.to)
+                                && otcKey.senderAddress.equalsIgnoreCase(etherTxn.from)
                                 && otcKey.amount.compareTo(amount) == 0
                         ) {
                             processDetectedOtc(otcKey.otc, etherTxn.hash);
@@ -449,16 +449,6 @@ public class OtcProcessService {
                 this.dtcOpsAddress = sender;
                 this.clientAddress = recipient;
             }
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            OtcKey key = (OtcKey) o;
-            return Objects.equals(recipientAddress, key.recipientAddress) &&
-                    Objects.equals(senderAddress, key.senderAddress) &&
-                    amount.compareTo(key.amount) == 0;
         }
 
         @Override
