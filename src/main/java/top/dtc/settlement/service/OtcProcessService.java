@@ -136,6 +136,11 @@ public class OtcProcessService {
         ));
         List<String> unexpectedList = new ArrayList<>();
         for (KycWalletAddress dtcOpsAddress : map.keySet()) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             List<OtcKey> otcKeys = map.get(dtcOpsAddress);
             switch (dtcOpsAddress.mainNet) {
                 case ERC20:
@@ -432,7 +437,7 @@ public class OtcProcessService {
         public OtcKey(Otc otc, KycWalletAddress recipient, KycWalletAddress sender) {
             this.recipientAddress = recipient.address;
             this.senderAddress = sender.address;
-            this.amount = otc.totalPrice;
+            this.amount = otc.quantity;
             this.otc = otc;
             if (otc.type == OtcType.SELLING) {
                 this.dtcOpsAddress = recipient;
