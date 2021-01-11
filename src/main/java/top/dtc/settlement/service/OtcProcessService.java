@@ -143,6 +143,7 @@ public class OtcProcessService {
                     if (txnList == null) {
                         continue;
                     }
+                    log.debug("New txn found {}", txnList);
                     dtcOpsAddress.lastTxnBlock = processMatching(txnList, otcKeys, unexpectedList);
                     break;
                 case BTC:
@@ -153,6 +154,7 @@ public class OtcProcessService {
             }
             kycWalletAddressService.updateById(dtcOpsAddress);
         }
+        log.debug("Unexpected List {}", String.join("\n", unexpectedList));
         if (unexpectedList.size() > 0) {
             commonNotificationService.send(
                     7,
@@ -317,8 +319,10 @@ public class OtcProcessService {
                 .stream()
                 .map(etherTxn -> {
                     BigDecimal amount = new BigDecimal(etherTxn.value).movePointLeft(Integer.parseInt(etherTxn.tokenDecimal));
+                    OtcKey comparingOtc = new OtcKey(etherTxn.from, etherTxn.to, amount);
                     for (OtcKey otcKey : otcKeys) {
-                        if (otcKey.equals(new OtcKey(etherTxn.from, etherTxn.to, amount))) {
+                        log.debug("Comparing {} with {}", otcKey, comparingOtc);
+                        if (otcKey.equals(comparingOtc)) {
                             processDetectedOtc(otcKey.otc, etherTxn.hash);
                             otcKeys.remove(otcKey);
                             return otcKey;
