@@ -148,7 +148,6 @@ public class OtcProcessService {
                     if (txnList == null) {
                         continue;
                     }
-                    log.debug("New txn found {}", txnList);
                     dtcOpsAddress.lastTxnBlock = processMatching(txnList, otcKeys, unexpectedList);
                     break;
                 case BTC:
@@ -319,6 +318,7 @@ public class OtcProcessService {
     }
 
     private String processMatching(List<EtherscanErc20Event> ethereumTxnList, List<OtcKey> otcKeys, List<String> unexpectedList) {
+        log.debug("New txn found \n {} \n OTC comparing \n {}", ethereumTxnList, otcKeys);
         String lastBlockNumber = ethereumTxnList.stream().map(etherTxn -> etherTxn.blockNumber).max(Comparator.comparingLong(Long::parseLong)).get();
         List<OtcKey> detectedOtcList = ethereumTxnList
                 .stream()
@@ -326,9 +326,9 @@ public class OtcProcessService {
                     BigDecimal amount = new BigDecimal(etherTxn.value).movePointLeft(Integer.parseInt(etherTxn.tokenDecimal));
 //                    OtcKey comparingOtc = new OtcKey(etherTxn.from, etherTxn.to, amount);
                     for (OtcKey otcKey : otcKeys) {
-                        log.debug("Comparing {} with {}", otcKey, etherTxn);
                         if (otcKey.recipientAddress.equalsIgnoreCase(etherTxn.to)
                                 && otcKey.senderAddress.equalsIgnoreCase(etherTxn.from)
+                                && otcKey.otc.item.equalsIgnoreCase(etherTxn.tokenSymbol)
                                 && otcKey.amount.compareTo(amount) == 0
                         ) {
                             processDetectedOtc(otcKey.otc, etherTxn.hash);
@@ -352,7 +352,7 @@ public class OtcProcessService {
     }
 
     private void processDetectedOtc(Otc otc, String txnReferenceNo) {
-        log.debug("Txn {} matched OTC {}", txnReferenceNo, otc);
+        log.debug("Txn {} \n Matched OTC {} \n", txnReferenceNo, otc);
         if (!isOtcHighRisk(otc)) {
             if (otc.type == OtcType.SELLING) {
                 Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(otc.id, InvoiceType.OTC);
