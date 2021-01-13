@@ -301,7 +301,7 @@ public class OtcProcessService {
     }
 
     private boolean isOtcHighRisk(Otc otc) {
-        RiskMatrix riskMatrix = riskMatrixService.getOneByClientIdAndClientType(otc.clientId, otc.clientType);
+        RiskMatrix riskMatrix = riskMatrixService.getOneByClientId(otc.clientId);
         boolean isHighRisk = riskMatrix.riskLevel == RiskLevel.SEVERE || riskMatrix.riskLevel == RiskLevel.HIGH;
         if (isHighRisk) {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
