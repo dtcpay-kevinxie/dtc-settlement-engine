@@ -313,7 +313,7 @@ public class OtcProcessService {
             Merchant merchant = merchantService.getById(otc.clientId);
             isActivated = merchant.status == MerchantStatus.ACTIVATED;
         }
-        if (isActivated) {
+        if (!isActivated) {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
             commonNotificationService.send(
                     5,
