@@ -6,20 +6,22 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.dtc.common.enums.ClientType;
 import top.dtc.common.service.CommonNotificationService;
+import top.dtc.data.core.enums.MerchantStatus;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.enums.OtcType;
+import top.dtc.data.core.model.Merchant;
 import top.dtc.data.core.model.Otc;
+import top.dtc.data.core.service.MerchantService;
 import top.dtc.data.core.service.OtcService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.PayableStatus;
 import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.model.*;
 import top.dtc.data.finance.service.*;
-import top.dtc.data.risk.enums.RiskLevel;
 import top.dtc.data.risk.model.KycNonIndividual;
 import top.dtc.data.risk.model.KycWalletAddress;
-import top.dtc.data.risk.model.RiskMatrix;
 import top.dtc.data.risk.service.KycNonIndividualService;
 import top.dtc.data.risk.service.KycWalletAddressService;
 import top.dtc.data.risk.service.RiskMatrixService;
@@ -90,6 +92,9 @@ public class OtcProcessService {
 
     @Autowired
     private CommonNotificationService commonNotificationService;
+
+    @Autowired
+    private MerchantService merchantService;
 
     public void scheduledBlockchain() {
         // OTC waiting for receiving token
@@ -176,7 +181,7 @@ public class OtcProcessService {
 
     @Transactional
     public boolean generateReceivableAndPayable(Otc otc) {
-        if (isOtcHighRisk(otc)) {
+        if (isClientActivated(otc)) {
             return false;
         }
         Payable payable = payableService.getPayableByOtcId(otc.id);
@@ -218,7 +223,7 @@ public class OtcProcessService {
     private void updateOtcStatus(Receivable receivable) {
         Long otcId = receivableSubService.getOneSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
         Otc otc = otcService.getById(otcId);
-        if (!isOtcHighRisk(otc)) {
+        if (!isClientActivated(otc)) {
             otc.status = OtcStatus.RECEIVED;
             otc.receivedTime = LocalDateTime.now();
             otcService.updateById(otc);
@@ -257,7 +262,7 @@ public class OtcProcessService {
     private void updateOtcStatus(Payable payable) {
         Long otcId = payableSubService.getOtcIdByPayableIdAndType(payable.id);
         Otc otc = otcService.getById(otcId);
-        if (!isOtcHighRisk(otc)) {
+        if (!isClientActivated(otc)) {
             if (otc.status != OtcStatus.RECEIVED) {
                 throw new OtcException(OTC_NOT_RECEIVED(otcId));
             }
@@ -300,21 +305,25 @@ public class OtcProcessService {
         }
     }
 
-    private boolean isOtcHighRisk(Otc otc) {
-        RiskMatrix riskMatrix = riskMatrixService.getOneByClientId(otc.clientId);
-        boolean isHighRisk = riskMatrix.riskLevel == RiskLevel.SEVERE || riskMatrix.riskLevel == RiskLevel.HIGH;
-        if (isHighRisk) {
+    private boolean isClientActivated(Otc otc) {
+        boolean isActivated = false;
+        if (otc.clientType == ClientType.INDIVIDUAL) {
+            // TODO: Add Individual Account validation
+        } else {
+            Merchant merchant = merchantService.getById(otc.clientId);
+            isActivated = merchant.status == MerchantStatus.ACTIVATED;
+        }
+        if (isActivated) {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
             commonNotificationService.send(
                     5,
                     notificationProperties.otcHighRiskRecipient,
                     Map.of("id", otc.id.toString(),
                             "client_id", otc.clientId.toString(),
-                            "client_name", kycNonIndividual.registerName,
-                            "risk_level", riskMatrix.riskLevel.desc)
+                            "client_name", kycNonIndividual.registerName)
             );
         }
-        return isHighRisk;
+        return isActivated;
     }
 
     private String processMatching(List<EtherscanErc20Event> ethereumTxnList, List<OtcKey> otcKeys, List<String> unexpectedList) {
@@ -353,7 +362,7 @@ public class OtcProcessService {
 
     private void processDetectedOtc(Otc otc, String txnReferenceNo) {
         log.debug("Txn {} \n Matched OTC {} \n", txnReferenceNo, otc);
-        if (!isOtcHighRisk(otc)) {
+        if (!isClientActivated(otc)) {
             if (otc.type == OtcType.SELLING) {
                 Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(otc.id, InvoiceType.OTC);
                 Receivable receivable = receivableProcessService.writeOff(receivableId, otc.totalPrice, "System Auto Write-off", txnReferenceNo);
