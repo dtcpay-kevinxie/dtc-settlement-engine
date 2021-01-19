@@ -56,8 +56,10 @@ public class OtcController {
                                 "file_url", otc.fileUrl,
                                 "operator", otc.operator)
                 );
+                return new ApiResponse<>(new ApiHeader(success));
+            } else {
+                return new ApiResponse<>(ApiHeaderConstant.OTC.FAILED_TO_GENERATE_REC_AND_PAY());
             }
-            return new ApiResponse<>(new ApiHeader(success));
         } catch (Exception e) {
             log.error("Can't create Receivable and Payable", e);
             return new ApiResponse<>(ApiHeaderConstant.OTC.GENERAL_FAILED(e.getMessage()));
