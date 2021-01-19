@@ -24,6 +24,9 @@ public class ApiHeaderConstant {
     // STARTS WITH "11"
     public static class OTC {
         public static ApiHeader GENERAL_FAILED(String errMsg) { return new ApiHeader("11001", errMsg); }
+        public static ApiHeader FAILED_TO_GENERATE_REC_AND_PAY() {
+            return new ApiHeader("11002", "Receivable and Payable generating failed.");
+        }
     }
 
     // STARTS WITH "12"
