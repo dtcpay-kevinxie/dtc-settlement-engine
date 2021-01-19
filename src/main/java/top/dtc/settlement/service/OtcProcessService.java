@@ -1,7 +1,5 @@
 package top.dtc.settlement.service;
 
-import kong.unirest.GenericType;
-import kong.unirest.Unirest;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.log4j.Log4j2;
@@ -9,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.dtc.common.enums.ClientType;
-import top.dtc.common.model.api.ApiResponse;
 import top.dtc.common.service.CommonNotificationService;
 import top.dtc.data.core.enums.MerchantStatus;
 import top.dtc.data.core.enums.OtcStatus;
@@ -45,7 +42,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static top.dtc.data.risk.enums.MainNet.ERC20;
-import static top.dtc.settlement.constant.ErrorMessage.OTC.COULD_NOT_REGISTER;
 import static top.dtc.settlement.constant.ErrorMessage.OTC.HIGH_RISK_OTC;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.CANCEL_PAYABLE_ERROR;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.OTC_NOT_RECEIVED;
@@ -371,17 +367,17 @@ public class OtcProcessService {
                 Receivable receivable = receivableProcessService.writeOff(receivableId, otc.totalPrice, "System Auto Write-off", txnReferenceNo);
                 updateOtcStatus(receivable);
             } else {
-                ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + "/chainalysis/register/withdraw-transaction/{addressId}/{transactionHash}")
-                        .routeParam("addressId", String.valueOf(otc.recipientAddressId))
-                        .routeParam("transactionHash", txnReferenceNo)
-                        .asObject(new GenericType<ApiResponse<String>>() {
-                        })
-                        .getBody();
-                if (resp.header.success) {
-
-                } else {
-                    throw new OtcException(COULD_NOT_REGISTER);
-                }
+//                ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + "/chainalysis/register/withdraw-transaction/{addressId}/{transactionHash}")
+//                        .routeParam("addressId", String.valueOf(otc.recipientAddressId))
+//                        .routeParam("transactionHash", txnReferenceNo)
+//                        .asObject(new GenericType<ApiResponse<String>>() {
+//                        })
+//                        .getBody();
+//                if (resp.header.success) {
+//
+//                } else {
+//                    throw new OtcException(COULD_NOT_REGISTER);
+//                }
                 Long payableId = payableSubService.getOnePayableIdBySubIdAndType(otc.id, InvoiceType.OTC);
                 Payable payable = payableProcessService.writeOff(payableId, "System Auto Write-off", txnReferenceNo);
                 updateOtcStatus(payable);
