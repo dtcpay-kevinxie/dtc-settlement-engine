@@ -17,4 +17,7 @@ public class HttpProperties {
     // Scheduler http url
     public String schedulerUrl;
 
+    // Risk Engine http url
+    public String riskEngineUrl;
+
 }

@@ -1,5 +1,7 @@
 package top.dtc.settlement.service;
 
+import kong.unirest.GenericType;
+import kong.unirest.Unirest;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.log4j.Log4j2;
@@ -7,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.dtc.common.enums.ClientType;
+import top.dtc.common.model.api.ApiResponse;
 import top.dtc.common.service.CommonNotificationService;
 import top.dtc.data.core.enums.MerchantStatus;
 import top.dtc.data.core.enums.OtcStatus;
@@ -24,7 +27,7 @@ import top.dtc.data.risk.model.KycNonIndividual;
 import top.dtc.data.risk.model.KycWalletAddress;
 import top.dtc.data.risk.service.KycNonIndividualService;
 import top.dtc.data.risk.service.KycWalletAddressService;
-import top.dtc.data.risk.service.RiskMatrixService;
+import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.exception.OtcException;
 import top.dtc.settlement.exception.PayableException;
@@ -42,6 +45,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static top.dtc.data.risk.enums.MainNet.ERC20;
+import static top.dtc.settlement.constant.ErrorMessage.OTC.COULD_NOT_REGISTER;
 import static top.dtc.settlement.constant.ErrorMessage.OTC.HIGH_RISK_OTC;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.CANCEL_PAYABLE_ERROR;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.OTC_NOT_RECEIVED;
@@ -55,6 +59,9 @@ public class OtcProcessService {
     private NotificationProperties notificationProperties;
 
     @Autowired
+    private HttpProperties httpProperties;
+
+    @Autowired
     private OtcService otcService;
 
     @Autowired
@@ -65,9 +72,6 @@ public class OtcProcessService {
 
     @Autowired
     private RemitInfoService remitInfoService;
-
-    @Autowired
-    private RiskMatrixService riskMatrixService;
 
     @Autowired
     private PayableSubService payableSubService;
@@ -223,7 +227,7 @@ public class OtcProcessService {
     private void updateOtcStatus(Receivable receivable) {
         Long otcId = receivableSubService.getOneSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
         Otc otc = otcService.getById(otcId);
-        if (!isClientActivated(otc)) {
+        if (isClientActivated(otc)) {
             otc.status = OtcStatus.RECEIVED;
             otc.receivedTime = LocalDateTime.now();
             otcService.updateById(otc);
@@ -262,7 +266,7 @@ public class OtcProcessService {
     private void updateOtcStatus(Payable payable) {
         Long otcId = payableSubService.getOtcIdByPayableIdAndType(payable.id);
         Otc otc = otcService.getById(otcId);
-        if (!isClientActivated(otc)) {
+        if (isClientActivated(otc)) {
             if (otc.status != OtcStatus.RECEIVED) {
                 throw new OtcException(OTC_NOT_RECEIVED(otcId));
             }
@@ -333,7 +337,6 @@ public class OtcProcessService {
                 .stream()
                 .map(etherTxn -> {
                     BigDecimal amount = new BigDecimal(etherTxn.value).movePointLeft(Integer.parseInt(etherTxn.tokenDecimal));
-//                    OtcKey comparingOtc = new OtcKey(etherTxn.from, etherTxn.to, amount);
                     for (OtcKey otcKey : otcKeys) {
                         if (otcKey.recipientAddress.equalsIgnoreCase(etherTxn.to)
                                 && otcKey.senderAddress.equalsIgnoreCase(etherTxn.from)
@@ -362,12 +365,23 @@ public class OtcProcessService {
 
     private void processDetectedOtc(Otc otc, String txnReferenceNo) {
         log.debug("Txn {} \n Matched OTC {} \n", txnReferenceNo, otc);
-        if (!isClientActivated(otc)) {
+        if (isClientActivated(otc)) {
             if (otc.type == OtcType.SELLING) {
                 Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(otc.id, InvoiceType.OTC);
                 Receivable receivable = receivableProcessService.writeOff(receivableId, otc.totalPrice, "System Auto Write-off", txnReferenceNo);
                 updateOtcStatus(receivable);
             } else {
+                ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + "/chainalysis/register/withdraw-transaction/{addressId}/{transactionHash}")
+                        .routeParam("addressId", String.valueOf(otc.recipientAddressId))
+                        .routeParam("transactionHash", txnReferenceNo)
+                        .asObject(new GenericType<ApiResponse<String>>() {
+                        })
+                        .getBody();
+                if (resp.header.success) {
+
+                } else {
+                    throw new OtcException(COULD_NOT_REGISTER);
+                }
                 Long payableId = payableSubService.getOnePayableIdBySubIdAndType(otc.id, InvoiceType.OTC);
                 Payable payable = payableProcessService.writeOff(payableId, "System Auto Write-off", txnReferenceNo);
                 updateOtcStatus(payable);

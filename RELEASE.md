@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.7.0] - 19 Jan 2021
+
+* Hotfix isActivated bug
+
 [0.6.0] - 15 Jan 2021
 
 * Add auto-scan and write-off feature for ERC-20 transactions
