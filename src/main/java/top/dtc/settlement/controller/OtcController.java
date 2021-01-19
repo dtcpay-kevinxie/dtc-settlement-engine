@@ -2,6 +2,7 @@ package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,15 +33,13 @@ public class OtcController {
     @Autowired
     private CommonNotificationService commonNotificationService;
 
-    @PostMapping(value = "/scheduled")
-    public ApiResponse<?> scheduled() {
+    @Scheduled(fixedDelay = 5 * 60 * 1000)
+    public void scheduledBlockchain() {
         try {
-            log.debug("/scheduled");
-            otcProcessService.scheduled();
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+            log.debug("/scheduled-blockchain");
+            otcProcessService.scheduledBlockchain();
         } catch (Exception e) {
-            log.error("Cannot process scheduled otc", e);
-            return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
+            log.error("Cannot process scheduled-blockchain", e);
         }
     }
 
@@ -93,7 +92,7 @@ public class OtcController {
     public ApiResponse<?> writeOffOtcPayable(@RequestBody Payable otcPayable) {
         try {
             log.debug("/otc/write-off/payable {}", otcPayable);
-            otcPayable = otcProcessService.writeOffOtcPayable(otcPayable.id, otcPayable.referenceNo);
+            otcPayable = otcProcessService.writeOffOtcPayable(otcPayable.id, otcPayable.remark, otcPayable.referenceNo);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, otcPayable);
         } catch (Exception e) {
             log.error("Cannot process writeOffOtcPayable", e);

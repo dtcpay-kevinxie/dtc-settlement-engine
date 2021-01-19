@@ -17,4 +17,7 @@ public class NotificationProperties {
     // Notification when high risk OTC found
     public String otcHighRiskRecipient;
 
+    // Notification when unexpected transactions found
+    public String financeRecipient;
+
 }

@@ -3,7 +3,7 @@ package top.dtc.settlement.module.etherscan.model;
 import lombok.Data;
 
 @Data
-public class EtherscanTxnResultVo {
+public class EtherscanTxnByHashResult {
 
     public String blockHash;
     public String blockNumber;

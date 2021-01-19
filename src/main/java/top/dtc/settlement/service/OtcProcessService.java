@@ -1,25 +1,27 @@
 package top.dtc.settlement.service;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.dtc.common.enums.ClientType;
 import top.dtc.common.service.CommonNotificationService;
-import top.dtc.common.util.StringUtils;
+import top.dtc.data.core.enums.MerchantStatus;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.enums.OtcType;
+import top.dtc.data.core.model.Merchant;
 import top.dtc.data.core.model.Otc;
+import top.dtc.data.core.service.MerchantService;
 import top.dtc.data.core.service.OtcService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.PayableStatus;
 import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.model.*;
 import top.dtc.data.finance.service.*;
-import top.dtc.data.risk.enums.MainNet;
-import top.dtc.data.risk.enums.RiskLevel;
 import top.dtc.data.risk.model.KycNonIndividual;
 import top.dtc.data.risk.model.KycWalletAddress;
-import top.dtc.data.risk.model.RiskMatrix;
 import top.dtc.data.risk.service.KycNonIndividualService;
 import top.dtc.data.risk.service.KycWalletAddressService;
 import top.dtc.data.risk.service.RiskMatrixService;
@@ -27,16 +29,22 @@ import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.exception.OtcException;
 import top.dtc.settlement.exception.PayableException;
 import top.dtc.settlement.exception.ReceivableException;
+import top.dtc.settlement.module.etherscan.model.EtherscanErc20Event;
 import top.dtc.settlement.module.etherscan.service.EtherscanService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import static top.dtc.data.risk.enums.MainNet.ERC20;
 import static top.dtc.settlement.constant.ErrorMessage.OTC.HIGH_RISK_OTC;
-import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.*;
+import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.CANCEL_PAYABLE_ERROR;
+import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.OTC_NOT_RECEIVED;
 import static top.dtc.settlement.constant.ErrorMessage.RECEIVABLE.CANCEL_RECEIVABLE_ERROR;
 
 @Log4j2
@@ -77,32 +85,94 @@ public class OtcProcessService {
     private ReceivableProcessService receivableProcessService;
 
     @Autowired
+    private PayableProcessService payableProcessService;
+
+    @Autowired
     private EtherscanService etherscanService;
 
     @Autowired
     private CommonNotificationService commonNotificationService;
 
-    private boolean isOtcHighRisk(Otc otc) {
-        RiskMatrix riskMatrix = riskMatrixService.getOneByClientIdAndClientType(otc.clientId, otc.clientType);
-        boolean isHighRisk = riskMatrix.riskLevel == RiskLevel.SEVERE || riskMatrix.riskLevel == RiskLevel.HIGH;
-        if (isHighRisk) {
-            KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
-            commonNotificationService.send(
-                    5,
-                    notificationProperties.otcHighRiskRecipient,
-                    Map.of("id", otc.id.toString(),
-                            "client_id", otc.clientId.toString(),
-                            "client_name", kycNonIndividual.registerName,
-                            "risk_level", riskMatrix.riskLevel.desc)
-            );
+    @Autowired
+    private MerchantService merchantService;
 
+    public void scheduledBlockchain() {
+        // OTC waiting for receiving token
+        List<Otc> waitingList = otcService.getByParams(
+                OtcType.SELLING,
+                OtcStatus.AGREED,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        // Add OTC waiting for paying token
+        waitingList.addAll(
+                otcService.getByParams(
+                        OtcType.BUYING,
+                        OtcStatus.RECEIVED,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                )
+        );
+        // Process looping for blockchain scanning
+        Map<KycWalletAddress, List<OtcKey>> map = waitingList.stream()
+                .map(otc -> {
+                    KycWalletAddress recipient = kycWalletAddressService.getById(otc.recipientAddressId);
+                    KycWalletAddress sender = kycWalletAddressService.getById(otc.senderAddressId);
+                    return new OtcKey(otc, recipient, sender);
+                })
+                .collect(Collectors.toMap(
+                otcKey -> otcKey.dtcOpsAddress,
+                x -> {
+                    List<OtcKey> list = new ArrayList<>();
+                    list.add(x);
+                    return list;
+                },
+                (left, right) -> {
+                    left.addAll(right);
+                    return left;
+                },
+                HashMap::new
+        ));
+        List<String> unexpectedList = new ArrayList<>();
+        for (KycWalletAddress dtcOpsAddress : map.keySet()) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            List<OtcKey> otcKeys = map.get(dtcOpsAddress);
+            switch (dtcOpsAddress.mainNet) {
+                case ERC20:
+                    List<EtherscanErc20Event> txnList = etherscanService.checkNewTransactions(dtcOpsAddress);
+                    if (txnList == null) {
+                        continue;
+                    }
+                    dtcOpsAddress.lastTxnBlock = processMatching(txnList, otcKeys, unexpectedList);
+                    break;
+                case BTC:
+                    //TODO: Integrate with BTC explorer API
+                    break;
+                default:
+                    break;
+            }
+            kycWalletAddressService.updateById(dtcOpsAddress);
         }
-        return isHighRisk;
-    }
+        log.debug("Unexpected List {}", String.join("\n", unexpectedList));
+        if (unexpectedList.size() > 0) {
+            commonNotificationService.send(
+                    7,
+                    notificationProperties.financeRecipient,
+                    Map.of("transactions", String.join("\n", unexpectedList)
+                    )
+            );
+        }
 
-    public void scheduled() {
-        List<Otc> otcList = otcService.getByStatus(OtcStatus.AGREED);
-        otcList.forEach(this::generateReceivableAndPayable);
     }
 
     public boolean generateReceivableAndPayable(Long otcId) {
@@ -111,7 +181,7 @@ public class OtcProcessService {
 
     @Transactional
     public boolean generateReceivableAndPayable(Otc otc) {
-        if (isOtcHighRisk(otc)) {
+        if (isClientActivated(otc)) {
             return false;
         }
         Payable payable = payableService.getPayableByOtcId(otc.id);
@@ -141,13 +211,77 @@ public class OtcProcessService {
     @Transactional
     public Receivable writeOffOtcReceivable(Long receivalbeId, BigDecimal amount, String desc, String referenceNo) {
         Receivable receivable = receivableProcessService.writeOff(receivalbeId, amount, desc, referenceNo);
-        if (MainNet.ERC20.desc.equals(receivable.bankName)) {
-            etherscanService.validateErc20Receivable(amount, receivable.bankAccount, referenceNo);
+        if (ERC20.desc.equals(receivable.bankName)) {
+            etherscanService.validateErc20Txn(amount, receivable.bankAccount, referenceNo);
         }
         if (receivable.status == ReceivableStatus.RECEIVED) {
             updateOtcStatus(receivable);
         }
         return receivable;
+    }
+
+    private void updateOtcStatus(Receivable receivable) {
+        Long otcId = receivableSubService.getOneSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
+        Otc otc = otcService.getById(otcId);
+        if (!isClientActivated(otc)) {
+            otc.status = OtcStatus.RECEIVED;
+            otc.receivedTime = LocalDateTime.now();
+            otcService.updateById(otc);
+            Payable payable = payableService.getPayableByOtcId(otcId);
+            payable.payableDate = LocalDate.now(); //TODO: Payable Date should be same day if before 3PM NYT, +1 Day if after
+            payableService.updateById(payable);
+            commonNotificationService.send(
+                    8,
+                    notificationProperties.financeRecipient,
+                    Map.of("transaction_details", receivable.receivedCurrency + " " + receivable.receivedAmount,
+                            "account_info", receivable.bankName + " " + receivable.bankAccount,
+                            "receivable_id", String.valueOf(receivable.id)
+                    )
+            );
+        } else {
+            // Throw Exception to interrupt Receivable write-off, Money will not send out
+            throw new OtcException(HIGH_RISK_OTC);
+        }
+    }
+
+    @Transactional
+    public Payable writeOffOtcPayable(Long payableId, String remark, String referenceNo) {
+        Payable payable = payableProcessService.writeOff(payableId, remark, referenceNo);
+        if (payable.recipientAddressId != null) {
+            KycWalletAddress recipientAddress = kycWalletAddressService.getById(payable.recipientAddressId);
+            if (recipientAddress.mainNet == ERC20) {
+                etherscanService.validateErc20Txn(payable.amount, recipientAddress.address, referenceNo);
+            }
+        }
+        if (payable.status == PayableStatus.PAID) {
+            updateOtcStatus(payable);
+        }
+        return payable;
+    }
+
+    private void updateOtcStatus(Payable payable) {
+        Long otcId = payableSubService.getOtcIdByPayableIdAndType(payable.id);
+        Otc otc = otcService.getById(otcId);
+        if (!isClientActivated(otc)) {
+            if (otc.status != OtcStatus.RECEIVED) {
+                throw new OtcException(OTC_NOT_RECEIVED(otcId));
+            }
+            otc.status = OtcStatus.COMPLETED;
+            otc.completedTime = LocalDateTime.now();
+            otcService.updateById(otc);
+            KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
+            commonNotificationService.send(
+                    6,
+                    kycNonIndividual.email,
+                    Map.of("client_name", payable.beneficiary,
+                            "id", otc.id.toString(),
+                            "order_detail", String.format("%s %s %s", otc.type.desc, otc.quantity, otc.item),
+                            "price", otc.price.toString(),
+                            "total_amount", otc.totalPrice.setScale(2, RoundingMode.HALF_UP).toString(),
+                            "reference_no", payable.referenceNo
+                    )
+            );
+        }
     }
 
     @Transactional
@@ -168,6 +302,78 @@ public class OtcProcessService {
             }
             receivable.status = ReceivableStatus.CANCELLED;
             receivableService.updateById(receivable);
+        }
+    }
+
+    private boolean isClientActivated(Otc otc) {
+        boolean isActivated = false;
+        if (otc.clientType == ClientType.INDIVIDUAL) {
+            // TODO: Add Individual Account validation
+        } else {
+            Merchant merchant = merchantService.getById(otc.clientId);
+            isActivated = merchant.status == MerchantStatus.ACTIVATED;
+        }
+        if (!isActivated) {
+            KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
+            commonNotificationService.send(
+                    5,
+                    notificationProperties.otcHighRiskRecipient,
+                    Map.of("id", otc.id.toString(),
+                            "client_id", otc.clientId.toString(),
+                            "client_name", kycNonIndividual.registerName)
+            );
+        }
+        return isActivated;
+    }
+
+    private String processMatching(List<EtherscanErc20Event> ethereumTxnList, List<OtcKey> otcKeys, List<String> unexpectedList) {
+        log.debug("New txn found \n {} \n OTC comparing \n {}", ethereumTxnList, otcKeys);
+        String lastBlockNumber = ethereumTxnList.stream().map(etherTxn -> etherTxn.blockNumber).max(Comparator.comparingLong(Long::parseLong)).get();
+        List<OtcKey> detectedOtcList = ethereumTxnList
+                .stream()
+                .map(etherTxn -> {
+                    BigDecimal amount = new BigDecimal(etherTxn.value).movePointLeft(Integer.parseInt(etherTxn.tokenDecimal));
+//                    OtcKey comparingOtc = new OtcKey(etherTxn.from, etherTxn.to, amount);
+                    for (OtcKey otcKey : otcKeys) {
+                        if (otcKey.recipientAddress.equalsIgnoreCase(etherTxn.to)
+                                && otcKey.senderAddress.equalsIgnoreCase(etherTxn.from)
+                                && otcKey.otc.item.equalsIgnoreCase(etherTxn.tokenSymbol)
+                                && otcKey.amount.compareTo(amount) == 0
+                        ) {
+                            processDetectedOtc(otcKey.otc, etherTxn.hash);
+                            otcKeys.remove(otcKey);
+                            return otcKey;
+                        }
+                    }
+                    String unexpectedTxn = String.format("From %s to %s, amount %s, txnHash %s, Date %s \n",
+                            etherTxn.from,
+                            etherTxn.to,
+                            amount,
+                            etherTxn.hash,
+                            LocalDateTime.ofInstant(Instant.ofEpochSecond(Long.parseLong(etherTxn.timeStamp)), ZoneId.of("GMT+08:00"))
+                    );
+                    unexpectedList.add(unexpectedTxn);
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        return lastBlockNumber;
+    }
+
+    private void processDetectedOtc(Otc otc, String txnReferenceNo) {
+        log.debug("Txn {} \n Matched OTC {} \n", txnReferenceNo, otc);
+        if (!isClientActivated(otc)) {
+            if (otc.type == OtcType.SELLING) {
+                Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(otc.id, InvoiceType.OTC);
+                Receivable receivable = receivableProcessService.writeOff(receivableId, otc.totalPrice, "System Auto Write-off", txnReferenceNo);
+                updateOtcStatus(receivable);
+            } else {
+                Long payableId = payableSubService.getOnePayableIdBySubIdAndType(otc.id, InvoiceType.OTC);
+                Payable payable = payableProcessService.writeOff(payableId, "System Auto Write-off", txnReferenceNo);
+                updateOtcStatus(payable);
+            }
+        } else {
+            log.warn("High Risk Transaction Detected.");
         }
     }
 
@@ -222,55 +428,42 @@ public class OtcProcessService {
         receivableSubService.save(receivableSub);
     }
 
-    private void updateOtcStatus(Receivable receivable) {
-        List<Long> otcIdList = receivableSubService.getSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
-        otcIdList.forEach(otcId -> {
-            Otc otc = otcService.getById(otcId);
-            if (!isOtcHighRisk(otc)) {
-                otc.status = OtcStatus.RECEIVED;
-                otc.receivedTime = LocalDateTime.now();
-                otcService.updateById(otc);
-                Payable payable = payableService.getPayableByOtcId(otcId);
-                payable.payableDate = LocalDate.now(); //TODO: Payable Date should be same day if before 3PM NYT, +1 Day if after
-                payableService.updateById(payable);
-            } else {
-                // Throw Exception to interrupt Receivable write-off, Money will not send out
-                throw new OtcException(HIGH_RISK_OTC);
-            }
-        });
-    }
+    @Data
+    @AllArgsConstructor
+    private static class OtcKey {
 
-    public Payable writeOffOtcPayable(Long payableId, String referenceNo) {
-        if (StringUtils.isBlank(referenceNo)) {
-            throw new OtcException(INVALID_PAYABLE_REF);
+        public String recipientAddress;
+        public String senderAddress;
+        public BigDecimal amount;
+        public Otc otc;
+        public KycWalletAddress dtcOpsAddress;
+        public KycWalletAddress clientAddress;
+        public String txnHash;
+
+        public OtcKey(String senderAddress, String recipientAddress, BigDecimal amount) {
+            this.senderAddress = senderAddress;
+            this.recipientAddress = recipientAddress;
+            this.amount = amount;
         }
-        Payable payable = payableService.getById(payableId);
-        Long otcId = payableSubService.getOtcIdByPayableIdAndType(payable.id);
-        Otc otc = otcService.getById(otcId);
-        if (!isOtcHighRisk(otc)) {
-            if (otc.status != OtcStatus.RECEIVED) {
-                throw new OtcException(OTC_NOT_RECEIVED(otcId));
+
+        public OtcKey(Otc otc, KycWalletAddress recipient, KycWalletAddress sender) {
+            this.recipientAddress = recipient.address;
+            this.senderAddress = sender.address;
+            this.amount = otc.quantity;
+            this.otc = otc;
+            if (otc.type == OtcType.SELLING) {
+                this.dtcOpsAddress = recipient;
+                this.clientAddress = sender;
+            } else {
+                this.dtcOpsAddress = sender;
+                this.clientAddress = recipient;
             }
-            otc.status = OtcStatus.COMPLETED;
-            otc.completedTime = LocalDateTime.now();
-            otcService.updateById(otc);
-            payable.status = PayableStatus.PAID;
-            payable.referenceNo = referenceNo;
-            payable.writeOffDate = LocalDate.now();
-            payableService.updateById(payable);
-            KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
-            commonNotificationService.send(
-                    6,
-                    kycNonIndividual.email,
-                    Map.of("client_name", payable.beneficiary,
-                            "id", otc.id.toString(),
-                            "order_detail", String.format("%s %s %s", otc.type.desc, otc.quantity, otc.item),
-                            "price", otc.price.toString(),
-                            "total_amount", otc.totalPrice.toString()
-                    )
-            );
         }
-        return payable;
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(recipientAddress, senderAddress, amount);
+        }
     }
 
 }

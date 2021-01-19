@@ -15,7 +15,9 @@ http:
 notification:
   otc-agreed-recipient: ${NOTIFICATION_OTC_AGREED_RECIPIENT}
   otc-high-risk-recipient: ${NOTIFICATION_OTC_HIGH_RISK_RECIPIENT}
+  finance-recipient: ${NOTIFICATION_FINANCE_RECIPIENT}
 
 etherscan:
   api-url-prefix: ${ETHERSCAN_API_URL_PREFIX}
   api-key: ${ETHERSCAN_API_KEY}
+  max-end-block: ${ETHERSCAN_MAX_END_BLOCK}

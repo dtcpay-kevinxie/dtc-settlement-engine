@@ -1,5 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.6.0] - 15 Jan 2021
+
+* Add auto-scan and write-off feature for ERC-20 transactions
+* Change OTC account validation logic
+* Upgrade dtc-parent
+
 [0.5.0] - 04 Jan 2021
 
 * Add cancel OTC Receivable and Payable logic
