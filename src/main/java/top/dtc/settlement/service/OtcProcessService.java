@@ -208,7 +208,6 @@ public class OtcProcessService {
         }
     }
 
-    @Transactional
     public Receivable writeOffOtcReceivable(Long receivalbeId, BigDecimal amount, String desc, String referenceNo) {
         Receivable receivable = receivableProcessService.writeOff(receivalbeId, amount, desc, referenceNo);
         if (ERC20.desc.equals(receivable.bankName)) {

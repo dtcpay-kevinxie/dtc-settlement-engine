@@ -1,5 +1,14 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.10.0] - 20 Jan 2021
+
+* Hotfix Transactional bug
+* Upgrade data-finance
+
+[0.9.0] - 19 Jan 2021
+
+* Hotfix Receivable and Payable generating bug
+
 [0.8.0] - 19 Jan 2021
 
 * Update parent & data-core
