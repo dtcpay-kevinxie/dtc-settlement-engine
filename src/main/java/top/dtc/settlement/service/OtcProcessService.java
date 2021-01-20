@@ -181,7 +181,7 @@ public class OtcProcessService {
 
     @Transactional
     public boolean generateReceivableAndPayable(Otc otc) {
-        if (isClientActivated(otc)) {
+        if (!isClientActivated(otc)) {
             return false;
         }
         Payable payable = payableService.getPayableByOtcId(otc.id);
