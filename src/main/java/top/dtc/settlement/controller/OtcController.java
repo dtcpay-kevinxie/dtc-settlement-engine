@@ -67,6 +67,7 @@ public class OtcController {
     }
 
     @PostMapping("/cancelled")
+//    @Transactional
     public ApiResponse<?> cancelled(@RequestBody Otc otc) {
         try {
             log.debug("/cancelled {}", otc);
