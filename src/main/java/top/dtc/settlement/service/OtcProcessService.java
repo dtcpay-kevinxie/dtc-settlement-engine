@@ -283,7 +283,6 @@ public class OtcProcessService {
         }
     }
 
-    @Transactional
     public void cancelReceivableAndPayable(Otc otc) {
         Payable payable = payableService.getPayableByOtcId(otc.id);
         if (payable != null) {
