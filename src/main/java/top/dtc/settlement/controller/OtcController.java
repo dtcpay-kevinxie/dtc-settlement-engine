@@ -3,6 +3,7 @@ package top.dtc.settlement.controller;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -67,6 +68,7 @@ public class OtcController {
     }
 
     @PostMapping("/cancelled")
+    @Transactional
     public ApiResponse<?> cancelled(@RequestBody Otc otc) {
         try {
             log.debug("/cancelled {}", otc);
