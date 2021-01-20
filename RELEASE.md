@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.11.0] - 20 Jan 2021
+
+* Hotfix Transactional bug
+
 [0.10.0] - 20 Jan 2021
 
 * Hotfix Transactional bug

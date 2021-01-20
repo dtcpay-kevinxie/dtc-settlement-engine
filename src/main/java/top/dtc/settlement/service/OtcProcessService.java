@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import top.dtc.common.enums.ClientType;
 import top.dtc.common.service.CommonNotificationService;
 import top.dtc.data.core.enums.MerchantStatus;
@@ -179,7 +178,7 @@ public class OtcProcessService {
         return generateReceivableAndPayable(otcService.getById(otcId));
     }
 
-    @Transactional
+//    @Transactional
     public boolean generateReceivableAndPayable(Otc otc) {
         if (!isClientActivated(otc)) {
             return false;
@@ -243,7 +242,7 @@ public class OtcProcessService {
         }
     }
 
-    @Transactional
+//    @Transactional
     public Payable writeOffOtcPayable(Long payableId, String remark, String referenceNo) {
         Payable payable = payableProcessService.writeOff(payableId, remark, referenceNo);
         if (payable.recipientAddressId != null) {
