@@ -361,7 +361,7 @@ public class OtcProcessService {
         if (isClientActivated(otc)) {
             if (otc.type == OtcType.SELLING) {
                 Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(otc.id, InvoiceType.OTC);
-                Receivable receivable = receivableProcessService.writeOff(receivableId, otc.totalPrice, "System Auto Write-off", txnReferenceNo);
+                Receivable receivable = receivableProcessService.writeOff(receivableId, otc.quantity, "System Auto Write-off", txnReferenceNo);
                 updateOtcStatus(receivable);
             } else {
 //                ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + "/chainalysis/register/withdraw-transaction/{addressId}/{transactionHash}")
