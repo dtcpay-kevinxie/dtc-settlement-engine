@@ -101,7 +101,6 @@ public class ErrorMessage {
     public static final class OTC {
         public static final String HIGH_RISK_OTC = "The OTC is in high risk, please stop transaction and check client risk level.";
         public static final String INVALID_OTC = "Invalid OTC";
-        public static final String COULD_NOT_REGISTER = "Can't register txn to Chainalysis";
     }
 
 }

@@ -17,6 +17,7 @@ notification:
   otc-agreed-recipient: ${NOTIFICATION_OTC_AGREED_RECIPIENT}
   otc-high-risk-recipient: ${NOTIFICATION_OTC_HIGH_RISK_RECIPIENT}
   finance-recipient: ${NOTIFICATION_FINANCE_RECIPIENT}
+  portal-url-prefix: ${PORTAL_URL_PREFIX}
 
 etherscan:
   api-url-prefix: ${ETHERSCAN_API_URL_PREFIX}
