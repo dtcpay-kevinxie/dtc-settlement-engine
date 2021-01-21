@@ -1,11 +1,14 @@
 package top.dtc.settlement.service;
 
+import kong.unirest.GenericType;
+import kong.unirest.Unirest;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.ClientType;
+import top.dtc.common.model.api.ApiResponse;
 import top.dtc.common.service.CommonNotificationService;
 import top.dtc.data.core.enums.MerchantStatus;
 import top.dtc.data.core.enums.OtcStatus;
@@ -54,6 +57,9 @@ public class OtcProcessService {
     private NotificationProperties notificationProperties;
 
     @Autowired
+    private CommonNotificationService commonNotificationService;
+
+    @Autowired
     private HttpProperties httpProperties;
 
     @Autowired
@@ -88,9 +94,6 @@ public class OtcProcessService {
 
     @Autowired
     private EtherscanService etherscanService;
-
-    @Autowired
-    private CommonNotificationService commonNotificationService;
 
     @Autowired
     private MerchantService merchantService;
@@ -233,8 +236,8 @@ public class OtcProcessService {
                     notificationProperties.financeRecipient,
                     Map.of("transaction_details", receivable.receivedCurrency + " " + receivable.receivedAmount,
                             "account_info", receivable.bankName + " " + receivable.bankAccount,
-                            "receivable_id", String.valueOf(receivable.id)
-                    )
+                            "receivable_id", String.valueOf(receivable.id),
+                            "receivable_url", notificationProperties.portalUrlPrefix + "/receivable-info/" + receivable.id + "")
             );
         } else {
             // Throw Exception to interrupt Receivable write-off, Money will not send out
@@ -363,21 +366,32 @@ public class OtcProcessService {
                 Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(otc.id, InvoiceType.OTC);
                 Receivable receivable = receivableProcessService.writeOff(receivableId, otc.quantity, "System Auto Write-off", txnReferenceNo);
                 updateOtcStatus(receivable);
+                ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + "/chainalysis/register/received-transaction/{addressId}/{transactionHash}")
+                        .routeParam("addressId", String.valueOf(otc.recipientAddressId))
+                        .routeParam("transactionHash", txnReferenceNo)
+                        .asObject(new GenericType<ApiResponse<String>>() {
+                        })
+                        .getBody();
+                if (resp == null || !resp.header.success) {
+                    log.error("Failed to register txn {} to AddressId {}", txnReferenceNo, otc.recipientAddressId);
+                } else {
+                    log.info("Txn {} Registered successfully. Risk rating: {}", txnReferenceNo, resp.result);
+                }
             } else {
-//                ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + "/chainalysis/register/withdraw-transaction/{addressId}/{transactionHash}")
-//                        .routeParam("addressId", String.valueOf(otc.recipientAddressId))
-//                        .routeParam("transactionHash", txnReferenceNo)
-//                        .asObject(new GenericType<ApiResponse<String>>() {
-//                        })
-//                        .getBody();
-//                if (resp.header.success) {
-//
-//                } else {
-//                    throw new OtcException(COULD_NOT_REGISTER);
-//                }
                 Long payableId = payableSubService.getOnePayableIdBySubIdAndType(otc.id, InvoiceType.OTC);
                 Payable payable = payableProcessService.writeOff(payableId, "System Auto Write-off", txnReferenceNo);
                 updateOtcStatus(payable);
+                ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + "/chainalysis/register/withdraw-transaction/{addressId}/{transactionHash}")
+                        .routeParam("addressId", String.valueOf(otc.recipientAddressId))
+                        .routeParam("transactionHash", txnReferenceNo)
+                        .asObject(new GenericType<ApiResponse<String>>() {
+                        })
+                        .getBody();
+                if (resp == null || !resp.header.success) {
+                    log.error("Failed to register txn {} to AddressId {}", txnReferenceNo, otc.recipientAddressId);
+                } else {
+                    log.info("Txn {} Registered successfully. Risk rating: {}", txnReferenceNo, resp.result);
+                }
             }
         } else {
             log.warn("High Risk Transaction Detected.");

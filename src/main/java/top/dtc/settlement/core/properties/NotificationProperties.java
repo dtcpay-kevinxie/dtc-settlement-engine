@@ -20,4 +20,7 @@ public class NotificationProperties {
     // Notification when unexpected transactions found
     public String financeRecipient;
 
+    // Portal url prefix in Notification
+    public String portalUrlPrefix;
+
 }
