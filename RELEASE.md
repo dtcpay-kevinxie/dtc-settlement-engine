@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.13.0] - 25 Jan 2021
+
+* Register txn to Chainalysis
+
 [0.13.0] - 21 Jan 2021
 
 * Register txn to Chainalysis

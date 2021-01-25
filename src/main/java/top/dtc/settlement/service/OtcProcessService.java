@@ -212,23 +212,24 @@ public class OtcProcessService {
 
     public Receivable writeOffOtcReceivable(Long receivalbeId, BigDecimal amount, String desc, String referenceNo) {
         Receivable receivable = receivableProcessService.writeOff(receivalbeId, amount, desc, referenceNo);
+        Long otcId = receivableSubService.getOneSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
+        Otc otc = otcService.getById(otcId);
         if (ERC20.desc.equals(receivable.bankName)) {
             etherscanService.validateErc20Txn(amount, receivable.bankAccount, referenceNo);
+            registerTxn(otc.recipientAddressId, referenceNo, true);
         }
         if (receivable.status == ReceivableStatus.RECEIVED) {
-            updateOtcStatus(receivable);
+            updateOtcStatus(receivable, otc);
         }
         return receivable;
     }
 
-    private void updateOtcStatus(Receivable receivable) {
-        Long otcId = receivableSubService.getOneSubIdByReceivableIdAndType(receivable.id, InvoiceType.OTC);
-        Otc otc = otcService.getById(otcId);
+    private void updateOtcStatus(Receivable receivable, Otc otc) {
         if (isClientActivated(otc)) {
             otc.status = OtcStatus.RECEIVED;
             otc.receivedTime = LocalDateTime.now();
             otcService.updateById(otc);
-            Payable payable = payableService.getPayableByOtcId(otcId);
+            Payable payable = payableService.getPayableByOtcId(otc.id);
             payable.payableDate = LocalDate.now(); //TODO: Payable Date should be same day if before 3PM NYT, +1 Day if after
             payableService.updateById(payable);
             commonNotificationService.send(
@@ -248,24 +249,25 @@ public class OtcProcessService {
 //    @Transactional
     public Payable writeOffOtcPayable(Long payableId, String remark, String referenceNo) {
         Payable payable = payableProcessService.writeOff(payableId, remark, referenceNo);
+        Long otcId = payableSubService.getOtcIdByPayableIdAndType(payable.id);
+        Otc otc = otcService.getById(otcId);
         if (payable.recipientAddressId != null) {
             KycWalletAddress recipientAddress = kycWalletAddressService.getById(payable.recipientAddressId);
             if (recipientAddress.mainNet == ERC20) {
                 etherscanService.validateErc20Txn(payable.amount, recipientAddress.address, referenceNo);
+                registerTxn(otc.recipientAddressId, referenceNo, false);
             }
         }
         if (payable.status == PayableStatus.PAID) {
-            updateOtcStatus(payable);
+            updateOtcStatus(payable, otc);
         }
         return payable;
     }
 
-    private void updateOtcStatus(Payable payable) {
-        Long otcId = payableSubService.getOtcIdByPayableIdAndType(payable.id);
-        Otc otc = otcService.getById(otcId);
+    private void updateOtcStatus(Payable payable, Otc otc) {
         if (isClientActivated(otc)) {
             if (otc.status != OtcStatus.RECEIVED) {
-                throw new OtcException(OTC_NOT_RECEIVED(otcId));
+                throw new OtcException(OTC_NOT_RECEIVED(otc.id));
             }
             otc.status = OtcStatus.COMPLETED;
             otc.completedTime = LocalDateTime.now();
@@ -361,40 +363,43 @@ public class OtcProcessService {
 
     private void processDetectedOtc(Otc otc, String txnReferenceNo) {
         log.debug("Txn {} \n Matched OTC {} \n", txnReferenceNo, otc);
-        if (isClientActivated(otc)) {
-            if (otc.type == OtcType.SELLING) {
-                Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(otc.id, InvoiceType.OTC);
-                Receivable receivable = receivableProcessService.writeOff(receivableId, otc.quantity, "System Auto Write-off", txnReferenceNo);
-                updateOtcStatus(receivable);
-                ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + "/chainalysis/register/received-transaction/{addressId}/{transactionHash}")
-                        .routeParam("addressId", String.valueOf(otc.recipientAddressId))
-                        .routeParam("transactionHash", txnReferenceNo)
-                        .asObject(new GenericType<ApiResponse<String>>() {
-                        })
-                        .getBody();
-                if (resp == null || !resp.header.success) {
-                    log.error("Failed to register txn {} to AddressId {}", txnReferenceNo, otc.recipientAddressId);
-                } else {
-                    log.info("Txn {} Registered successfully. Risk rating: {}", txnReferenceNo, resp.result);
-                }
-            } else {
-                Long payableId = payableSubService.getOnePayableIdBySubIdAndType(otc.id, InvoiceType.OTC);
-                Payable payable = payableProcessService.writeOff(payableId, "System Auto Write-off", txnReferenceNo);
-                updateOtcStatus(payable);
-                ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + "/chainalysis/register/withdraw-transaction/{addressId}/{transactionHash}")
-                        .routeParam("addressId", String.valueOf(otc.recipientAddressId))
-                        .routeParam("transactionHash", txnReferenceNo)
-                        .asObject(new GenericType<ApiResponse<String>>() {
-                        })
-                        .getBody();
-                if (resp == null || !resp.header.success) {
-                    log.error("Failed to register txn {} to AddressId {}", txnReferenceNo, otc.recipientAddressId);
-                } else {
-                    log.info("Txn {} Registered successfully. Risk rating: {}", txnReferenceNo, resp.result);
-                }
+        if (otc.type == OtcType.SELLING) {
+            registerTxn(otc.recipientAddressId, txnReferenceNo, true);
+            if (!isClientActivated(otc)) {
+                log.warn("High Risk Transaction Detected.");
+                return;
             }
+            Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(otc.id, InvoiceType.OTC);
+            Receivable receivable = receivableProcessService.writeOff(receivableId, otc.quantity, "System Auto Write-off", txnReferenceNo);
+            updateOtcStatus(receivable, otc);
         } else {
-            log.warn("High Risk Transaction Detected.");
+            registerTxn(otc.recipientAddressId, txnReferenceNo, false);
+            if (!isClientActivated(otc)) {
+                log.warn("High Risk Transaction Detected.");
+                return;
+            }
+            Long payableId = payableSubService.getOnePayableIdBySubIdAndType(otc.id, InvoiceType.OTC);
+            Payable payable = payableProcessService.writeOff(payableId, "System Auto Write-off", txnReferenceNo);
+            updateOtcStatus(payable, otc);
+        }
+    }
+
+    private void registerTxn(Long addressId, String txnRef, boolean isReceivedTxn) {
+        String path = String.format("/chainalysis/register/%s/{addressId}/{transactionHash}", isReceivedTxn ? "received-transaction" : "withdraw-transaction");
+        try {
+            ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + path)
+                    .routeParam("addressId", addressId +"")
+                    .routeParam("transactionHash", txnRef)
+                    .asObject(new GenericType<ApiResponse<String>>() {
+                    })
+                    .getBody();
+            if (resp.header.success) {
+                log.info("Txn {} Registered successfully. Risk rating: {}", txnRef, resp.result);
+            } else {
+                log.error("Failed to register txn {} to AddressId {}", txnRef, addressId);
+            }
+        } catch (Exception e) {
+            log.error("Register Error", e);
         }
     }
 
