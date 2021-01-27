@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.ClientType;
 import top.dtc.common.model.api.ApiResponse;
-import top.dtc.common.service.CommonNotificationService;
+import top.dtc.common.util.NotificationBuilder;
 import top.dtc.data.core.enums.MerchantStatus;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.enums.OtcType;
@@ -55,9 +55,6 @@ public class OtcProcessService {
 
     @Autowired
     private NotificationProperties notificationProperties;
-
-    @Autowired
-    private CommonNotificationService commonNotificationService;
 
     @Autowired
     private HttpProperties httpProperties;
@@ -167,12 +164,11 @@ public class OtcProcessService {
         }
         log.debug("Unexpected List {}", String.join("\n", unexpectedList));
         if (unexpectedList.size() > 0) {
-            commonNotificationService.send(
-                    7,
-                    notificationProperties.financeRecipient,
-                    Map.of("transactions", String.join("\n", unexpectedList)
-                    )
-            );
+            NotificationBuilder
+                    .by(7)
+                    .to(notificationProperties.financeRecipient)
+                    .dataMap(Map.of("transactions", String.join("\n", unexpectedList)))
+                    .send();
         }
 
     }
@@ -232,14 +228,14 @@ public class OtcProcessService {
             Payable payable = payableService.getPayableByOtcId(otc.id);
             payable.payableDate = LocalDate.now(); //TODO: Payable Date should be same day if before 3PM NYT, +1 Day if after
             payableService.updateById(payable);
-            commonNotificationService.send(
-                    8,
-                    notificationProperties.financeRecipient,
-                    Map.of("transaction_details", receivable.receivedCurrency + " " + receivable.receivedAmount,
+            NotificationBuilder
+                    .by(8)
+                    .to(notificationProperties.financeRecipient)
+                    .dataMap(Map.of("transaction_details", receivable.receivedCurrency + " " + receivable.receivedAmount,
                             "account_info", receivable.bankName + " " + receivable.bankAccount,
                             "receivable_id", String.valueOf(receivable.id),
-                            "receivable_url", notificationProperties.portalUrlPrefix + "/receivable-info/" + receivable.id + "")
-            );
+                            "receivable_url", notificationProperties.portalUrlPrefix + "/receivable-info/" + receivable.id + ""))
+                    .send();
         } else {
             // Throw Exception to interrupt Receivable write-off, Money will not send out
             throw new OtcException(HIGH_RISK_OTC);
@@ -273,17 +269,17 @@ public class OtcProcessService {
             otc.completedTime = LocalDateTime.now();
             otcService.updateById(otc);
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
-            commonNotificationService.send(
-                    6,
-                    kycNonIndividual.email,
-                    Map.of("client_name", payable.beneficiary,
+            NotificationBuilder
+                    .by(6)
+                    .to(kycNonIndividual.email)
+                    .dataMap(Map.of("client_name", payable.beneficiary,
                             "id", otc.id.toString(),
                             "order_detail", String.format("%s %s %s", otc.type.desc, otc.quantity, otc.item),
                             "price", otc.price.toString(),
                             "total_amount", otc.totalPrice.setScale(2, RoundingMode.HALF_UP).toString(),
                             "reference_no", payable.referenceNo
-                    )
-            );
+                    ))
+                    .send();
         }
     }
 
@@ -317,13 +313,13 @@ public class OtcProcessService {
         }
         if (!isActivated) {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
-            commonNotificationService.send(
-                    5,
-                    notificationProperties.otcHighRiskRecipient,
-                    Map.of("id", otc.id.toString(),
+            NotificationBuilder
+                    .by(5)
+                    .to(notificationProperties.otcHighRiskRecipient)
+                    .dataMap(Map.of("id", otc.id.toString(),
                             "client_id", otc.clientId.toString(),
-                            "client_name", kycNonIndividual.registerName)
-            );
+                            "client_name", kycNonIndividual.registerName))
+                    .send();
         }
         return isActivated;
     }

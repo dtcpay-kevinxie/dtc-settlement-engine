@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.dtc.common.service.CommonNotificationService;
+import top.dtc.common.util.NotificationBuilder;
 import top.dtc.data.core.model.Otc;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.Receivable;
@@ -30,9 +30,6 @@ public class OtcController {
     @Autowired
     private NotificationProperties notificationProperties;
 
-    @Autowired
-    private CommonNotificationService commonNotificationService;
-
     @Scheduled(fixedDelay = 5 * 60 * 1000)
     public void scheduledBlockchain() {
         try {
@@ -49,13 +46,13 @@ public class OtcController {
             log.debug("/agreed {}", otc);
             boolean success = otcProcessService.generateReceivableAndPayable(otc.id);
             if (success) {
-                commonNotificationService.send(
-                        4,
-                        notificationProperties.otcAgreedRecipient,
-                        Map.of("id", otc.id.toString(),
+                NotificationBuilder
+                        .by(4)
+                        .to(notificationProperties.otcAgreedRecipient)
+                        .dataMap(Map.of("id", otc.id.toString(),
                                 "file_url", otc.fileUrl,
-                                "operator", otc.operator)
-                );
+                                "operator", otc.operator))
+                        .send();
                 return new ApiResponse<>(new ApiHeader(success));
             } else {
                 return new ApiResponse<>(ApiHeaderConstant.OTC.FAILED_TO_GENERATE_REC_AND_PAY());
