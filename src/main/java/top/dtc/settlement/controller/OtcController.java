@@ -12,6 +12,7 @@ import top.dtc.data.core.model.Otc;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.Receivable;
 import top.dtc.settlement.constant.ApiHeaderConstant;
+import top.dtc.settlement.constant.NotificationConstant;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.model.api.ApiHeader;
 import top.dtc.settlement.model.api.ApiResponse;
@@ -47,7 +48,7 @@ public class OtcController {
             boolean success = otcProcessService.generateReceivableAndPayable(otc.id);
             if (success) {
                 NotificationBuilder
-                        .by(4)
+                        .by(NotificationConstant.NAMES.OTC_AGREED)
                         .to(notificationProperties.otcAgreedRecipient)
                         .dataMap(Map.of("id", otc.id.toString(),
                                 "file_url", otc.fileUrl,
