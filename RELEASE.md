@@ -4,6 +4,7 @@
 
 * Update parent
 * NotificationBuilder
+* Change Receivable write-off amount validation.
 
 [0.13.0] - 25 Jan 2021
 
