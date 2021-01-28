@@ -28,21 +28,6 @@ public class ErrorMessage {
         public static String STATUS_FAILED(Long merchantId, String merchantStatus) {
             return String.format("Merchant %s settlement disabled due to MerchantStatus [%s]", merchantId, merchantStatus);
         }
-        public static String INCLUDE_FAILED(Long transactionId) {
-            return String.format("Unable to include Transaction %s", transactionId);
-        }
-
-        public static String INCLUDE_FAILED(Long transactionId, String type) {
-            return String.format("Unable to include Transaction %s type is [%s]", transactionId, type);
-        }
-
-        public static String EXCLUDE_FAILED(Long transactionId) {
-            return String.format("Unable to exclude Transaction %s", transactionId);
-        }
-
-        public static String DUPLICATED_PAY(Long transactionId, Long payableId) {
-            return String.format("Transaction %s has been paid out in Payable %s", transactionId, payableId);
-        }
 
     }
 

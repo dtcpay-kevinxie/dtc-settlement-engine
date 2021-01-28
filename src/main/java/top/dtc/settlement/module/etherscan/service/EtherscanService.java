@@ -44,8 +44,8 @@ public class EtherscanService {
                 if (!addressTo.contains(recipientAddress.substring(2).toLowerCase())) { // remove "0x" from address
                     throw new ValidationException("Transaction Recipient Unmatched");
                 }
-                if (new BigInteger(value, 16).compareTo(amount.multiply(new BigDecimal(1000000)).toBigInteger()) != 0) {
-                    throw new ValidationException("Transaction Amount Unmatched");
+                if (new BigInteger(value, 16).compareTo(amount.multiply(new BigDecimal(1000000)).toBigInteger()) < 0) {
+                    throw new ValidationException("Amount from blockchain is smaller than write-off amount.");
                 }
                 return;
             }

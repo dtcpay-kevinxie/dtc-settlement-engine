@@ -20,4 +20,4 @@ ADD target/*.jar /app/
 RUN ln -s *.jar app.jar
 
 # Entrypoint to run the app
-ENTRYPOINT ["java","-jar","app.jar"]
+ENTRYPOINT ["java","-jar","-Djdk.tls.ephemeralDHKeySize=2048","app.jar"]

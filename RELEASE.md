@@ -1,5 +1,15 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.14.0] - 28 Jan 2021
+
+* Update parent
+* NotificationBuilder
+* Change Receivable write-off amount validation.
+
+[0.13.0] - 25 Jan 2021
+
+* Register txn to Chainalysis
+
 [0.13.0] - 21 Jan 2021
 
 * Register txn to Chainalysis
