@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.ClientType;
 import top.dtc.common.model.api.ApiResponse;
-import top.dtc.common.util.NotificationBuilder;
+import top.dtc.common.util.NotificationSender;
 import top.dtc.data.core.enums.MerchantStatus;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.enums.OtcType;
@@ -165,7 +165,7 @@ public class OtcProcessService {
         }
         log.debug("Unexpected List {}", String.join("\n", unexpectedList));
         if (unexpectedList.size() > 0) {
-            NotificationBuilder
+            NotificationSender
                     .by(NotificationConstant.NAMES.UNEXPECTED_TXN_FOUND)
                     .to(notificationProperties.financeRecipient)
                     .dataMap(Map.of("transactions", String.join("\n", unexpectedList)))
@@ -229,7 +229,7 @@ public class OtcProcessService {
             Payable payable = payableService.getPayableByOtcId(otc.id);
             payable.payableDate = LocalDate.now(); //TODO: Payable Date should be same day if before 3PM NYT, +1 Day if after
             payableService.updateById(payable);
-            NotificationBuilder
+            NotificationSender
                     .by(NotificationConstant.NAMES.FUND_RECEIVED)
                     .to(notificationProperties.financeRecipient)
                     .dataMap(Map.of("transaction_details", receivable.receivedCurrency + " " + receivable.receivedAmount,
@@ -270,7 +270,7 @@ public class OtcProcessService {
             otc.completedTime = LocalDateTime.now();
             otcService.updateById(otc);
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
-            NotificationBuilder
+            NotificationSender
                     .by(NotificationConstant.NAMES.OTC_COMPLETED)
                     .to(kycNonIndividual.email)
                     .dataMap(Map.of("client_name", payable.beneficiary,
@@ -314,7 +314,7 @@ public class OtcProcessService {
         }
         if (!isActivated) {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
-            NotificationBuilder
+            NotificationSender
                     .by(NotificationConstant.NAMES.OTC_ALERT_SUSPENDED_ACCOUNT)
                     .to(notificationProperties.otcHighRiskRecipient)
                     .dataMap(Map.of("id", otc.id.toString(),

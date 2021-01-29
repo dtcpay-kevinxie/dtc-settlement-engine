@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.dtc.common.util.NotificationBuilder;
+import top.dtc.common.util.NotificationSender;
 import top.dtc.data.core.model.Otc;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.Receivable;
@@ -47,7 +47,7 @@ public class OtcController {
             log.debug("/agreed {}", otc);
             boolean success = otcProcessService.generateReceivableAndPayable(otc.id);
             if (success) {
-                NotificationBuilder
+                NotificationSender
                         .by(NotificationConstant.NAMES.OTC_AGREED)
                         .to(notificationProperties.otcAgreedRecipient)
                         .dataMap(Map.of("id", otc.id.toString(),
