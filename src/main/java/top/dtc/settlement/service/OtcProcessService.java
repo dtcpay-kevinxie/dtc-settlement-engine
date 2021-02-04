@@ -32,6 +32,7 @@ import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.exception.OtcException;
 import top.dtc.settlement.exception.PayableException;
 import top.dtc.settlement.exception.ReceivableException;
+import top.dtc.settlement.model.OtcAgreeResult;
 import top.dtc.settlement.module.etherscan.model.EtherscanErc20Event;
 import top.dtc.settlement.module.etherscan.service.EtherscanService;
 
@@ -119,7 +120,7 @@ public class OtcProcessService {
                         null
                 )
         );
-        // Process looping for blockchain scanning
+        // Distinct scanning addresses
         Map<KycWalletAddress, List<OtcKey>> map = waitingList.stream()
                 .map(otc -> {
                     KycWalletAddress recipient = kycWalletAddressService.getById(otc.recipientAddressId);
@@ -140,6 +141,7 @@ public class OtcProcessService {
                 HashMap::new
         ));
         List<String> unexpectedList = new ArrayList<>();
+        // Process looping for blockchain scanning
         for (KycWalletAddress dtcOpsAddress : map.keySet()) {
             try {
                 Thread.sleep(1000);
@@ -174,14 +176,13 @@ public class OtcProcessService {
 
     }
 
-    public boolean generateReceivableAndPayable(Long otcId) {
+    public OtcAgreeResult generateReceivableAndPayable(Long otcId) {
         return generateReceivableAndPayable(otcService.getById(otcId));
     }
 
-//    @Transactional
-    public boolean generateReceivableAndPayable(Otc otc) {
+    public OtcAgreeResult generateReceivableAndPayable(Otc otc) {
         if (!isClientActivated(otc)) {
-            return false;
+            return new OtcAgreeResult(false);
         }
         Payable payable = payableService.getPayableByOtcId(otc.id);
         Receivable receivable = receivableService.getReceivableByOtcId(otc.id);
@@ -197,13 +198,13 @@ public class OtcProcessService {
             receivable.payer = kycNonIndividual.registerName;
             if (generateReceivableAndPayable(otc, receivable, payable)) {
                 linkOtc(otc, receivable, payable);
-                return true;
+                return new OtcAgreeResult(true, payable.id, receivable.id);
             } else {
-                return false;
+                return new OtcAgreeResult(false);
             }
         } else {
             // Reset Payable and Receivable details
-            return generateReceivableAndPayable(otc, receivable, payable);
+            return generateReceivableAndPayable(otc, receivable, payable) ? new OtcAgreeResult(true, payable.id, receivable.id) : new OtcAgreeResult(false);
         }
     }
 
@@ -243,7 +244,6 @@ public class OtcProcessService {
         }
     }
 
-//    @Transactional
     public Payable writeOffOtcPayable(Long payableId, String remark, String referenceNo) {
         Payable payable = payableProcessService.writeOff(payableId, remark, referenceNo);
         Long otcId = payableSubService.getOtcIdByPayableIdAndType(payable.id);
