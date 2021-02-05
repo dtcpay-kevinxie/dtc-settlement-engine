@@ -1,5 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.15.0] - 04 Feb 2021
+
+* Update parent
+* Add receivable-info and payable-info to OTC_AGREE notification
+* Upgrade data-risk
+
 [0.14.0] - 28 Jan 2021
 
 * Update parent

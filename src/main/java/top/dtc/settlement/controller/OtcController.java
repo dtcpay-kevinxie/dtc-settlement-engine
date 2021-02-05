@@ -7,13 +7,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.dtc.common.util.NotificationBuilder;
+import top.dtc.common.util.NotificationSender;
 import top.dtc.data.core.model.Otc;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.Receivable;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.constant.NotificationConstant;
 import top.dtc.settlement.core.properties.NotificationProperties;
+import top.dtc.settlement.model.OtcAgreeResult;
 import top.dtc.settlement.model.api.ApiHeader;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.OtcProcessService;
@@ -45,16 +46,18 @@ public class OtcController {
     public ApiResponse<?> agreed(@RequestBody Otc otc) {
         try {
             log.debug("/agreed {}", otc);
-            boolean success = otcProcessService.generateReceivableAndPayable(otc.id);
-            if (success) {
-                NotificationBuilder
+            OtcAgreeResult result = otcProcessService.generateReceivableAndPayable(otc.id);
+            if (result.success) {
+                NotificationSender
                         .by(NotificationConstant.NAMES.OTC_AGREED)
                         .to(notificationProperties.otcAgreedRecipient)
                         .dataMap(Map.of("id", otc.id.toString(),
+                                "payable_url", notificationProperties.portalUrlPrefix + "/payable-info/" + result.payableId + "",
+                                "receivable_url", notificationProperties.portalUrlPrefix + "/receivable-info/" + result.receivableId + "",
                                 "file_url", otc.fileUrl,
                                 "operator", otc.operator))
                         .send();
-                return new ApiResponse<>(new ApiHeader(success));
+                return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
             } else {
                 return new ApiResponse<>(ApiHeaderConstant.OTC.FAILED_TO_GENERATE_REC_AND_PAY());
             }
@@ -65,7 +68,6 @@ public class OtcController {
     }
 
     @PostMapping("/cancelled")
-//    @Transactional
     public ApiResponse<?> cancelled(@RequestBody Otc otc) {
         try {
             log.debug("/cancelled {}", otc);

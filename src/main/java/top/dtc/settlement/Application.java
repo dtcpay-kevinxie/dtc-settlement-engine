@@ -20,7 +20,7 @@ import top.dtc.data.risk.core.config.EnableDataRisk;
 @EnableUnirestJSON
 @EnableMultipart
 @EnableAsync
-@EnableCommonNotification
+@EnableNotificationSender
 @EnableScheduling
 public class Application {
 

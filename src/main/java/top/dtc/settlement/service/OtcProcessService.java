@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.ClientType;
 import top.dtc.common.model.api.ApiResponse;
-import top.dtc.common.util.NotificationBuilder;
+import top.dtc.common.util.NotificationSender;
 import top.dtc.data.core.enums.MerchantStatus;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.enums.OtcType;
@@ -32,6 +32,7 @@ import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.exception.OtcException;
 import top.dtc.settlement.exception.PayableException;
 import top.dtc.settlement.exception.ReceivableException;
+import top.dtc.settlement.model.OtcAgreeResult;
 import top.dtc.settlement.module.etherscan.model.EtherscanErc20Event;
 import top.dtc.settlement.module.etherscan.service.EtherscanService;
 
@@ -119,7 +120,7 @@ public class OtcProcessService {
                         null
                 )
         );
-        // Process looping for blockchain scanning
+        // Distinct scanning addresses
         Map<KycWalletAddress, List<OtcKey>> map = waitingList.stream()
                 .map(otc -> {
                     KycWalletAddress recipient = kycWalletAddressService.getById(otc.recipientAddressId);
@@ -140,6 +141,7 @@ public class OtcProcessService {
                 HashMap::new
         ));
         List<String> unexpectedList = new ArrayList<>();
+        // Process looping for blockchain scanning
         for (KycWalletAddress dtcOpsAddress : map.keySet()) {
             try {
                 Thread.sleep(1000);
@@ -165,7 +167,7 @@ public class OtcProcessService {
         }
         log.debug("Unexpected List {}", String.join("\n", unexpectedList));
         if (unexpectedList.size() > 0) {
-            NotificationBuilder
+            NotificationSender
                     .by(NotificationConstant.NAMES.UNEXPECTED_TXN_FOUND)
                     .to(notificationProperties.financeRecipient)
                     .dataMap(Map.of("transactions", String.join("\n", unexpectedList)))
@@ -174,14 +176,13 @@ public class OtcProcessService {
 
     }
 
-    public boolean generateReceivableAndPayable(Long otcId) {
+    public OtcAgreeResult generateReceivableAndPayable(Long otcId) {
         return generateReceivableAndPayable(otcService.getById(otcId));
     }
 
-//    @Transactional
-    public boolean generateReceivableAndPayable(Otc otc) {
+    public OtcAgreeResult generateReceivableAndPayable(Otc otc) {
         if (!isClientActivated(otc)) {
-            return false;
+            return new OtcAgreeResult(false);
         }
         Payable payable = payableService.getPayableByOtcId(otc.id);
         Receivable receivable = receivableService.getReceivableByOtcId(otc.id);
@@ -197,13 +198,13 @@ public class OtcProcessService {
             receivable.payer = kycNonIndividual.registerName;
             if (generateReceivableAndPayable(otc, receivable, payable)) {
                 linkOtc(otc, receivable, payable);
-                return true;
+                return new OtcAgreeResult(true, payable.id, receivable.id);
             } else {
-                return false;
+                return new OtcAgreeResult(false);
             }
         } else {
             // Reset Payable and Receivable details
-            return generateReceivableAndPayable(otc, receivable, payable);
+            return generateReceivableAndPayable(otc, receivable, payable) ? new OtcAgreeResult(true, payable.id, receivable.id) : new OtcAgreeResult(false);
         }
     }
 
@@ -229,7 +230,7 @@ public class OtcProcessService {
             Payable payable = payableService.getPayableByOtcId(otc.id);
             payable.payableDate = LocalDate.now(); //TODO: Payable Date should be same day if before 3PM NYT, +1 Day if after
             payableService.updateById(payable);
-            NotificationBuilder
+            NotificationSender
                     .by(NotificationConstant.NAMES.FUND_RECEIVED)
                     .to(notificationProperties.financeRecipient)
                     .dataMap(Map.of("transaction_details", receivable.receivedCurrency + " " + receivable.receivedAmount,
@@ -243,7 +244,6 @@ public class OtcProcessService {
         }
     }
 
-//    @Transactional
     public Payable writeOffOtcPayable(Long payableId, String remark, String referenceNo) {
         Payable payable = payableProcessService.writeOff(payableId, remark, referenceNo);
         Long otcId = payableSubService.getOtcIdByPayableIdAndType(payable.id);
@@ -270,7 +270,7 @@ public class OtcProcessService {
             otc.completedTime = LocalDateTime.now();
             otcService.updateById(otc);
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
-            NotificationBuilder
+            NotificationSender
                     .by(NotificationConstant.NAMES.OTC_COMPLETED)
                     .to(kycNonIndividual.email)
                     .dataMap(Map.of("client_name", payable.beneficiary,
@@ -314,7 +314,7 @@ public class OtcProcessService {
         }
         if (!isActivated) {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
-            NotificationBuilder
+            NotificationSender
                     .by(NotificationConstant.NAMES.OTC_ALERT_SUSPENDED_ACCOUNT)
                     .to(notificationProperties.otcHighRiskRecipient)
                     .dataMap(Map.of("id", otc.id.toString(),
