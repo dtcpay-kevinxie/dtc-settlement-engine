@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.16.0] - 22 Feb 2021
+
+* Add Silvergate reference APIs 
+
 [0.15.0] - 04 Feb 2021
 
 * Update parent
