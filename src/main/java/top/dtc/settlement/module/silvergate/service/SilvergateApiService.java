@@ -33,7 +33,7 @@ public class SilvergateApiService {
 
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
                 .header(OCP_APIM_SUBSCRIPTION_KEY,
-                        silvergateProperties.subscriptionsKey)
+                        silvergateProperties.subscriptionKey)
                 .asString()
                 .getBody();
         log.info("/access/token Response, {}", result);
@@ -49,7 +49,7 @@ public class SilvergateApiService {
     public void getAccountBalance(String accountNumber, String sequenceNumber) {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/balance")
                 .header(HeaderNames.AUTHORIZATION, getAccessToken())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionsKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("accountNumber", accountNumber)
                 .queryString("sequenceNumber", sequenceNumber)
                 .asString()
@@ -74,7 +74,7 @@ public class SilvergateApiService {
                                   ) {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/history")
                 .header(HeaderNames.AUTHORIZATION, getAccessToken())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionsKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("accountNumber", accountNumber)
                 .queryString("sequenceNumber", sequenceNumber)
                 .queryString("beginDate", beginDate)
@@ -93,7 +93,7 @@ public class SilvergateApiService {
     public void getAccountList(String sequenceNumber) {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/list")
                 .header(HeaderNames.AUTHORIZATION, getAccessToken())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionsKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("sequenceNumber", sequenceNumber)
                 .asString()
                 .getBody();
@@ -108,7 +108,7 @@ public class SilvergateApiService {
         String result = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessToken())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionsKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .header(IDEMPOTENCY_KEY, "")
                 .body(paymentPostReq)
                 .asString()
@@ -128,7 +128,7 @@ public class SilvergateApiService {
     public void initialPaymentPut(String accountNumber, String paymentId, String action, String timestamp) {
         String body = Unirest.put(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessToken())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionsKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("account_number", accountNumber)
                 .queryString("payment_id", paymentId)
                 .queryString("action", action)
@@ -152,7 +152,7 @@ public class SilvergateApiService {
         PaymentGetResp paymentPostResp = new PaymentGetResp();
         String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessToken())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionsKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("account_number", accountNumber)
                 .queryString("payment_id", paymentId)
                 .queryString("begin_date", beginDate)
@@ -175,7 +175,7 @@ public class SilvergateApiService {
     public void webhooksDelete(String webhookId) {
         String result = Unirest.delete(silvergateProperties.apiUrlPrefix + "/webhooks/delete?")
                 .header(HeaderNames.AUTHORIZATION, getAccessToken())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionsKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("webHookId", webhookId)
                 .asString()
                 .getBody();
@@ -189,7 +189,7 @@ public class SilvergateApiService {
     public void webhooksGet(String accountNumber, String webHookId) {
         String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get?")
                 .header(HeaderNames.AUTHORIZATION, getAccessToken())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionsKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("accountNumber", accountNumber)
                 .queryString("webHookId", webHookId)
                 .asString()
@@ -207,7 +207,7 @@ public class SilvergateApiService {
         String result = Unirest.post("/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessToken())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionsKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .body(webHooksRegisterReq)
                 .asString()
                 .getBody();

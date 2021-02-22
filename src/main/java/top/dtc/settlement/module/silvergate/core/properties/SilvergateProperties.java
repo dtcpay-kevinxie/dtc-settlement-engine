@@ -13,6 +13,6 @@ public class SilvergateProperties {
 
     public String requestHeader;
 
-    public String subscriptionsKey;
+    public String subscriptionKey;
 
 }
