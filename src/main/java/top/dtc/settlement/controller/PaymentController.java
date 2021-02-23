@@ -22,7 +22,8 @@ public class PaymentController {
 
     @GetMapping("/get-access-token")
     public void getAccessToken() {
-        String accessToken = apiService.getAccessToken();
+        //Get accessToken and saved in redis
+        String accessToken = apiService.acquireAccessToken();
         log.info("getAccessToken: {}", accessToken);
     }
 }
