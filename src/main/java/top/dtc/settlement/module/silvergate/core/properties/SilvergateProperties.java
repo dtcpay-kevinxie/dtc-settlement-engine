@@ -11,8 +11,6 @@ public class SilvergateProperties {
 
     public String apiUrlPrefix;
 
-    public String requestHeader;
-
     public String subscriptionKey;
 
 }

@@ -15,7 +15,6 @@ import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties
 import top.dtc.settlement.module.silvergate.model.*;
 
 import java.nio.file.AccessDeniedException;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 @Log4j2
@@ -88,8 +87,7 @@ public class SilvergateApiService {
 
     /**
      * Find an account balance by account number
-     * @param accountNumber
-     * @param sequenceNumber
+     * @param accountBalanceReq
      */
     public void getAccountBalance(AccountBalanceReq accountBalanceReq) {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/balance")
