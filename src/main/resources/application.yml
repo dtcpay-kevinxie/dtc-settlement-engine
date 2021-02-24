@@ -23,3 +23,7 @@ etherscan:
   api-url-prefix: ${ETHERSCAN_API_URL_PREFIX}
   api-key: ${ETHERSCAN_API_KEY}
   max-end-block: ${ETHERSCAN_MAX_END_BLOCK}
+
+silvergate:
+  api-url-prefix: ${SILVERGATE_API_URL_PREFIX}
+  subscription-key: ${SILVERGATE_SUBSCRIPTION_KEY}
