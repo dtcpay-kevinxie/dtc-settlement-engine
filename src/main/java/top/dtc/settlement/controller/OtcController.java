@@ -19,6 +19,7 @@ import top.dtc.settlement.model.api.ApiHeader;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.OtcProcessService;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Log4j2
@@ -56,7 +57,7 @@ public class OtcController {
                                 Map.of("id", otc.id + "",
                                 "payable_url", notificationProperties.portalUrlPrefix + "/payable-info/" + result.payableId + "",
                                 "receivable_url", notificationProperties.portalUrlPrefix + "/receivable-info/" + result.receivableId + "",
-                                "file_url", otc.fileUrl,
+                                "file_url", otc.fileUrl != null ? otc.fileUrl : "User Agreed at " + LocalDateTime.now().toString(),
                                 "operator", otc.operator))
                         .send();
                 return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
