@@ -48,10 +48,12 @@ public class OtcController {
             log.debug("/agreed {}", otc);
             OtcAgreeResult result = otcProcessService.generateReceivableAndPayable(otc.id);
             if (result.success) {
+                log.debug("After agree {}, {}", otc, result);
                 NotificationSender
                         .by(NotificationConstant.NAMES.OTC_AGREED)
                         .to(notificationProperties.otcAgreedRecipient)
-                        .dataMap(Map.of("id", otc.id.toString(),
+                        .dataMap(
+                                Map.of("id", otc.id + "",
                                 "payable_url", notificationProperties.portalUrlPrefix + "/payable-info/" + result.payableId + "",
                                 "receivable_url", notificationProperties.portalUrlPrefix + "/receivable-info/" + result.receivableId + "",
                                 "file_url", otc.fileUrl,
