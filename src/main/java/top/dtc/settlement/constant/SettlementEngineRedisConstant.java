@@ -22,10 +22,10 @@ public class SettlementEngineRedisConstant {
             public static final String CONNECTION_FACTORY = "settlementEngineCacheConnectionFactory";
             public static final String REDIS_TEMPLATE = "settlementEngineCacheRedisTemplate";
             public static final class KEY {
-                public static String SILVERGATE_API_ACCESS_TOKEN(String accessToken) { return "AT_" + accessToken; }
+                public static String SILVERGATE_ACCESS_TOKEN(String accessToken) { return "AT_" + accessToken; }
             }
             public static final class TIMEOUT {
-                public static final int ACCESS_TOKEN = 15; // MINUTES
+                public static final int SILVERGATE_ACCESS_TOKEN = 15; // MINUTES
             }
         }
     }
