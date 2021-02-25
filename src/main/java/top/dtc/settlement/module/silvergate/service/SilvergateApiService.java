@@ -48,21 +48,19 @@ public class SilvergateApiService {
                 })
                 .getBody();
         log.info("response result: {}", body);
-        AccessTokenResp accessTokenResp = JSONObject.parseObject(body, AccessTokenResp.class);
-        log.info("authorization: {}", accessTokenResp.authorization);
+//        AccessTokenResp accessTokenResp = JSONObject.parseObject(body, AccessTokenResp.class);
+//        log.info("authorization: {}", accessTokenResp.authorization);
         // Saved token to Redis Cache meanwhile
-        storeCache(accessTokenResp);
+        storeCache(body);
         return body;
     }
 
-    private void storeCache(AccessTokenResp accessTokenResp) {
+    private void storeCache(String accessToken) {
         String key = "20210223"; // TODO take a fake key for this time, need customize
         String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_API_ACCESS_TOKEN(key);
-        if (!ObjectUtils.isEmpty(accessTokenResp)) {
-            if (!StringUtils.isBlank(accessTokenResp.authorization)) {
-                settlementEngineRedisTemplate.opsForValue().set(atKey, Long.valueOf(accessTokenResp.authorization),
-                        SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.ACCESS_TOKEN, TimeUnit.MINUTES);
-            }
+        if (!StringUtils.isBlank(accessToken)) {
+            settlementEngineRedisTemplate.opsForValue().set(atKey, Long.valueOf(accessToken),
+                    SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.ACCESS_TOKEN, TimeUnit.MINUTES);
         }
     }
 
