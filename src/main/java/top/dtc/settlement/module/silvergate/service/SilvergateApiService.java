@@ -3,7 +3,6 @@ package top.dtc.settlement.module.silvergate.service;
 import com.alibaba.fastjson.JSONObject;
 import kong.unirest.ContentType;
 import kong.unirest.HeaderNames;
-import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
@@ -39,30 +38,32 @@ public class SilvergateApiService {
      * Tokens are valid for 15 minutes and can only be requested twice every 5 minutes.
      */
     public String acquireAccessToken() {
-
-        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
+        String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
                 .header(OCP_APIM_SUBSCRIPTION_KEY,
                         silvergateProperties.subscriptionKey)
-                .asString();
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("Call API /silvergate/access/token failed, status={}", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("getAccessToken failed", e));
+                })
+                .getBody();
+        log.info("response result: {}", body);
+        AccessTokenResp accessTokenResp = JSONObject.parseObject(body, AccessTokenResp.class);
+        log.info("authorization: {}", accessTokenResp.authorization);
+        // Saved token to Redis Cache meanwhile
+        storeCache(accessTokenResp);
+        return body;
+    }
 
-        if (response.isSuccess()) {
-            String responseBody = response.getBody();
-            log.info("/access/token Response, {}", responseBody);
-            AccessTokenResp accessTokenResp = JSONObject.parseObject(responseBody, AccessTokenResp.class);
-            log.info("/authorization: {}", accessTokenResp);
-            // Saved token to Redis Cache meanwhile
-            String key = "20210223"; // TODO take a fake key for this time, need customize
-            String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_API_ACCESS_TOKEN(key);
-            if (!ObjectUtils.isEmpty(accessTokenResp)) {
-                if (!StringUtils.isBlank(accessTokenResp.authorization)) {
-                    settlementEngineRedisTemplate.opsForValue().set(atKey, Long.valueOf(accessTokenResp.authorization),
-                            SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.ACCESS_TOKEN, TimeUnit.MINUTES);
-                }
+    private void storeCache(AccessTokenResp accessTokenResp) {
+        String key = "20210223"; // TODO take a fake key for this time, need customize
+        String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_API_ACCESS_TOKEN(key);
+        if (!ObjectUtils.isEmpty(accessTokenResp)) {
+            if (!StringUtils.isBlank(accessTokenResp.authorization)) {
+                settlementEngineRedisTemplate.opsForValue().set(atKey, Long.valueOf(accessTokenResp.authorization),
+                        SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.ACCESS_TOKEN, TimeUnit.MINUTES);
             }
-            return responseBody;
         }
-
-        return null;
     }
 
     public String saveAccessTokenToCache(String key) {
