@@ -3,8 +3,10 @@ package top.dtc.settlement.module.silvergate.service;
 import com.alibaba.fastjson.JSONObject;
 import kong.unirest.ContentType;
 import kong.unirest.HeaderNames;
+import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -38,27 +40,36 @@ public class SilvergateApiService {
      */
     public String acquireAccessToken() {
 
-        String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
+        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
                 .header(OCP_APIM_SUBSCRIPTION_KEY,
                         silvergateProperties.subscriptionKey)
-                .asString()
-                .getBody();
-        log.info("/access/token Response, {}", result);
+                .asString();
 
-        // Saved token to Redis Cache meanwhile
-        String key = "20210223"; // TODO take a fake key for this time, need customize
-        String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.ACCESS_TOKEN(key);
-        settlementEngineRedisTemplate.opsForValue().set(atKey, Long.valueOf(result),
-                SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.ACCESS_TOKEN, TimeUnit.MINUTES);
+        if (response.isSuccess()) {
+            String responseBody = response.getBody();
+            log.info("/access/token Response, {}", responseBody);
+            AccessTokenResp accessTokenResp = JSONObject.parseObject(responseBody, AccessTokenResp.class);
+            log.info("/authorization: {}", accessTokenResp);
+            // Saved token to Redis Cache meanwhile
+            String key = "20210223"; // TODO take a fake key for this time, need customize
+            String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_API_ACCESS_TOKEN(key);
+            if (!ObjectUtils.isEmpty(accessTokenResp)) {
+                if (!StringUtils.isBlank(accessTokenResp.authorization)) {
+                    settlementEngineRedisTemplate.opsForValue().set(atKey, Long.valueOf(accessTokenResp.authorization),
+                            SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.ACCESS_TOKEN, TimeUnit.MINUTES);
+                }
+            }
+            return responseBody;
+        }
 
-        return result;
+        return null;
     }
 
     public String saveAccessTokenToCache(String key) {
 
         String accessToken = acquireAccessToken();
         // Save token to redis
-        String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.ACCESS_TOKEN(key);
+        String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_API_ACCESS_TOKEN(key);
         settlementEngineRedisTemplate.opsForValue().set(atKey, Long.valueOf(accessToken),
                 SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.ACCESS_TOKEN, TimeUnit.MINUTES);
 
@@ -67,7 +78,7 @@ public class SilvergateApiService {
 
     public String getAccessTokenFromCache() {
         String accessToken = "20210223";
-        Long token = settlementEngineRedisTemplate.opsForValue().get(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.ACCESS_TOKEN(accessToken));
+        Long token = settlementEngineRedisTemplate.opsForValue().get(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_API_ACCESS_TOKEN(accessToken));
         if (ObjectUtils.isEmpty(token)) {
             return String.valueOf(token);
         } else {
@@ -77,7 +88,7 @@ public class SilvergateApiService {
 
     public String refresh() throws AccessDeniedException {
         String oldKey = "20210223";
-        Long token = settlementEngineRedisTemplate.opsForValue().get(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.ACCESS_TOKEN(oldKey));
+        Long token = settlementEngineRedisTemplate.opsForValue().get(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_API_ACCESS_TOKEN(oldKey));
         if (token == null) {
             throw new AccessDeniedException(String.format("Invalid access token: [%s]", token));
         }

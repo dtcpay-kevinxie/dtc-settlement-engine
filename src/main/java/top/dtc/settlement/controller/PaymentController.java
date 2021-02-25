@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import top.dtc.settlement.constant.ApiHeaderConstant;
+import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.module.silvergate.service.SilvergateApiService;
 
 /**
@@ -21,9 +23,10 @@ public class PaymentController {
     SilvergateApiService apiService;
 
     @GetMapping("/get-access-token")
-    public void getAccessToken() {
+    public ApiResponse<?> getAccessToken() {
         //Get accessToken and saved in redis
         String accessToken = apiService.acquireAccessToken();
         log.info("getAccessToken: {}", accessToken);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
     }
 }
