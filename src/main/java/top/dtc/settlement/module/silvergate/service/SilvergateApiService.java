@@ -48,6 +48,7 @@ public class SilvergateApiService {
                 })
                 .getBody();
         log.info("response result: {}", body);
+        log.info("response return null:, {}", StringUtils.isBlank(body));
         // Save token to Redis Cache meanwhile
         storeAccessToken(body);
         return body;
@@ -80,7 +81,7 @@ public class SilvergateApiService {
      * Find an account balance by account number
      * @param accountBalanceReq
      */
-    public void getAccountBalance(AccountBalanceReq accountBalanceReq) throws AccessDeniedException {
+    public void getAccountBalance(AccountBalanceReq accountBalanceReq) {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/balance")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -98,7 +99,7 @@ public class SilvergateApiService {
      * indicated when MOREDATA flag equals "Y".
      * If MOREDATA is Y then either reduce date range or use GET account/extendedhistory.
      */
-    public void getAccountHistory(AccountHistoryReq accountHistoryReq) throws AccessDeniedException {
+    public void getAccountHistory(AccountHistoryReq accountHistoryReq) {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/history")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -117,7 +118,7 @@ public class SilvergateApiService {
     /**
      * Retrieve List of Accounts, based on subscription key (formerly known as CustAcctInq)
      */
-    public void getAccountList(String sequenceNumber) throws AccessDeniedException {
+    public void getAccountList(String sequenceNumber) {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/list")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -131,7 +132,7 @@ public class SilvergateApiService {
      * Initiates a wire payment
      * @param paymentPostReq
      */
-    public void initialPaymentPost(PaymentPostReq paymentPostReq) throws AccessDeniedException {
+    public void initialPaymentPost(PaymentPostReq paymentPostReq) {
         String result = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
@@ -152,7 +153,7 @@ public class SilvergateApiService {
      * @param action
      * @param timestamp
      */
-    public void initialPaymentPut(String accountNumber, String paymentId, String action, String timestamp) throws AccessDeniedException {
+    public void initialPaymentPut(String accountNumber, String paymentId, String action, String timestamp) {
         String body = Unirest.put(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -170,7 +171,7 @@ public class SilvergateApiService {
     /**
      * Retrieves detailed data for one or many payments.
      */
-    public PaymentGetResp retrievePaymentDetails(PaymentGetReq paymentGetReq) throws AccessDeniedException {
+    public PaymentGetResp retrievePaymentDetails(PaymentGetReq paymentGetReq) {
         String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -193,7 +194,7 @@ public class SilvergateApiService {
     /**
      * Delete a previously registered webhook
      */
-    public void webhooksDelete(String webhookId) throws AccessDeniedException {
+    public void webhooksDelete(String webhookId) {
         String result = Unirest.delete(silvergateProperties.apiUrlPrefix + "/webhooks/delete?")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -207,7 +208,7 @@ public class SilvergateApiService {
     /**
      * Returns either specific webhook details or all webhooks for a subscription
      */
-    public void webHooksGet(WebHooksGetReq webHooksGetReq) throws AccessDeniedException {
+    public void webHooksGet(WebHooksGetReq webHooksGetReq) {
         String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get?")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
