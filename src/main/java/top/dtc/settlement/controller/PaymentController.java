@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
+import top.dtc.settlement.module.silvergate.model.*;
 import top.dtc.settlement.module.silvergate.service.SilvergateApiService;
 
 import java.io.IOException;
@@ -24,59 +25,65 @@ public class PaymentController {
 
     @GetMapping("/get-access-token")
     public ApiResponse<?> getAccessToken() throws IOException, InterruptedException {
-        //Get accessToken and saved in redis cache
+        //Get accessToken and saved in Redis cache
         String accessToken = apiService.acquireAccessToken();
         log.info("getAccessToken: {}", accessToken);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
     }
 
     @GetMapping("/account/get-account-balance")
-    public ApiResponse<?> getAccountBalance() {
-
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    public ApiResponse<?> getAccountBalance(@RequestBody AccountBalanceReq accountBalanceReq) throws IOException, InterruptedException {
+        AccountBalanceResp accountBalance = apiService.getAccountBalance(accountBalanceReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountBalance);
     }
 
 
     @GetMapping("/account/get-account-history")
-    public ApiResponse<?> getAccountHistory() {
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) throws IOException, InterruptedException {
+        AccountHistoryResp accountHistory = apiService.getAccountHistory(accountHistoryReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountHistory);
     }
 
     @GetMapping("/account/get-account-list")
-    public ApiResponse<?> getAccountList() {
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    public ApiResponse<?> getAccountList(@RequestParam("sequenceNumber") String sequenceNumber) throws IOException, InterruptedException {
+        AccountListResp accountList = apiService.getAccountList(sequenceNumber);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountList);
     }
 
     @PostMapping("/payment/post")
-    public ApiResponse<?> postPayment() {
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) throws IOException, InterruptedException {
+        PaymentPostResp paymentPostResp = apiService.initialPaymentPost(paymentPostReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPostResp);
     }
 
 
     @PostMapping("/payment/put")
-    public ApiResponse<?> putPayment() {
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    public ApiResponse<?> putPayment(@RequestBody PaymentPutReq paymentPutReq) throws IOException, InterruptedException  {
+        PaymentPutResp paymentPutResp = apiService.initialPaymentPut(paymentPutReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPutResp);
     }
     @PostMapping("/payment/get")
-    public ApiResponse<?> getPayment() {
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) throws IOException, InterruptedException  {
+        PaymentGetResp paymentDetails = apiService.getPaymentDetails(paymentGetReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);
     }
 
-    @DeleteMapping("/webhooks/delete/{id}")
-    public ApiResponse<?> webHooksDelete() {
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    @DeleteMapping("/webhooks/delete/{webHookId}")
+    public ApiResponse<?> webHooksDelete(@PathVariable(value = "webHookId") String webHookId)throws IOException, InterruptedException  {
+        String result = apiService.webhooksDelete(webHookId);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
     }
 
-    @GetMapping("/webhooks/get/{id}")
-    public ApiResponse<?> webHooksGet() {
-
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    @GetMapping("/webhooks/get/")
+    public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) throws IOException, InterruptedException {
+        WebHookGetResp webHookGetResp = apiService.webHooksGet(webHooksGetReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHookGetResp);
     }
 
     @PostMapping("/webhooks/register/")
-    public ApiResponse<?> webHooksRegister() {
-
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    public ApiResponse<?> webHooksRegister(@RequestBody WebHooksRegisterReq webHooksRegisterReq) throws IOException, InterruptedException {
+        WebHookGetResp webHookGetResp = apiService.webHooksRegister(webHooksRegisterReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHookGetResp);
     }
 
 
