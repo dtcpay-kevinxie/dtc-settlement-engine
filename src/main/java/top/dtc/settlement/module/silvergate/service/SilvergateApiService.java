@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
 import top.dtc.settlement.constant.SettlementEngineRedisConstant;
 import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.model.*;
@@ -26,7 +25,7 @@ public class SilvergateApiService {
 
     @Autowired
     @Qualifier(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.REDIS_TEMPLATE)
-    RedisTemplate<String, Long> settlementEngineRedisTemplate;
+    RedisTemplate<String, String> settlementEngineRedisTemplate;
 
     @Autowired
     private SilvergateProperties silvergateProperties;
@@ -68,16 +67,16 @@ public class SilvergateApiService {
     private void storeAccessToken(String accessToken, String key) {
         String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(key);
         if (!StringUtils.isBlank(accessToken)) {
-            settlementEngineRedisTemplate.opsForValue().set(atKey, Long.parseLong(accessToken),
+            settlementEngineRedisTemplate.opsForValue().set(atKey, accessToken,
                     SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN, TimeUnit.MINUTES);
         }
     }
 
     public String getAccessTokenFromCache() {
         String accessKey = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));;
-        Long token = settlementEngineRedisTemplate.opsForValue().get(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(accessKey));
-        if (!ObjectUtils.isEmpty(token)) {
-            return String.valueOf(token);
+        String token = settlementEngineRedisTemplate.opsForValue().get(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(accessKey));
+        if (!StringUtils.isBlank(token)) {
+            return token;
         } else {
             //refresh accessToken if token invalid
             return acquireAccessToken();
