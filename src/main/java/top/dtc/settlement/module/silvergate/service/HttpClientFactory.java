@@ -33,7 +33,6 @@ public class HttpClientFactory {
 
     public String getAccessToken() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .GET()
                 .uri(URI.create(silvergateProperties.apiUrlPrefix + "/access/token"))
                 .setHeader(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey) // add request header
                 .build();

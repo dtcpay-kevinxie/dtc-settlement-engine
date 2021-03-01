@@ -38,16 +38,16 @@ public class SilvergateApiService {
      * Tokens are valid for 15 minutes and can only be requested twice every 5 minutes.
      */
     public String acquireAccessToken() throws IOException, InterruptedException {
-//        String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
-//                .header(OCP_APIM_SUBSCRIPTION_KEY,
-//                        silvergateProperties.subscriptionKey)
-//                .asString()
-//                .ifFailure(resp -> {
-//                    log.error("request silvergate api [/access/token] failed, status={}", resp.getStatus());
-//                    resp.getParsingError().ifPresent(e -> log.error("getAccessToken failed", e));
-//                })
-//                .getBody();
-//        log.info("response result: {}", body);
+        String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
+                .header(OCP_APIM_SUBSCRIPTION_KEY,
+                        silvergateProperties.subscriptionKey)
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("request silvergate api [/access/token] failed, status={}", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("getAccessToken failed", e));
+                })
+                .getBody();
+        log.info("response result: {}", body);
         HttpClientFactory factory = new HttpClientFactory();
         String accessToken = factory.getAccessToken();
         // Save token to Redis Cache meanwhile
