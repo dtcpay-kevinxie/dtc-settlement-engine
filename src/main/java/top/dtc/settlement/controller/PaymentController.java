@@ -32,56 +32,56 @@ public class PaymentController {
     }
 
     @GetMapping("/account/get-account-balance")
-    public ApiResponse<?> getAccountBalance(@RequestBody AccountBalanceReq accountBalanceReq) throws IOException, InterruptedException {
+    public ApiResponse<?> getAccountBalance(@RequestBody AccountBalanceReq accountBalanceReq) {
         AccountBalanceResp accountBalance = apiService.getAccountBalance(accountBalanceReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountBalance);
     }
 
 
     @GetMapping("/account/get-account-history")
-    public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) throws IOException, InterruptedException {
+    public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) {
         AccountHistoryResp accountHistory = apiService.getAccountHistory(accountHistoryReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountHistory);
     }
 
     @GetMapping("/account/get-account-list")
-    public ApiResponse<?> getAccountList(@RequestParam("sequenceNumber") String sequenceNumber) throws IOException, InterruptedException {
+    public ApiResponse<?> getAccountList(@RequestParam("sequenceNumber") String sequenceNumber) {
         AccountListResp accountList = apiService.getAccountList(sequenceNumber);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountList);
     }
 
     @PostMapping("/payment/post")
-    public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) throws IOException, InterruptedException {
+    public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) {
         PaymentPostResp paymentPostResp = apiService.initialPaymentPost(paymentPostReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPostResp);
     }
 
 
     @PostMapping("/payment/put")
-    public ApiResponse<?> putPayment(@RequestBody PaymentPutReq paymentPutReq) throws IOException, InterruptedException  {
+    public ApiResponse<?> putPayment(@RequestBody PaymentPutReq paymentPutReq) {
         PaymentPutResp paymentPutResp = apiService.initialPaymentPut(paymentPutReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPutResp);
     }
     @PostMapping("/payment/get")
-    public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) throws IOException, InterruptedException  {
+    public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) {
         PaymentGetResp paymentDetails = apiService.getPaymentDetails(paymentGetReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);
     }
 
     @DeleteMapping("/webhooks/delete/{webHookId}")
-    public ApiResponse<?> webHooksDelete(@PathVariable(value = "webHookId") String webHookId)throws IOException, InterruptedException  {
+    public ApiResponse<?> webHooksDelete(@PathVariable(value = "webHookId") String webHookId) {
         String result = apiService.webhooksDelete(webHookId);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
     }
 
     @GetMapping("/webhooks/get/")
-    public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) throws IOException, InterruptedException {
+    public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) {
         WebHookGetResp webHookGetResp = apiService.webHooksGet(webHooksGetReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHookGetResp);
     }
 
     @PostMapping("/webhooks/register/")
-    public ApiResponse<?> webHooksRegister(@RequestBody WebHooksRegisterReq webHooksRegisterReq) throws IOException, InterruptedException {
+    public ApiResponse<?> webHooksRegister(@RequestBody WebHooksRegisterReq webHooksRegisterReq) {
         WebHookGetResp webHookGetResp = apiService.webHooksRegister(webHooksRegisterReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHookGetResp);
     }

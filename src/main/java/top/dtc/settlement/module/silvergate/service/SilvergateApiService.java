@@ -68,7 +68,7 @@ public class SilvergateApiService {
     private void storeAccessToken(String accessToken, String key) {
         String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(key);
         if (!StringUtils.isBlank(accessToken)) {
-            settlementEngineRedisTemplate.opsForValue().set(atKey, Long.valueOf(accessToken),
+            settlementEngineRedisTemplate.opsForValue().set(atKey, Long.parseLong(accessToken),
                     SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN, TimeUnit.MINUTES);
         }
     }
