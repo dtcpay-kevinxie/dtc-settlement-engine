@@ -7,7 +7,7 @@ public class PaymentGetResp {
     public String status;
     public String payment_id;
     public String payment_date;
-    public String amount;
+    public Double amount;
     public String fedwire_type;
     public String fedwire_sub_type;
     public String direction;

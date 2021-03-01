@@ -1,6 +1,8 @@
 package top.dtc.settlement.module.silvergate.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kong.unirest.*;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
@@ -86,7 +88,7 @@ public class SilvergateApiService {
      * Find an account balance by account number
      * @param accountBalanceReq
      */
-    public AccountBalanceResp getAccountBalance(AccountBalanceReq accountBalanceReq) {
+    public AccountBalanceResp getAccountBalance(AccountBalanceReq accountBalanceReq) throws JsonProcessingException {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/balance")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -102,8 +104,8 @@ public class SilvergateApiService {
                 .asString()
                 .getBody();
         log.info("/account/balance response body: {}", result);
-        AccountBalanceResp accountBalanceResp = JSONObject.parseObject(result, AccountBalanceResp.class);
-        return accountBalanceResp;
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(result, AccountBalanceResp.class);
     }
 
     /**
@@ -112,7 +114,7 @@ public class SilvergateApiService {
      * indicated when MOREDATA flag equals "Y".
      * If MOREDATA is Y then either reduce date range or use GET account/extendedhistory.
      */
-    public AccountHistoryResp getAccountHistory(AccountHistoryReq accountHistoryReq) {
+    public AccountHistoryResp getAccountHistory(AccountHistoryReq accountHistoryReq) throws JsonProcessingException {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/history")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -138,13 +140,14 @@ public class SilvergateApiService {
                 .asString()
                 .getBody();
         log.info("/account/history response body: {}", result);
-        return JSONObject.parseObject(result, AccountHistoryResp.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(result, AccountHistoryResp.class);
     }
 
     /**
      * Retrieve List of Accounts, based on subscription key (formerly known as CustAcctInq)
      */
-    public AccountListResp getAccountList(String sequenceNumber) {
+    public AccountListResp getAccountList(String sequenceNumber) throws JsonProcessingException {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/list")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -158,14 +161,15 @@ public class SilvergateApiService {
                 .asString()
                 .getBody();
         log.info("/account/history response body: {}", result);
-        return JSONObject.parseObject(result, AccountListResp.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(result, AccountListResp.class);
     }
 
     /**
      * Initiates a wire payment
      * @param paymentPostReq
      */
-    public PaymentPostResp initialPaymentPost(PaymentPostReq paymentPostReq) {
+    public PaymentPostResp initialPaymentPost(PaymentPostReq paymentPostReq) throws JsonProcessingException {
         String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
@@ -183,7 +187,8 @@ public class SilvergateApiService {
                 .getBody();
 
         log.info("[POST] /payment response body: {}", result);
-        return JSONObject.parseObject(result, PaymentPostResp.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(result, PaymentPostResp.class);
     }
 
     /**
@@ -274,7 +279,7 @@ public class SilvergateApiService {
     /**
      * Returns either specific webhook details or all webhooks for a subscription
      */
-    public WebHookGetResp webHooksGet(WebHooksGetReq webHooksGetReq) {
+    public WebHooksGetRegisterResp webHooksGet(WebHooksGetReq webHooksGetReq) throws JsonProcessingException {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache()) // getTokenFromCache
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -290,23 +295,24 @@ public class SilvergateApiService {
                 .asString()
                 .getBody();
 
-        log.info("/webHooks/get response body: {}", body);
-        return JSONObject.parseObject(body, WebHookGetResp.class);
+        log.info("/webhooks/get response body: {}", body);
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(body, WebHooksGetRegisterResp.class);
     }
 
     /**
      *Creates a new webhook which sends notifications
      * via http post and/or email when a balance on a given account changes.
      */
-    public WebHookGetResp webHooksRegister(WebHooksRegisterReq webHooksRegisterReq) {
-        String url = Unirest.post("/webHooks/register")
+    public WebHooksGetRegisterResp webHooksRegister(WebHooksRegisterReq webHooksRegisterReq) throws JsonProcessingException {
+        String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .body(webHooksRegisterReq)
                 .getUrl();
         log.info("request from {}", url);
-        String result = Unirest.post("/webHooks/register")
+        String result = Unirest.post("/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -315,6 +321,7 @@ public class SilvergateApiService {
                 .getBody();
 
         log.info("/webHooks/register response body: {}", result);
-        return JSONObject.parseObject(result, WebHookGetResp.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(result, WebHooksGetRegisterResp.class);
     }
 }

@@ -1,5 +1,6 @@
 package top.dtc.settlement.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -28,30 +29,30 @@ public class PaymentController {
         //Get accessToken and saved in Redis cache
         String accessToken = apiService.acquireAccessToken();
         log.info("getAccessToken: {}", accessToken);
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accessToken);
     }
 
     @GetMapping("/account/get-account-balance")
-    public ApiResponse<?> getAccountBalance(@RequestBody AccountBalanceReq accountBalanceReq) {
+    public ApiResponse<?> getAccountBalance(@RequestBody AccountBalanceReq accountBalanceReq) throws JsonProcessingException {
         AccountBalanceResp accountBalance = apiService.getAccountBalance(accountBalanceReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountBalance);
     }
 
 
     @GetMapping("/account/get-account-history")
-    public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) {
+    public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) throws JsonProcessingException {
         AccountHistoryResp accountHistory = apiService.getAccountHistory(accountHistoryReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountHistory);
     }
 
     @GetMapping("/account/get-account-list")
-    public ApiResponse<?> getAccountList(@RequestParam("sequenceNumber") String sequenceNumber) {
+    public ApiResponse<?> getAccountList(@RequestParam(name = "sequenceNumber", required = false) String sequenceNumber) throws JsonProcessingException {
         AccountListResp accountList = apiService.getAccountList(sequenceNumber);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountList);
     }
 
     @PostMapping("/payment/post")
-    public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) {
+    public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) throws JsonProcessingException {
         PaymentPostResp paymentPostResp = apiService.initialPaymentPost(paymentPostReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPostResp);
     }
@@ -75,15 +76,15 @@ public class PaymentController {
     }
 
     @GetMapping("/webhooks/get/")
-    public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) {
-        WebHookGetResp webHookGetResp = apiService.webHooksGet(webHooksGetReq);
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHookGetResp);
+    public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) throws JsonProcessingException {
+        WebHooksGetRegisterResp webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksGetRegisterResp);
     }
 
     @PostMapping("/webhooks/register/")
-    public ApiResponse<?> webHooksRegister(@RequestBody WebHooksRegisterReq webHooksRegisterReq) {
-        WebHookGetResp webHookGetResp = apiService.webHooksRegister(webHooksRegisterReq);
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHookGetResp);
+    public ApiResponse<?> webHooksRegister(@RequestBody WebHooksRegisterReq webHooksRegisterReq) throws JsonProcessingException {
+        WebHooksGetRegisterResp webHooksRegisterResp = apiService.webHooksRegister(webHooksRegisterReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksRegisterResp);
     }
 
 
