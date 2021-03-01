@@ -15,7 +15,7 @@ import top.dtc.settlement.constant.SettlementEngineRedisConstant;
 import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.model.*;
 
-import java.nio.file.AccessDeniedException;
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 @Log4j2
@@ -37,21 +37,22 @@ public class SilvergateApiService {
      * is required on all other calls.
      * Tokens are valid for 15 minutes and can only be requested twice every 5 minutes.
      */
-    public String acquireAccessToken() {
-        String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
-                .header(OCP_APIM_SUBSCRIPTION_KEY,
-                        silvergateProperties.subscriptionKey)
-                .asString()
-                .ifFailure(resp -> {
-                    log.error("Call API [/access/token] failed, status={}", resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("getAccessToken failed", e));
-                })
-                .getBody();
-        log.info("response result: {}", body);
-        log.info("response return null:, {}", StringUtils.isBlank(body));
+    public String acquireAccessToken() throws IOException, InterruptedException {
+//        String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
+//                .header(OCP_APIM_SUBSCRIPTION_KEY,
+//                        silvergateProperties.subscriptionKey)
+//                .asString()
+//                .ifFailure(resp -> {
+//                    log.error("request silvergate api [/access/token] failed, status={}", resp.getStatus());
+//                    resp.getParsingError().ifPresent(e -> log.error("getAccessToken failed", e));
+//                })
+//                .getBody();
+//        log.info("response result: {}", body);
+        HttpClientFactory factory = new HttpClientFactory();
+        String accessToken = factory.getAccessToken();
         // Save token to Redis Cache meanwhile
-        storeAccessToken(body);
-        return body;
+        storeAccessToken(accessToken);
+        return accessToken;
     }
 
     private void storeAccessToken(String accessToken) {
@@ -67,7 +68,7 @@ public class SilvergateApiService {
         }
     }
 
-    public String getAccessTokenFromCache() {
+    public String getAccessTokenFromCache() throws IOException, InterruptedException {
         String accessKey = "20210223";
         Long token = settlementEngineRedisTemplate.opsForValue().get(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(accessKey));
         if (!ObjectUtils.isEmpty(token)) {
@@ -81,7 +82,7 @@ public class SilvergateApiService {
      * Find an account balance by account number
      * @param accountBalanceReq
      */
-    public void getAccountBalance(AccountBalanceReq accountBalanceReq) {
+    public void getAccountBalance(AccountBalanceReq accountBalanceReq) throws IOException, InterruptedException {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/balance")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -99,7 +100,7 @@ public class SilvergateApiService {
      * indicated when MOREDATA flag equals "Y".
      * If MOREDATA is Y then either reduce date range or use GET account/extendedhistory.
      */
-    public void getAccountHistory(AccountHistoryReq accountHistoryReq) {
+    public void getAccountHistory(AccountHistoryReq accountHistoryReq) throws IOException, InterruptedException {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/history")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -118,7 +119,7 @@ public class SilvergateApiService {
     /**
      * Retrieve List of Accounts, based on subscription key (formerly known as CustAcctInq)
      */
-    public void getAccountList(String sequenceNumber) {
+    public void getAccountList(String sequenceNumber) throws IOException, InterruptedException {
         String result = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/list")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -132,7 +133,7 @@ public class SilvergateApiService {
      * Initiates a wire payment
      * @param paymentPostReq
      */
-    public void initialPaymentPost(PaymentPostReq paymentPostReq) {
+    public void initialPaymentPost(PaymentPostReq paymentPostReq) throws IOException, InterruptedException {
         String result = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
@@ -153,7 +154,7 @@ public class SilvergateApiService {
      * @param action
      * @param timestamp
      */
-    public void initialPaymentPut(String accountNumber, String paymentId, String action, String timestamp) {
+    public void initialPaymentPut(String accountNumber, String paymentId, String action, String timestamp) throws IOException, InterruptedException {
         String body = Unirest.put(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -171,7 +172,7 @@ public class SilvergateApiService {
     /**
      * Retrieves detailed data for one or many payments.
      */
-    public PaymentGetResp retrievePaymentDetails(PaymentGetReq paymentGetReq) {
+    public PaymentGetResp retrievePaymentDetails(PaymentGetReq paymentGetReq) throws IOException, InterruptedException {
         String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -194,7 +195,7 @@ public class SilvergateApiService {
     /**
      * Delete a previously registered webhook
      */
-    public void webhooksDelete(String webhookId) {
+    public void webhooksDelete(String webhookId) throws IOException, InterruptedException {
         String result = Unirest.delete(silvergateProperties.apiUrlPrefix + "/webhooks/delete?")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -208,7 +209,7 @@ public class SilvergateApiService {
     /**
      * Returns either specific webhook details or all webhooks for a subscription
      */
-    public void webHooksGet(WebHooksGetReq webHooksGetReq) {
+    public void webHooksGet(WebHooksGetReq webHooksGetReq) throws IOException, InterruptedException {
         String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get?")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -225,7 +226,7 @@ public class SilvergateApiService {
      *Creates a new webhook which sends notifications
      * via http post and/or email when a balance on a given account changes.
      */
-    public void webHooksRegister(WebHooksRegisterReq webHooksRegisterReq) throws AccessDeniedException {
+    public void webHooksRegister(WebHooksRegisterReq webHooksRegisterReq) throws IOException, InterruptedException {
         String result = Unirest.post("/webHooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())

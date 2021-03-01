@@ -7,6 +7,8 @@ import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.module.silvergate.service.SilvergateApiService;
 
+import java.io.IOException;
+
 /**
  * User: kevin.xie<br/>
  * Date: 22/02/2021<br/>
@@ -21,7 +23,7 @@ public class PaymentController {
     SilvergateApiService apiService;
 
     @GetMapping("/get-access-token")
-    public ApiResponse<?> getAccessToken() {
+    public ApiResponse<?> getAccessToken() throws IOException, InterruptedException {
         //Get accessToken and saved in redis cache
         String accessToken = apiService.acquireAccessToken();
         log.info("getAccessToken: {}", accessToken);
