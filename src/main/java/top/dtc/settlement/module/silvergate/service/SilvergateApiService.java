@@ -3,6 +3,7 @@ package top.dtc.settlement.module.silvergate.service;
 import com.alibaba.fastjson.JSONObject;
 import kong.unirest.ContentType;
 import kong.unirest.HeaderNames;
+import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
@@ -37,22 +38,23 @@ public class SilvergateApiService {
      * is required on all other calls.
      * Tokens are valid for 15 minutes and can only be requested twice every 5 minutes.
      */
-    public String acquireAccessToken() throws IOException, InterruptedException {
-        String body = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
+    public String acquireAccessToken() {
+        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
                 .header(OCP_APIM_SUBSCRIPTION_KEY,
                         silvergateProperties.subscriptionKey)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request silvergate api [/access/token] failed, status={}", resp.getStatus());
                     resp.getParsingError().ifPresent(e -> log.error("getAccessToken failed", e));
-                })
-                .getBody();
-        log.info("response result: {}", body);
-        HttpClientFactory factory = new HttpClientFactory();
-        String accessToken = factory.getAccessToken();
+                });
+
+        log.info("request info: {}", silvergateProperties.apiUrlPrefix + "/access/token");
+        log.info("response info: {}", response);
+        String body = response.getBody();
+        log.info("response body: {}", body);
         // Save token to Redis Cache meanwhile
-        storeAccessToken(accessToken);
-        return accessToken;
+        storeAccessToken(body);
+        return body;
     }
 
     private void storeAccessToken(String accessToken) {
