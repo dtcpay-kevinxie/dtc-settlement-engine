@@ -1,15 +1,19 @@
 package top.dtc.settlement.module.silvergate.service;
 
 import lombok.extern.log4j.Log4j2;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpVersion;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpHeaders;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
@@ -32,24 +36,21 @@ public class HttpClientFactory {
 
 
     public String getAccessToken() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create(silvergateProperties.apiUrlPrefix + "/access/token"))
-                .setHeader(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey) // add request header
+        CloseableHttpClient client = HttpClients.custom().build();
+        HttpUriRequest request = RequestBuilder.get()
+                .setUri(silvergateProperties.apiUrlPrefix + "/access/token")
+                .setHeader(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .setVersion(HttpVersion.HTTP_1_1)
                 .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        // print response headers
-        HttpHeaders headers = response.headers();
-        headers.map().forEach((k, v) ->
-                log.info( k + ": ",v));
-
-        // print status code
-        log.info("Response Code: {}",response.statusCode());
-
-        // print response body
-        log.info("Response body: {}" + response.body());
-        return response.body();
+        log.info("request uri: {}", request.getURI());
+        CloseableHttpResponse execute = client.execute(request);
+        HttpEntity entity = execute.getEntity();
+        if (entity != null) {
+            // return it as a String
+            String result = EntityUtils.toString(entity);
+            log.info("HttpEntity: {}", result);
+            return result;
+        }
+        return null;
     }
 }

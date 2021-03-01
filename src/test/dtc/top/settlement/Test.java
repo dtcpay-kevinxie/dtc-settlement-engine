@@ -1,4 +1,4 @@
-package java.top.dtc.settlement;
+package dtc.top.settlement;
 
 import java.net.URI;
 import java.net.http.HttpClient;
