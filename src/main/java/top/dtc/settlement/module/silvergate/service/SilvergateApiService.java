@@ -1,10 +1,7 @@
 package top.dtc.settlement.module.silvergate.service;
 
 import com.alibaba.fastjson.JSONObject;
-import kong.unirest.ContentType;
-import kong.unirest.HeaderNames;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
+import kong.unirest.*;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,17 +36,24 @@ public class SilvergateApiService {
      * Tokens are valid for 15 minutes and can only be requested twice every 5 minutes.
      */
     public String acquireAccessToken() {
-        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
+        String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
                 .header(OCP_APIM_SUBSCRIPTION_KEY,
                         silvergateProperties.subscriptionKey)
+                .getUrl();
+        log.info("request from : {}", url);
+        Headers headers = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
+                .header(OCP_APIM_SUBSCRIPTION_KEY,
+                        silvergateProperties.subscriptionKey)
+                .getHeaders();
+        log.info("request headers: {}", headers.containsKey(OCP_APIM_SUBSCRIPTION_KEY));
+        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
+                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request silvergate api [/access/token] failed, status={}", resp.getStatus());
                     resp.getParsingError().ifPresent(e -> log.error("getAccessToken failed", e));
                 });
-
-        log.info("request info: {}", silvergateProperties.apiUrlPrefix + "/access/token");
-        log.info("response info: {}", response);
+        log.info("response : {}", JSONObject.toJSON(response));
         String body = response.getBody();
         log.info("response body: {}", body);
         // Save token to Redis Cache meanwhile
