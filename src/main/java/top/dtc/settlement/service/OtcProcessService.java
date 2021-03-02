@@ -10,12 +10,12 @@ import org.springframework.stereotype.Service;
 import top.dtc.common.enums.ClientType;
 import top.dtc.common.model.api.ApiResponse;
 import top.dtc.common.util.NotificationSender;
-import top.dtc.data.core.enums.MerchantStatus;
+import top.dtc.data.core.enums.NonIndividualStatus;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.enums.OtcType;
-import top.dtc.data.core.model.Merchant;
+import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.model.Otc;
-import top.dtc.data.core.service.MerchantService;
+import top.dtc.data.core.service.NonIndividualService;
 import top.dtc.data.core.service.OtcService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.PayableStatus;
@@ -95,7 +95,7 @@ public class OtcProcessService {
     private EtherscanService etherscanService;
 
     @Autowired
-    private MerchantService merchantService;
+    private NonIndividualService nonIndividualService;
 
     public void scheduledBlockchain() {
         // OTC waiting for receiving token
@@ -309,8 +309,8 @@ public class OtcProcessService {
         if (otc.clientType == ClientType.INDIVIDUAL) {
             // TODO: Add Individual Account validation
         } else {
-            Merchant merchant = merchantService.getById(otc.clientId);
-            isActivated = merchant.status == MerchantStatus.ACTIVATED;
+            NonIndividual nonIndividual = nonIndividualService.getById(otc.clientId);
+            isActivated = nonIndividual.status == NonIndividualStatus.ACTIVATED;
         }
         if (!isActivated) {
             KycNonIndividual kycNonIndividual = kycNonIndividualService.getById(otc.clientId);
