@@ -77,7 +77,7 @@ public class AccountHistoryResp {
         @JsonProperty("IMAGEFLAG")
         public String imageFlag;
         @JsonProperty("ORIGPROCDT")
-        public String origProcdt;
+        public String origProcDt;
         @JsonProperty("ORIGSRC")
         public String origSrc;
         @JsonProperty("ORIGSUBSRC")

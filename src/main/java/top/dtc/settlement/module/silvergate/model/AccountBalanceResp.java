@@ -22,7 +22,7 @@ public class AccountBalanceResp {
 
     @Data
     static class ResponseData {
-        @JsonProperty("MESSAGEID")
+        @JsonProperty("ACTNBR")
         public String actNbr;
         @JsonProperty("SHORTNAME")
         public String shortName;
@@ -81,26 +81,19 @@ public class AccountBalanceResp {
         @JsonProperty("LNAVAAMT")
         public Double lnavaAmt;
         @JsonProperty("ODLMTAMT")
-        public Double ODLMTAMT;
+        public Double odLmtAmt;
         @JsonProperty("CUSTFLTAMT")
-        public Double custflTamt;
+        public Double custFltAmt;
+        @JsonProperty("BNKFLTAMT")
+        public Double bnkFltAmt;
         @JsonProperty("HOLDSAMT")
-        public Double holdSamt;
+        public Double holdsAmt;
         @JsonProperty("CHKSPDTDYA")
         public Double chkSpdDya;
         @JsonProperty("AVGROLBAL")
-        public AvgRolBal avgRolBal;
+        public Integer avgRolBal;
         @JsonProperty("AVGROLCOL")
-        public AvgRolCol avgRolCol;
-
-    }
-
-    @Data
-    static class  AvgRolBal {
-
-    }
-
-    static class AvgRolCol {
+        public Integer avgRolCol;
 
     }
 

@@ -63,7 +63,7 @@ public class PaymentController {
         PaymentPutResp paymentPutResp = apiService.initialPaymentPut(paymentPutReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPutResp);
     }
-    @PostMapping("/payment/get")
+    @GetMapping("/payment/get")
     public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) {
         PaymentGetResp paymentDetails = apiService.getPaymentDetails(paymentGetReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);

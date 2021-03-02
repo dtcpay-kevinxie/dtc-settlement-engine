@@ -14,7 +14,6 @@ public class WebHooksRegisterReq {
 
     @JsonProperty("AccountNumber")
     public String accountNumber;
-
     @JsonProperty("Description")
     public String description;
     @JsonProperty("WebHookUrl")

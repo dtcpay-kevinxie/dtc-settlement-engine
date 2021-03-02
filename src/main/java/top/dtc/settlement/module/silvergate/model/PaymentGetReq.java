@@ -11,7 +11,7 @@ import java.util.Date;
  */
 @Data
 public class PaymentGetReq {
-    public String accountNumber;
+    public String accountNumber;// required
     public String paymentId;
     public Date beginDate;
     public Date endDate;
