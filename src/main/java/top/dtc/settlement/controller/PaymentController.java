@@ -64,7 +64,7 @@ public class PaymentController {
 
 
     @PutMapping("/payment/put")
-    public ApiResponse<?> putPayment(@RequestBody PaymentPutReq paymentPutReq) {
+    public ApiResponse<?> putPayment(@RequestBody PaymentPutReq paymentPutReq) throws JsonProcessingException {
         PaymentPutResp paymentPutResp = apiService.initialPaymentPut(paymentPutReq);
         if (!ObjectUtils.isEmpty(paymentPutResp)) {
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPutResp);
@@ -72,7 +72,7 @@ public class PaymentController {
         return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
     }
     @GetMapping("/payment/get")
-    public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) {
+    public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) throws JsonProcessingException {
         PaymentGetResp paymentDetails = apiService.getPaymentDetails(paymentGetReq);
         if (!ObjectUtils.isEmpty(paymentDetails)) {
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);

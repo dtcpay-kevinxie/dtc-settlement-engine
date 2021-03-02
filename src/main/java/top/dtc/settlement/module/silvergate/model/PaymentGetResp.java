@@ -1,9 +1,15 @@
 package top.dtc.settlement.module.silvergate.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class PaymentGetResp {
+    @JsonProperty("ERROR")
+    public List<Error> error;
+
     public String status;
     public String payment_id;
     public String payment_date;
@@ -56,4 +62,20 @@ public class PaymentGetResp {
     public String debit_account_id;
     public String credit_account_id;
     public String timestamp;
+
+    @Data
+    static class Error {
+        @JsonProperty("MESSAGEID")
+        public String messageId;
+        @JsonProperty("MESSAGETYPE")
+        public String messageType;
+        @JsonProperty("SEGMENTID")
+        public String segmentId;
+        @JsonProperty("SEGMENT_OCCUR")
+        public String segment_occur;
+        @JsonProperty("FIELDNAME")
+        public String fieldName;
+        @JsonProperty("ERRORMSG")
+        public String errorMsg;
+    }
 }

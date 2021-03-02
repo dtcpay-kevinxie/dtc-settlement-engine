@@ -1,6 +1,5 @@
 package top.dtc.settlement.module.silvergate.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kong.unirest.*;
@@ -195,7 +194,7 @@ public class SilvergateApiService {
      * Runs an action on a payment to approve, cancel, or return.
      * @param paymentPutReq
      */
-    public PaymentPutResp initialPaymentPut(PaymentPutReq paymentPutReq) {
+    public PaymentPutResp initialPaymentPut(PaymentPutReq paymentPutReq) throws JsonProcessingException {
         String url = Unirest.put(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -216,13 +215,14 @@ public class SilvergateApiService {
                 .getBody();
 
         log.info("[PUT] response body: {}", body);
-        return JSONObject.parseObject(body, PaymentPutResp.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(body, PaymentPutResp.class);
     }
 
     /**
      * Retrieves detailed data for one or many payments.
      */
-    public PaymentGetResp getPaymentDetails(PaymentGetReq paymentGetReq) {
+    public PaymentGetResp getPaymentDetails(PaymentGetReq paymentGetReq) throws JsonProcessingException {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -249,8 +249,8 @@ public class SilvergateApiService {
                 .getBody();
 
         log.info("[GET] /payment response body: {}", body);
-
-        return JSONObject.parseObject(body, PaymentGetResp.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(body, PaymentGetResp.class);
     }
 
     /**
