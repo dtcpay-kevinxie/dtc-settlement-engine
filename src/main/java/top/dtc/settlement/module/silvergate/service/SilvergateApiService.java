@@ -278,10 +278,11 @@ public class SilvergateApiService {
 
     /**
      * Returns either specific webhook details or all webhooks for a subscription
+     * @return
      */
-    public WebHooksGetRegisterResp webHooksGet(WebHooksGetReq webHooksGetReq) throws JsonProcessingException {
+    public WebHooksGetRegisterResp[] webHooksGet(WebHooksGetReq webHooksGetReq) throws JsonProcessingException {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache()) // getTokenFromCache
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("accountNumber", webHooksGetReq.accountNumber) //optional
                 .queryString("webHookId", webHooksGetReq.webHookId) // optional
@@ -297,7 +298,7 @@ public class SilvergateApiService {
 
         log.info("/webhooks/get response body: {}", body);
         ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.readValue(body, WebHooksGetRegisterResp.class);
+        return objectMapper.readValue(body, WebHooksGetRegisterResp[].class);
     }
 
     /**
