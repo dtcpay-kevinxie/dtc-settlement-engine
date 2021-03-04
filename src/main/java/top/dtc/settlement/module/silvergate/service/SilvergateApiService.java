@@ -348,22 +348,14 @@ public class SilvergateApiService {
         String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString("AccountNumber", webHooksRegisterReq.accountNumber)
-                .queryString("Description", webHooksRegisterReq.description)
-                .queryString("WebHookUrl", webHooksRegisterReq.webHookUrl)
-                .queryString("Emails", webHooksRegisterReq.emails)
-                .queryString("Sms", webHooksRegisterReq.sms)
+                .body(webHooksRegisterReq)
                 .getUrl();
         log.info("request from {}", url);
         HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString("AccountNumber", webHooksRegisterReq.accountNumber)
-                .queryString("Description", webHooksRegisterReq.description)
-                .queryString("WebHookUrl", webHooksRegisterReq.webHookUrl)
-                .queryString("Emails", webHooksRegisterReq.emails)
-                .queryString("Sms", webHooksRegisterReq.sms)
+                .body(webHooksRegisterReq)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path=/webhooks/register, status={}", resp.getStatus());
