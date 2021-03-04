@@ -16,7 +16,8 @@ import top.dtc.settlement.module.silvergate.model.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Log4j2
@@ -346,18 +347,24 @@ public class SilvergateApiService {
      * via http post and/or email when a balance on a given account changes.
      */
     public WebHooksGetRegisterResp webHooksRegister(WebHooksRegisterReq webHooksRegisterReq) throws JsonProcessingException {
-        Optional<Body> body = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
+        Map<String, Object> requestMap = new HashMap<>();
+        requestMap.put("AccountNumber", webHooksRegisterReq.accountNumber);
+        requestMap.put("Description",webHooksRegisterReq.description);
+        requestMap.put("WebHookUrl",webHooksRegisterReq.webHookUrl);
+        requestMap.put("Emails",webHooksRegisterReq.emails);
+        requestMap.put("Sms",webHooksRegisterReq.sms);
+        String mapReq = JSONObject.toJSONString(requestMap);
+        String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .body(webHooksRegisterReq)
-                .getBody();
-        log.info("request from {}", body.get());
+                .body(mapReq)
+                .getUrl();
+        log.info("request from {}", url);
         HttpResponse<String> response = Unirest.post("/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .body(webHooksRegisterReq)
+                .body(mapReq)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path=/webhooks/register, status={}", resp.getStatus());
