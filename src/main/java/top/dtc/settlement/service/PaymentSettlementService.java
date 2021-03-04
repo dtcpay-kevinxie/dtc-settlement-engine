@@ -6,10 +6,10 @@ import org.springframework.stereotype.Service;
 import top.dtc.common.enums.ClientType;
 import top.dtc.common.enums.SettlementStatus;
 import top.dtc.common.util.StringUtils;
-import top.dtc.data.core.enums.MerchantStatus;
-import top.dtc.data.core.model.Merchant;
+import top.dtc.data.core.enums.NonIndividualStatus;
+import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.model.Transaction;
-import top.dtc.data.core.service.MerchantService;
+import top.dtc.data.core.service.NonIndividualService;
 import top.dtc.data.core.service.TransactionService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.PayableStatus;
@@ -59,7 +59,7 @@ public class PaymentSettlementService {
     private TransactionService transactionService;
 
     @Autowired
-    private MerchantService merchantService;
+    private NonIndividualService nonIndividualService;
 
     @Autowired
     private ClientAccountService clientAccountService;
@@ -126,9 +126,9 @@ public class PaymentSettlementService {
         if (settlement == null || settlement.status != SettlementStatus.SUBMITTED) {
             throw new SettlementException(ErrorMessage.SETTLEMENT.APPROVAL_FAILED + settlementId);
         }
-        Merchant merchant = merchantService.getById(settlement.merchantId);
-        if (merchant.status.id <= MerchantStatus.SETTLEMENT_DISABLED.id) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.STATUS_FAILED(merchant.id, merchant.status.desc));
+        NonIndividual nonIndividual = nonIndividualService.getById(settlement.merchantId);
+        if (nonIndividual.status.id <= NonIndividualStatus.ACTIVATED.id) {
+            throw new SettlementException(ErrorMessage.SETTLEMENT.STATUS_FAILED(nonIndividual.id, nonIndividual.status.desc));
         }
         settlement.status = SettlementStatus.APPROVED;
         String prefix = getPrefix(settlement);
@@ -211,8 +211,8 @@ public class PaymentSettlementService {
             settlement.merchantId = settlementConfig.merchantId;
             settlement.cycleStartDate = cycleStart;
             settlement.cycleEndDate = cycleEnd;
-            Merchant merchant = merchantService.getById(settlementConfig.merchantId);
-            settlement.merchantName = merchant.fullName;
+            NonIndividual nonIndividual = nonIndividualService.getById(settlementConfig.merchantId);
+            settlement.merchantName = nonIndividual.fullName;
             settlement.adjustmentAmount = BigDecimal.ZERO;
             settlement.saleCount = 0;
             settlement.refundCount = 0;
