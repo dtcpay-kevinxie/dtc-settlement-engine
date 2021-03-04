@@ -357,6 +357,7 @@ public class SilvergateApiService {
         log.info("request from {}", url);
         HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
+                .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("AccountNumber", webHooksRegisterReq.accountNumber)
                 .queryString("Description", webHooksRegisterReq.description)
