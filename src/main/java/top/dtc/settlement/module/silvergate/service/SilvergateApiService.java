@@ -355,7 +355,7 @@ public class SilvergateApiService {
                 .queryString("Sms", webHooksRegisterReq.sms)
                 .getUrl();
         log.info("request from {}", url);
-        HttpResponse<String> response = Unirest.post("/webhooks/register")
+        HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("AccountNumber", webHooksRegisterReq.accountNumber)
