@@ -1,5 +1,6 @@
 package top.dtc.settlement.module.silvergate.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kong.unirest.*;
@@ -101,6 +102,10 @@ public class SilvergateApiService {
                 .queryString("accountNumber", accountBalanceReq.accountNumber)
                 .queryString("sequenceNumber", accountBalanceReq.sequenceNumber)
                 .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                })
                 .getBody();
         log.info("/account/balance response body: {}", result);
         ObjectMapper objectMapper = new ObjectMapper();
@@ -137,6 +142,10 @@ public class SilvergateApiService {
                 .queryString("uniqueId", accountHistoryReq.uniqueId)
                 .queryString("paymentId", accountHistoryReq.paymentId)
                 .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                })
                 .getBody();
         log.info("/account/history response body: {}", result);
         ObjectMapper objectMapper = new ObjectMapper();
@@ -158,6 +167,10 @@ public class SilvergateApiService {
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("sequenceNumber", sequenceNumber)
                 .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                })
                 .getBody();
         log.info("/account/history response body: {}", result);
         ObjectMapper objectMapper = new ObjectMapper();
@@ -169,11 +182,13 @@ public class SilvergateApiService {
      * @param paymentPostReq
      */
     public PaymentPostResp initialPaymentPost(PaymentPostReq paymentPostReq) throws JsonProcessingException {
+        String paymentPost = JSONObject.toJSONString(paymentPostReq);
         String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .header(IDEMPOTENCY_KEY, "")
+                .body(paymentPost)
                 .getUrl();
         log.info("request from {}", url);
         String result = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
@@ -181,8 +196,12 @@ public class SilvergateApiService {
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()) // Content-Type optional
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .header(IDEMPOTENCY_KEY, "") // Idempotency-Key optional
-                .body(paymentPostReq)
+                .body(paymentPost)
                 .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                })
                 .getBody();
 
         log.info("[POST] /payment response body: {}", result);
@@ -212,6 +231,10 @@ public class SilvergateApiService {
                 .queryString("action", paymentPutReq.action)
                 .queryString("timestamp", paymentPutReq.timestamp)
                 .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                })
                 .getBody();
 
         log.info("[PUT] response body: {}", body);
@@ -246,6 +269,10 @@ public class SilvergateApiService {
                 .queryString("page_size", paymentGetReq.pageSize)
                 .queryString("page_number", paymentGetReq.pageNumber)
                 .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                })
                 .getBody();
 
         log.info("[GET] /payment response body: {}", body);
@@ -271,6 +298,10 @@ public class SilvergateApiService {
                 .ifSuccess(resp -> {
                     log.info("delete successfully: {}", resp);
                 })
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                })
                 .getBody();
             log.info("/webHooks/delete response body: {}", result);
             return result;
@@ -294,6 +325,10 @@ public class SilvergateApiService {
                 .queryString("accountNumber", webHooksGetReq.accountNumber)
                 .queryString("webHookId", webHooksGetReq.webHookId)
                 .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                })
                 .getBody();
 
         log.info("/webhooks/get response body: {}", body);
@@ -306,19 +341,25 @@ public class SilvergateApiService {
      * via http post and/or email when a balance on a given account changes.
      */
     public WebHooksGetRegisterResp webHooksRegister(WebHooksRegisterReq webHooksRegisterReq) throws JsonProcessingException {
+        String webHooksRegister = JSONObject.toJSONString(webHooksRegisterReq);
         String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .body(webHooksRegisterReq)
+                .body(webHooksRegister)
                 .getUrl();
         log.info("request from {}", url);
+
         String result = Unirest.post("/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .body(webHooksRegisterReq)
+                .body(webHooksRegister)
                 .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                })
                 .getBody();
 
         log.info("/webHooks/register response body: {}", result);
