@@ -1,6 +1,5 @@
 package top.dtc.settlement.module.silvergate.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kong.unirest.*;
@@ -185,21 +184,19 @@ public class SilvergateApiService {
      * @param paymentPostReq
      */
     public PaymentPostResp initialPaymentPost(PaymentPostReq paymentPostReq) throws JsonProcessingException {
-        String paymentPost = JSONObject.toJSONString(paymentPostReq);
         String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .header(IDEMPOTENCY_KEY, "")
-                .body(paymentPost)
+                .body(paymentPostReq)
                 .getUrl();
         log.info("request from {}", url);
         HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()) // Content-Type optional
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .header(IDEMPOTENCY_KEY, "") // Idempotency-Key optional
-                .body(paymentPost)
+                .body(paymentPostReq)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", url, resp.getStatus());
