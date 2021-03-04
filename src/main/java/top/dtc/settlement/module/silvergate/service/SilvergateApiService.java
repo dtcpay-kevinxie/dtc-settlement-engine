@@ -16,8 +16,6 @@ import top.dtc.settlement.module.silvergate.model.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Log4j2
@@ -347,24 +345,25 @@ public class SilvergateApiService {
      * via http post and/or email when a balance on a given account changes.
      */
     public WebHooksGetRegisterResp webHooksRegister(WebHooksRegisterReq webHooksRegisterReq) throws JsonProcessingException {
-        Map<String, Object> requestMap = new HashMap<>();
-        requestMap.put("AccountNumber", webHooksRegisterReq.accountNumber);
-        requestMap.put("Description",webHooksRegisterReq.description);
-        requestMap.put("WebHookUrl",webHooksRegisterReq.webHookUrl);
-        requestMap.put("Emails",webHooksRegisterReq.emails);
-        requestMap.put("Sms",webHooksRegisterReq.sms);
-        String mapReq = JSONObject.toJSONString(requestMap);
         String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .body(mapReq)
+                .queryString("AccountNumber", webHooksRegisterReq.accountNumber)
+                .queryString("Description", webHooksRegisterReq.description)
+                .queryString("WebHookUrl", webHooksRegisterReq.webHookUrl)
+                .queryString("Emails", webHooksRegisterReq.emails)
+                .queryString("Sms", webHooksRegisterReq.sms)
                 .getUrl();
         log.info("request from {}", url);
         HttpResponse<String> response = Unirest.post("/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .body(mapReq)
+                .queryString("AccountNumber", webHooksRegisterReq.accountNumber)
+                .queryString("Description", webHooksRegisterReq.description)
+                .queryString("WebHookUrl", webHooksRegisterReq.webHookUrl)
+                .queryString("Emails", webHooksRegisterReq.emails)
+                .queryString("Sms", webHooksRegisterReq.sms)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path=/webhooks/register, status={}", resp.getStatus());
@@ -373,10 +372,7 @@ public class SilvergateApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         String responseBody = response.getBody();
-        if (response.getStatus() == HttpStatus.OK) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(responseBody, WebHooksGetRegisterResp.class);
-        }
-        return null;
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(responseBody, WebHooksGetRegisterResp.class);
     }
 }

@@ -14,4 +14,6 @@ public class PaymentPostResp {
     @JsonProperty("payment_timestamp")
     public LocalDateTime timestamp;
 
+    @JsonProperty("ERROR")
+    public Error error;
 }

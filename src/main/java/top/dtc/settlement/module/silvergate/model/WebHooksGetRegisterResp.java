@@ -23,4 +23,6 @@ public class WebHooksGetRegisterResp {
     public String emails;
     @JsonProperty("Sms")
     public String sms;
+    @JsonProperty("ERROR")
+    public Error error;
 }

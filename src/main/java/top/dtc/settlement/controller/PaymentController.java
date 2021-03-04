@@ -3,7 +3,6 @@ package top.dtc.settlement.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.settlement.constant.ApiHeaderConstant;
@@ -58,10 +57,7 @@ public class PaymentController {
     public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) throws JsonProcessingException {
         PaymentPostResp paymentPostResp = apiService.initialPaymentPost(paymentPostReq);
         log.info("[POST] payment request: {}", paymentPostReq);
-        if (!ObjectUtils.isEmpty(paymentPostResp)) {
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPostResp);
-        }
-        return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPostResp);
     }
 
     @PutMapping("/payment/put")
@@ -78,30 +74,21 @@ public class PaymentController {
     public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) throws JsonProcessingException {
         PaymentGetResp paymentDetails = apiService.getPaymentDetails(paymentGetReq);
         log.info("[GET] /payment/get request: {}", paymentGetReq);
-        if (!ObjectUtils.isEmpty(paymentDetails)) {
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);
-        }
-        return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);
     }
 
     @DeleteMapping("/webhooks/delete/{webHookId}")
     public ApiResponse<?> webHooksDelete(@PathVariable(value = "webHookId") String webHookId) {
         String result = apiService.webhooksDelete(webHookId);
         log.info("[GET] webhooks/delete request: {}", webHookId);
-        if (!StringUtils.isBlank(result)) {
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
-        }
-        return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
     }
 
     @GetMapping("/webhooks/get")
     public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) throws JsonProcessingException {
         WebHooksGetRegisterResp[] webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
         log.info("webhooks/get request: {}", webHooksGetReq);
-        if (!ObjectUtils.isEmpty(webHooksGetRegisterResp)) {
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksGetRegisterResp);
-        }
-        return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksGetRegisterResp);
     }
 
     @PostMapping("/webhooks/register")
