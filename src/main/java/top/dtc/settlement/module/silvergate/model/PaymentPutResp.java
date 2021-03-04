@@ -17,6 +17,6 @@ public class PaymentPutResp {
     public String payment_timestamp;
 
     @JSONField(name = "ERROR")
-    public List<Error> error;
+    public List<Error> errorList;
 
 }

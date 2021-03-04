@@ -4,6 +4,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class PaymentPostResp {
@@ -15,5 +16,5 @@ public class PaymentPostResp {
     public LocalDateTime timestamp;
 
     @JSONField(name = "ERROR")
-    public Error error;
+    public List<Error> errorList;
 }

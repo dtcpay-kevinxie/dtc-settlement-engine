@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 public class PaymentGetResp {
     @JSONField(name = "ERROR")
-    public List<Error> error;
+    public List<Error> errorList;
 
     public String status;
     public String payment_id;

@@ -18,7 +18,7 @@ public class AccountHistoryResp {
     @JSONField(name = "ResponseData")
     public List<ResponseData> responseDataList;
     @JSONField(name = "ERROR")
-    public List<Error> errorList;
+    public List<Error> error;
 
     @Data
     static class ResponseData {

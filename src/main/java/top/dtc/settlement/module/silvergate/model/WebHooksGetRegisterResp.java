@@ -3,6 +3,8 @@ package top.dtc.settlement.module.silvergate.model;
 import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * User: kevin.xie<br/>
  * Date: 01/03/2021<br/>
@@ -24,5 +26,5 @@ public class WebHooksGetRegisterResp {
     @JSONField(name = "Sms")
     public String sms;
     @JSONField(name = "ERROR")
-    public Error error;
+    public List<Error> errorList;
 }
