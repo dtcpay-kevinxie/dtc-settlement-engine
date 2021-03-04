@@ -1,6 +1,5 @@
 package top.dtc.settlement.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,45 +22,35 @@ public class PaymentController {
     @Autowired
     SilvergateApiService apiService;
 
-    @GetMapping("/get-access-token")
-    public ApiResponse<?> getAccessToken() {
-        //Get accessToken and saved in Redis cache
-        String accessToken = apiService.acquireAccessToken();
-        log.info("getAccessToken: {}", accessToken);
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accessToken);
-    }
-
     @GetMapping("/account/get-account-balance")
-    public ApiResponse<?> getAccountBalance(@RequestBody AccountBalanceReq accountBalanceReq) throws JsonProcessingException {
-        AccountBalanceResp accountBalance = apiService.getAccountBalance(accountBalanceReq);
-        log.info("/account/balance request: {}", accountBalanceReq);
+    public ApiResponse<?> getAccountBalance(@RequestParam(name = "accountNumber") String accountNumber) {
+        AccountBalanceResp accountBalance = apiService.getAccountBalance(accountNumber);
+        log.info("/account/balance request: {}", accountNumber);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountBalance);
     }
 
-
     @GetMapping("/account/get-account-history")
-    public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) throws JsonProcessingException {
+    public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) {
         AccountHistoryResp accountHistory = apiService.getAccountHistory(accountHistoryReq);
         log.info("/account/history request: {}", accountHistoryReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountHistory);
     }
 
     @GetMapping("/account/get-account-list")
-    public ApiResponse<?> getAccountList(@RequestParam(name = "sequenceNumber", required = false) String sequenceNumber) throws JsonProcessingException {
-        AccountListResp accountList = apiService.getAccountList(sequenceNumber);
-        log.info("/account/list request: {}", sequenceNumber);
+    public ApiResponse<?> getAccountList() {
+        AccountListResp accountList = apiService.getAccountList();
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountList);
     }
 
     @PostMapping("/payment/post")
-    public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) throws JsonProcessingException {
+    public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) {
         PaymentPostResp paymentPostResp = apiService.initialPaymentPost(paymentPostReq);
         log.info("[POST] payment request: {}", paymentPostReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPostResp);
     }
 
     @PutMapping("/payment/put")
-    public ApiResponse<?> putPayment(@RequestBody PaymentPutReq paymentPutReq) throws JsonProcessingException {
+    public ApiResponse<?> putPayment(@RequestBody PaymentPutReq paymentPutReq) {
         PaymentPutResp paymentPutResp = apiService.initialPaymentPut(paymentPutReq);
         log.info("[PUT] payment request: {}", paymentPutReq);
         if (!ObjectUtils.isEmpty(paymentPutResp)) {
@@ -71,7 +60,7 @@ public class PaymentController {
     }
 
     @GetMapping("/payment/get")
-    public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) throws JsonProcessingException {
+    public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) {
         PaymentGetResp paymentDetails = apiService.getPaymentDetails(paymentGetReq);
         log.info("[GET] /payment/get request: {}", paymentGetReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);
@@ -85,14 +74,14 @@ public class PaymentController {
     }
 
     @GetMapping("/webhooks/get")
-    public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) throws JsonProcessingException {
-        WebHooksGetRegisterResp[] webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
+    public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) {
+        WebHooksGetRegisterResp webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
         log.info("webhooks/get request: {}", webHooksGetReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksGetRegisterResp);
     }
 
     @PostMapping("/webhooks/register")
-    public ApiResponse<?> webHooksRegister(@RequestBody WebHooksRegisterReq webHooksRegisterReq) throws JsonProcessingException {
+    public ApiResponse<?> webHooksRegister(@RequestBody WebHooksRegisterReq webHooksRegisterReq) {
         log.info("webhooks/register request: {}", webHooksRegisterReq);
         WebHooksGetRegisterResp webHooksRegisterResp = apiService.webHooksRegister(webHooksRegisterReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksRegisterResp);

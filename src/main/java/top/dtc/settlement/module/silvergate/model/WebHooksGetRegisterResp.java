@@ -1,6 +1,6 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
 /**
@@ -11,18 +11,18 @@ import lombok.Data;
 @Data
 public class WebHooksGetRegisterResp {
 
-    @JsonProperty("WebHookId")
+    @JSONField(name = "WebHookId")
     public String webHookId;
-    @JsonProperty("AccountNumber")
+    @JSONField(name = "AccountNumber")
     public String accountNumber;
-    @JsonProperty("Description")
+    @JSONField(name = "Description")
     public String description;
-    @JsonProperty("WebHookUrl")
+    @JSONField(name = "WebHookUrl")
     public String webHookUrl;
-    @JsonProperty("Emails")
+    @JSONField(name = "Emails")
     public String emails;
-    @JsonProperty("Sms")
+    @JSONField(name = "Sms")
     public String sms;
-    @JsonProperty("ERROR")
+    @JSONField(name = "ERROR")
     public Error error;
 }

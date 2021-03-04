@@ -1,6 +1,6 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
 /**
@@ -10,16 +10,16 @@ import lombok.Data;
  */
 @Data
 public class Error {
-    @JsonProperty("MESSAGEID")
+    @JSONField(name = "MESSAGEID")
     public String messageId;
-    @JsonProperty("MESSAGETYPE")
+    @JSONField(name = "MESSAGETYPE")
     public String messageType;
-    @JsonProperty("SEGMENTID")
+    @JSONField(name = "SEGMENTID")
     public String segmentId;
-    @JsonProperty("SEGMENT_OCCUR")
+    @JSONField(name = "SEGMENT_OCCUR")
     public String segment_occur;
-    @JsonProperty("FIELDNAME")
+    @JSONField(name = "FIELDNAME")
     public String fieldName;
-    @JsonProperty("ERRORMSG")
+    @JSONField(name = "ERRORMSG")
     public String errorMsg;
 }

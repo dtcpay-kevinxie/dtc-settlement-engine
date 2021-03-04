@@ -1,19 +1,19 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
 public class PaymentPostResp {
-    @JsonProperty("payment_id")
+    @JSONField(name = "payment_id")
     public String payment_id;
-    @JsonProperty("payment_status")
+    @JSONField(name = "payment_status")
     public String status;
-    @JsonProperty("payment_timestamp")
+    @JSONField(name = "payment_timestamp")
     public LocalDateTime timestamp;
 
-    @JsonProperty("ERROR")
+    @JSONField(name = "ERROR")
     public Error error;
 }
