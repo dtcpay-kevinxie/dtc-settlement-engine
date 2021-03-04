@@ -1,7 +1,6 @@
 package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
-import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.settlement.constant.ApiHeaderConstant;
@@ -44,25 +43,22 @@ public class PaymentController {
 
     @PostMapping("/payment/post")
     public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) {
-        PaymentPostResp paymentPostResp = apiService.initialPaymentPost(paymentPostReq);
         log.info("[POST] payment request: {}", paymentPostReq);
+        PaymentPostResp paymentPostResp = apiService.initialPaymentPost(paymentPostReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPostResp);
     }
 
     @PutMapping("/payment/put")
     public ApiResponse<?> putPayment(@RequestBody PaymentPutReq paymentPutReq) {
-        PaymentPutResp paymentPutResp = apiService.initialPaymentPut(paymentPutReq);
         log.info("[PUT] payment request: {}", paymentPutReq);
-        if (!ObjectUtils.isEmpty(paymentPutResp)) {
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPutResp);
-        }
-        return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
+        PaymentPutResp paymentPutResp = apiService.initialPaymentPut(paymentPutReq);
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPutResp);
     }
 
     @GetMapping("/payment/get")
     public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) {
-        PaymentGetResp paymentDetails = apiService.getPaymentDetails(paymentGetReq);
         log.info("[GET] /payment/get request: {}", paymentGetReq);
+        PaymentGetResp paymentDetails = apiService.getPaymentDetails(paymentGetReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);
     }
 
@@ -75,8 +71,8 @@ public class PaymentController {
 
     @GetMapping("/webhooks/get")
     public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) {
-        WebHooksGetRegisterResp webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
         log.info("webhooks/get request: {}", webHooksGetReq);
+        WebHooksGetRegisterResp[] webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksGetRegisterResp);
     }
 

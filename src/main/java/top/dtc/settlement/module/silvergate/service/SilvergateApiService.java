@@ -1,6 +1,7 @@
 package top.dtc.settlement.module.silvergate.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import kong.unirest.*;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
@@ -288,7 +289,7 @@ public class SilvergateApiService {
      * Returns either specific webhook details or all webhooks for a subscription
      * @return
      */
-    public WebHooksGetRegisterResp webHooksGet(WebHooksGetReq webHooksGetReq) {
+    public WebHooksGetRegisterResp[] webHooksGet(WebHooksGetReq webHooksGetReq) {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -308,7 +309,8 @@ public class SilvergateApiService {
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
-        return JSON.parseObject(response.getBody(), WebHooksGetRegisterResp.class);
+        JSONArray jsonArray = JSONArray.parseArray(response.getBody());
+        return JSON.parseObject(jsonArray.toJSONString(), WebHooksGetRegisterResp[].class);
     }
 
     /**
