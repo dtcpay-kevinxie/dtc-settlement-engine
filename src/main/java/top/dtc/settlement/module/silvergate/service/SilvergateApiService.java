@@ -9,11 +9,30 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import top.dtc.common.exception.ValidationException;
+import top.dtc.common.util.NotificationSender;
+import top.dtc.data.finance.enums.PayableStatus;
+import top.dtc.data.finance.model.Payable;
+import top.dtc.data.finance.model.RemitInfo;
+import top.dtc.data.finance.service.PayableService;
+import top.dtc.data.finance.service.RemitInfoService;
+import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.constant.SettlementEngineRedisConstant;
+import top.dtc.settlement.core.properties.NotificationProperties;
+import top.dtc.settlement.module.silvergate.constant.SilvergateConstant;
 import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.model.*;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.INVALID_PAYABLE;
+import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.PAYMENT_INIT_FAILED;
+import static top.dtc.settlement.constant.NotificationConstant.NAMES.SILVERGATE_PAY_CANCELLED;
+import static top.dtc.settlement.constant.NotificationConstant.NAMES.SILVERGATE_PAY_INITIAL;
+import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.BANK_TYPE.SWIFT;
+import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.PAYMENT_STATUS.CANCELED;
+import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.PAYMENT_STATUS.PRE_APPROVAL;
 
 @Log4j2
 @Service
@@ -28,6 +47,15 @@ public class SilvergateApiService {
 
     @Autowired
     private SilvergateProperties silvergateProperties;
+
+    @Autowired
+    private PayableService payableService;
+
+    @Autowired
+    private RemitInfoService remitInfoService;
+
+    @Autowired
+    private NotificationProperties notificationProperties;
 
     /**
      * The Subscription access key is passed in the header to receive back a security token which
@@ -159,10 +187,70 @@ public class SilvergateApiService {
     }
 
     /**
-     * Initiates a wire payment
-     * @param paymentPostReq
+     * Initiates a wire payment for a Payable
+     *
+     * @param accountNumber Silvergate account number
+     * @param payableId Payable Id wants to proceed payment
      */
-    public PaymentPostResp initialPaymentPost(PaymentPostReq paymentPostReq)  {
+    public Payable initialPaymentPost(String accountNumber, Long payableId) {
+        Payable payable = payableService.getById(payableId);
+        if (payable.status != PayableStatus.UNPAID || payable.remitInfoId == null) {
+            throw new ValidationException(INVALID_PAYABLE);
+        }
+        RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
+        PaymentPostReq paymentPostReq = new PaymentPostReq();
+        paymentPostReq.originator_account_number = accountNumber;
+        paymentPostReq.amount = payable.amount;
+        //TODO Not sure what is receiving bank, need to check with Silvergate Bank and test
+//        paymentPostReq.receiving_bank_routing_id = ;
+//        paymentPostReq.receiving_bank_name = ;
+//        paymentPostReq.receiving_bank_address1 = ;
+//        paymentPostReq.receiving_bank_address2 = ;
+//        paymentPostReq.receiving_bank_address3 = ;
+        paymentPostReq.beneficiary_bank_type = SWIFT;
+        paymentPostReq.beneficiary_bank_routing_id = remitInfo.beneficiaryBankSwiftCode;
+        paymentPostReq.beneficiary_bank_name = remitInfo.beneficiaryBankName;
+        breakdownAddress(
+                remitInfo.beneficiaryBankAddress,
+                paymentPostReq.beneficiary_bank_address1,
+                paymentPostReq.beneficiary_bank_address2,
+                paymentPostReq.beneficiary_bank_address3
+        );
+        paymentPostReq.beneficiary_name = remitInfo.beneficiaryName;
+        paymentPostReq.beneficiary_account_number = remitInfo.beneficiaryAccount;
+        breakdownAddress(
+                remitInfo.beneficiaryAddress,
+                paymentPostReq.beneficiary_address1,
+                paymentPostReq.beneficiary_address2,
+                paymentPostReq.beneficiary_address3
+        );
+        paymentPostReq.originator_to_beneficiary_info = String.valueOf(payable.id);
+        if (remitInfo.isIntermediaryRequired) {
+            paymentPostReq.intermediary_bank_type = SWIFT;
+            paymentPostReq.intermediary_bank_routing_id = remitInfo.intermediaryBankSwiftCode;
+            paymentPostReq.intermediary_bank_account_number = remitInfo.intermediaryBankAccount;
+            paymentPostReq.intermediary_bank_name = remitInfo.intermediaryBankName;
+            breakdownAddress(
+                    remitInfo.intermediaryBankAddress,
+                    paymentPostReq.intermediary_bank_address1,
+                    paymentPostReq.intermediary_bank_address2,
+                    paymentPostReq.intermediary_bank_address3
+            );
+        }
+        initialPaymentPost(paymentPostReq, payable);
+        NotificationSender
+                .by(SILVERGATE_PAY_INITIAL)
+                .to(notificationProperties.financeRecipient)
+                .dataMap(Map.of(
+                        "payable_id", payable.id + "",
+                        "amount", payable.amount.toString() + " " + payable.currency,
+                        "payable_url", notificationProperties.portalUrlPrefix + "/payable-info/" + payable.id + ""
+                ))
+                .send();
+        return payable;
+    }
+
+    private Payable initialPaymentPost(PaymentPostReq paymentPostReq, Payable payable)  {
         String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
@@ -184,14 +272,62 @@ public class SilvergateApiService {
         String result = response.getBody();
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
-        return JSON.parseObject(result, PaymentPostResp.class);
+        PaymentPostResp resp = JSON.parseObject(result, PaymentPostResp.class);
+        if (resp != null && PRE_APPROVAL.equalsIgnoreCase(resp.status)) {
+            payable.status = PayableStatus.PENDING;
+            payable.referenceNo = resp.payment_id;
+            payableService.updateById(payable);
+        } else {
+            throw new ValidationException(PAYMENT_INIT_FAILED(payable.id, resp));
+        }
+        return payable;
     }
 
     /**
-     * Runs an action on a payment to approve, cancel, or return.
-     * @param paymentPutReq
+     * Cancel a wire payment
+     *
+     * @param accountNumber Silvergate account number
+     * @param payableId Payable Id wants to proceed payment
      */
-    public PaymentPutResp initialPaymentPut(PaymentPutReq paymentPutReq)  {
+    public Payable cancelPayment(String accountNumber, Long payableId) {
+        Payable payable = payableService.getById(payableId);
+        if (payable.status != PayableStatus.PENDING) {
+            throw new ValidationException(INVALID_PAYABLE);
+        }
+        PaymentGetReq paymentGetReq = new PaymentGetReq();
+        paymentGetReq.accountNumber = accountNumber;
+        paymentGetReq.paymentId = payable.referenceNo;
+        PaymentGetResp paymentGetResp = getPaymentDetails(paymentGetReq);
+        if (paymentGetResp != null && PRE_APPROVAL.equalsIgnoreCase(paymentGetResp.status)) {
+            PaymentPutReq paymentPutReq = new PaymentPutReq();
+            paymentPutReq.paymentId = payable.referenceNo;
+            paymentPutReq.accountNumber = accountNumber;
+            paymentPutReq.action = SilvergateConstant.PAYMENT_ACTION.CANCEL;
+            paymentPutReq.timestamp = paymentGetResp.entry_date;
+            PaymentPutResp paymentPutResp = initialPaymentPut(paymentPutReq);
+            if (paymentPutResp != null && CANCELED.equalsIgnoreCase(paymentPutResp.payment_status)) {
+                payable.status = PayableStatus.UNPAID;
+                payableService.updateById(payable);
+                NotificationSender
+                        .by(SILVERGATE_PAY_CANCELLED)
+                        .to(notificationProperties.financeRecipient)
+                        .dataMap(Map.of(
+                                "payment_id", paymentPutResp.payment_id,
+                                "payable_id", payable.id + "",
+                                "amount", payable.amount.toString() + " " + payable.currency,
+                                "payable_url", notificationProperties.portalUrlPrefix + "/payable-info/" + payable.id + ""
+                        ))
+                        .send();
+                return payable;
+            } else {
+                throw new ValidationException(ErrorMessage.PAYABLE.PAYMENT_CANCEL_FAILED(payable.id, paymentPutResp));
+            }
+        } else {
+            throw new ValidationException(INVALID_PAYABLE);
+        }
+    }
+
+    private PaymentPutResp initialPaymentPut(PaymentPutReq paymentPutReq)  {
         String url = Unirest.put(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -222,10 +358,25 @@ public class SilvergateApiService {
        return null;
     }
 
+
     /**
-     * Retrieves detailed data for one or many payments.
+     * Check wire payment status
+     *
+     * @param accountNumber Silvergate account number
+     * @param payableId Payable Id wants to check payment status
      */
-    public PaymentGetResp getPaymentDetails(PaymentGetReq paymentGetReq) {
+    public PaymentGetResp getPaymentDetails(String accountNumber, Long payableId) {
+        Payable payable = payableService.getById(payableId);
+        if (payable == null || payable.remitInfoId == null || payable.status == PayableStatus.UNPAID || payable.status == PayableStatus.CANCELLED) {
+            throw new ValidationException(INVALID_PAYABLE);
+        }
+        PaymentGetReq paymentGetReq = new PaymentGetReq();
+        paymentGetReq.accountNumber = accountNumber;
+        paymentGetReq.paymentId = payable.referenceNo;
+        return getPaymentDetails(paymentGetReq);
+    }
+
+    private PaymentGetResp getPaymentDetails(PaymentGetReq paymentGetReq) {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -338,5 +489,18 @@ public class SilvergateApiService {
                 response.getStatus(), response.getBody(), response.getHeaders());
         String responseBody = response.getBody();
         return JSON.parseObject(responseBody, WebHooksGetRegisterResp.class);
+    }
+
+    private void breakdownAddress(String fullAddressString, String line1, String line2, String line3) {
+        String[] temp = fullAddressString.split(" ");
+        for (int i = 0; i < temp.length; i++) {
+            if ((line1 + temp[i]).length() < 35) {
+                line1 = String.format("%s%s", line1, temp[i] + " ");
+            } else if ((line2 + temp[i]).length() < 35) {
+                line2 = String.format("%s%s", line2, temp[i] + " ");
+            } else if ((line3 + temp[i]).length() < 35) {
+                line3 = String.format("%s%s", line3, temp[i] + " ");
+            }
+        }
     }
 }

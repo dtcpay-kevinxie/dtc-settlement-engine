@@ -3,8 +3,10 @@ package top.dtc.settlement.controller;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import top.dtc.data.finance.model.Payable;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
+import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.model.*;
 import top.dtc.settlement.module.silvergate.service.SilvergateApiService;
 
@@ -16,13 +18,16 @@ import top.dtc.settlement.module.silvergate.service.SilvergateApiService;
 @Log4j2
 @RestController
 @RequestMapping("/silvergate")
-public class PaymentController {
+public class SilvergateController {
 
     @Autowired
     SilvergateApiService apiService;
 
-    @GetMapping("/account/get-account-balance")
-    public ApiResponse<?> getAccountBalance(@RequestParam(name = "accountNumber") String accountNumber) {
+    @Autowired
+    SilvergateProperties silvergateProperties;
+
+    @GetMapping("/account/get-account-balance/{accountNumber}")
+    public ApiResponse<?> getAccountBalance(@PathVariable("accountNumber") String accountNumber) {
         AccountBalanceResp accountBalance = apiService.getAccountBalance(accountNumber);
         log.info("/account/balance request: {}", accountNumber);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountBalance);
@@ -41,25 +46,37 @@ public class PaymentController {
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountList);
     }
 
-    @PostMapping("/payment/post")
-    public ApiResponse<?> postPayment(@RequestBody PaymentPostReq paymentPostReq) {
-        log.info("[POST] payment request: {}", paymentPostReq);
-        PaymentPostResp paymentPostResp = apiService.initialPaymentPost(paymentPostReq);
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPostResp);
+    @PostMapping("/payment/init/{payableId}")
+    public ApiResponse<?> initPayment(@PathVariable("payableId") Long payableId) {
+        log.info("initPayment for Payable {}", payableId);
+        try {
+            Payable payable = apiService.initialPaymentPost(silvergateProperties.defaultAccount, payableId);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, payable);
+        } catch (Exception e) {
+            return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
+        }
     }
 
-    @PutMapping("/payment/put")
-    public ApiResponse<?> putPayment(@RequestBody PaymentPutReq paymentPutReq) {
-        log.info("[PUT] payment request: {}", paymentPutReq);
-        PaymentPutResp paymentPutResp = apiService.initialPaymentPut(paymentPutReq);
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentPutResp);
+    @PutMapping("/payment/cancel/{payableId}")
+    public ApiResponse<?> cancelPayment(@PathVariable("payableId") Long payableId) {
+        log.info("cancelPayment for Payable {}", payableId);
+        try {
+            Payable payable = apiService.cancelPayment(silvergateProperties.defaultAccount, payableId);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, payable);
+        } catch (Exception e) {
+            return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
+        }
     }
 
-    @GetMapping("/payment/get")
-    public ApiResponse<?> getPayment(@RequestBody PaymentGetReq paymentGetReq) {
-        log.info("[GET] /payment/get request: {}", paymentGetReq);
-        PaymentGetResp paymentDetails = apiService.getPaymentDetails(paymentGetReq);
-        return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);
+    @GetMapping("/payment/status/{payableId}")
+    public ApiResponse<?> getPaymentStatus(@PathVariable("payableId") Long payableId) {
+        log.info("[GET] /payment/status Payable: {}", payableId);
+        try {
+            PaymentGetResp paymentGetResp = apiService.getPaymentDetails(silvergateProperties.defaultAccount, payableId);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentGetResp);
+        } catch (Exception e) {
+            return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
+        }
     }
 
     @DeleteMapping("/webhooks/delete/{webHookId}")

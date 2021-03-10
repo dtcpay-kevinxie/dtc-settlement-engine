@@ -13,4 +13,6 @@ public class SilvergateProperties {
 
     public String subscriptionKey;
 
+    public String defaultAccount;
+
 }

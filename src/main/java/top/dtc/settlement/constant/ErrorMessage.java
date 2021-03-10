@@ -1,5 +1,9 @@
 package top.dtc.settlement.constant;
 
+import com.alibaba.fastjson.JSON;
+import top.dtc.settlement.module.silvergate.model.PaymentPostResp;
+import top.dtc.settlement.module.silvergate.model.PaymentPutResp;
+
 public class ErrorMessage {
 
     public static final class RECONCILE {
@@ -71,7 +75,6 @@ public class ErrorMessage {
 
     public static final class PAYABLE {
         public static final String INVALID_PAYABLE = "Invalid Payable";
-        public static final String INVALID_PAYABLE_REF = "Invalid Payable Status";
         public static final String INVALID_PAYABLE_PARA = "Payable referenceNo/payableId is invalid.";
         public static final String CANCEL_PAYABLE_ERROR = "Can not cancel payable.";
         public static String OTC_NOT_RECEIVED(Long otcId) {
@@ -81,6 +84,18 @@ public class ErrorMessage {
             return String.format("Couldn't find Payable by payableId [%s]", payableId);
         }
         public static final String PAYABLE_WROTE_OFF = "Payable is written-off already";
+        public static String PAYMENT_INIT_FAILED(Long payableId, PaymentPostResp resp) {
+            return String.format( "Couldn't initial payment via Silvergate for Payable [%s] due to [%s]",
+                    payableId,
+                    (resp == null) ? "Empty Reponse from Silvergate" : "Status:" + resp.status
+            );
+        }
+        public static String PAYMENT_CANCEL_FAILED(Long payableId, PaymentPutResp resp) {
+            return String.format("Couldn't cancel payment for Payable [%s] due to [%s]",
+                    payableId,
+                    (resp == null) ? "Empty Reponse from Silvergate" : "Error:" + JSON.toJSONString(resp.errorList)
+            );
+        }
     }
 
     public static final class OTC {

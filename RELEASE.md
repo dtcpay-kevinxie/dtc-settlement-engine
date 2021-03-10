@@ -1,8 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.17.0] - 02 Mar 2021
+[0.17.0] - 10 Mar 2021
 
 * Migrate Merchant to NonIndividual
+* Add Silvergate Integration
 
 [0.16.0] - 22 Feb 2021
 

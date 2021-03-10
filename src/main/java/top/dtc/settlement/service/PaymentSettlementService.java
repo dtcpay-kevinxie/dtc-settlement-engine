@@ -319,7 +319,7 @@ public class PaymentSettlementService {
     }
 
     private Reserve calculateReserve(Settlement settlement) {
-        ReserveConfig reserveConfig = reserveConfigService.getOneByClientIdAndClientTypeAndCurrency(settlement.merchantId, ClientType.PAYMENT_MERCHANT, settlement.currency);
+        ReserveConfig reserveConfig = reserveConfigService.getOneByClientIdAndCurrency(settlement.merchantId, settlement.currency);
         if (reserveConfig == null) {
             return null;
         }
