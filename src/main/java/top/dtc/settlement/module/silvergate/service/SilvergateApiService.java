@@ -441,19 +441,19 @@ public class SilvergateApiService {
      * Returns either specific webhook details or all webhooks for a subscription
      * @return
      */
-    public List<WebHooksGetRegisterResp> webHooksGet(String accountNumber,String webHookId) {
+    public List<WebHooksGetRegisterResp> webHooksGet(WebHooksGetReq webHooksGetReq) {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString("accountNumber", accountNumber) //optional
-                .queryString("webHookId", webHookId) // optional
+                .queryString("accountNumber", webHooksGetReq.accountNumber) //optional
+                .queryString("webHookId", webHooksGetReq.webHookId) // optional
                 .getUrl();
         log.info("request from {}", url);
         HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString("accountNumber", accountNumber)
-                .queryString("webHookId", webHookId)
+                .queryString("accountNumber", webHooksGetReq.accountNumber)
+                .queryString("webHookId", webHooksGetReq.webHookId)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", url, resp.getStatus());

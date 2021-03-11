@@ -88,10 +88,10 @@ public class SilvergateController {
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
     }
 
-    @GetMapping("/webhooks/get/{accountNumber}/{webHookId}")
-    public ApiResponse<?> webHooksGet(@PathVariable("accountNumber") String accountNumber,  @PathVariable("webHookId") String webHookId) {
-        log.info("webhooks/get request: accountNumber: {}, webHookId: {}", accountNumber, webHookId);
-        List<WebHooksGetRegisterResp> webHooksGetRegisterResp = apiService.webHooksGet(accountNumber, webHookId);
+    @GetMapping("/webhooks/get")
+    public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) {
+        log.info("webhooks/get request: {}", webHooksGetReq);
+        List<WebHooksGetRegisterResp> webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksGetRegisterResp);
     }
 
