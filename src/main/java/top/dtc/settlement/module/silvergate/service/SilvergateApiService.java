@@ -23,6 +23,7 @@ import top.dtc.settlement.module.silvergate.constant.SilvergateConstant;
 import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.model.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -440,7 +441,7 @@ public class SilvergateApiService {
      * Returns either specific webhook details or all webhooks for a subscription
      * @return
      */
-    public WebHooksGetRegisterResp[] webHooksGet(WebHooksGetReq webHooksGetReq) {
+    public List<WebHooksGetRegisterResp> webHooksGet(WebHooksGetReq webHooksGetReq) {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -461,7 +462,7 @@ public class SilvergateApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         JSONArray jsonArray = JSONArray.parseArray(response.getBody());
-        return JSON.parseObject(jsonArray.toJSONString(), WebHooksGetRegisterResp[].class);
+        return JSON.parseArray(jsonArray.toJSONString(), WebHooksGetRegisterResp.class);
     }
 
     /**

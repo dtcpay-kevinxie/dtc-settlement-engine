@@ -10,6 +10,8 @@ import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties
 import top.dtc.settlement.module.silvergate.model.*;
 import top.dtc.settlement.module.silvergate.service.SilvergateApiService;
 
+import java.util.List;
+
 /**
  * User: kevin.xie<br/>
  * Date: 22/02/2021<br/>
@@ -89,7 +91,7 @@ public class SilvergateController {
     @GetMapping("/webhooks/get")
     public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) {
         log.info("webhooks/get request: {}", webHooksGetReq);
-        WebHooksGetRegisterResp[] webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
+        List<WebHooksGetRegisterResp> webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksGetRegisterResp);
     }
 
