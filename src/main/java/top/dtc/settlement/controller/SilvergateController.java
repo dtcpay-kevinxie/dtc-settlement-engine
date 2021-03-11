@@ -35,7 +35,7 @@ public class SilvergateController {
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountBalance);
     }
 
-    @GetMapping("/account/get-account-history")
+    @PostMapping("/account/get-account-history")
     public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) {
         AccountHistoryResp accountHistory = apiService.getAccountHistory(accountHistoryReq);
         log.info("/account/history request: {}", accountHistoryReq);
