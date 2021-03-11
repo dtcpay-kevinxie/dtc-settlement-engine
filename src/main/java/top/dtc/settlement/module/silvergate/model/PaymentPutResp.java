@@ -3,18 +3,20 @@ package top.dtc.settlement.module.silvergate.model;
 import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * User: kevin.xie<br/>
+ * Date: 01/03/2021<br/>
+ * Time: 15:25<br/>
+ */
 @Data
-public class PaymentPostResp {
-    @JSONField(name = "payment_id")
+public class PaymentPutResp {
     public String payment_id;
-    @JSONField(name = "payment_status")
-    public String status;
-    @JSONField(name = "payment_timestamp")
-    public LocalDateTime timestamp;
+    public String payment_status;
+    public String payment_timestamp;
 
     @JSONField(name = "ERROR")
     public List<Error> errorList;
+
 }

@@ -2,7 +2,6 @@ package top.dtc.settlement.module.silvergate.model;
 
 import lombok.Data;
 
-import java.util.Date;
 
 /**
  * User: kevin.xie<br/>
@@ -11,11 +10,13 @@ import java.util.Date;
  */
 @Data
 public class PaymentGetReq {
-    public String accountNumber;
+
+    public String accountNumber;// required
     public String paymentId;
-    public Date beginDate;
-    public Date endDate;
+    public String beginDate;
+    public String endDate;
     public String sortOrder;
     public Integer pageSize;
     public Integer pageNumber;
+
 }

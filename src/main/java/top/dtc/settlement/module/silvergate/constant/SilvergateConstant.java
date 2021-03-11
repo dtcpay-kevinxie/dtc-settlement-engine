@@ -11,4 +11,15 @@ public class SilvergateConstant {
         public final static String COMPLETE = "Complete";
     }
 
+    public static class PAYMENT_ACTION {
+        public final static String APPROVE = "Approve";
+        public final static String CANCEL = "Cancel";
+        public final static String RETURN = "Return";
+    }
+
+    public static class BANK_TYPE {
+        public final static String SWIFT = "SWIFT";
+        public final static String ABA = "ABA";
+    }
+
 }

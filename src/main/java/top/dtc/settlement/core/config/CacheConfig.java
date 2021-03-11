@@ -1,6 +1,5 @@
 package top.dtc.settlement.core.config;
 
-import lombok.Data;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,13 +1,19 @@
 package top.dtc.settlement.module.silvergate.model;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class PaymentGetResp {
+    @JSONField(name = "ERROR")
+    public List<Error> errorList;
+
     public String status;
     public String payment_id;
     public String payment_date;
-    public String amount;
+    public Double amount;
     public String fedwire_type;
     public String fedwire_sub_type;
     public String direction;
@@ -56,4 +62,20 @@ public class PaymentGetResp {
     public String debit_account_id;
     public String credit_account_id;
     public String timestamp;
+
+    @Data
+    static class Error {
+        @JSONField(name = "MESSAGEID")
+        public String messageId;
+        @JSONField(name = "MESSAGETYPE")
+        public String messageType;
+        @JSONField(name = "SEGMENTID")
+        public String segmentId;
+        @JSONField(name = "SEGMENT_OCCUR")
+        public String segment_occur;
+        @JSONField(name = "FIELDNAME")
+        public String fieldName;
+        @JSONField(name = "ERRORMSG")
+        public String errorMsg;
+    }
 }

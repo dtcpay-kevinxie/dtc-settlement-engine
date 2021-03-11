@@ -27,3 +27,4 @@ etherscan:
 silvergate:
   api-url-prefix: ${SILVERGATE_API_URL_PREFIX}
   subscription-key: ${SILVERGATE_SUBSCRIPTION_KEY}
+  default-account: ${SILVERGATE_DEFAULT_ACCOUNT}

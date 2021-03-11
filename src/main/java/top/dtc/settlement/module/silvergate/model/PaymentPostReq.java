@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 @Data
 public class PaymentPostReq {
 
-    public String originator_account_number;
+    public String originator_account_number; //required
     public BigDecimal amount;
     public String receiving_bank_routing_id;
     public String receiving_bank_name;
@@ -27,9 +27,9 @@ public class PaymentPostReq {
     public String beneficiary_bank_address1;
     public String beneficiary_bank_address2;
     public String beneficiary_bank_address3;
-    public String beneficiary_name;
-    public String beneficiary_account_number;
-    public String beneficiary_address1;
+    public String beneficiary_name; //required
+    public String beneficiary_account_number; //required
+    public String beneficiary_address1; //required
     public String beneficiary_address2;
     public String beneficiary_address3;
     public String originator_to_beneficiary_info;
