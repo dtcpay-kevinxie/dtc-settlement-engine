@@ -88,7 +88,7 @@ public class SilvergateController {
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
     }
 
-    @GetMapping("/webhooks/get")
+    @PostMapping("/webhooks/get")
     public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) {
         log.info("webhooks/get request: {}", webHooksGetReq);
         List<WebHooksGetRegisterResp> webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
