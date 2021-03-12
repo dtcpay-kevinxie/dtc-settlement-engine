@@ -227,7 +227,7 @@ public class SilvergateApiService {
         paymentPostReq.beneficiary_bank_routing_id = remitInfo.beneficiaryBankSwiftCode;
         paymentPostReq.beneficiary_bank_name = remitInfo.beneficiaryBankName;
         breakdownAddress(
-                remitInfo.beneficiaryBankAddress,
+                remitInfo,
                 paymentPostReq.beneficiary_bank_address1,
                 paymentPostReq.beneficiary_bank_address2,
                 paymentPostReq.beneficiary_bank_address3
@@ -236,7 +236,7 @@ public class SilvergateApiService {
         paymentPostReq.beneficiary_name = remitInfo.beneficiaryName;
         paymentPostReq.beneficiary_account_number = remitInfo.beneficiaryAccount;
         breakdownAddress(
-                remitInfo.beneficiaryAddress,
+                remitInfo,
                 paymentPostReq.beneficiary_address1,
                 paymentPostReq.beneficiary_address2,
                 paymentPostReq.beneficiary_address3,
@@ -249,7 +249,7 @@ public class SilvergateApiService {
             paymentPostReq.intermediary_bank_account_number = remitInfo.intermediaryBankAccount;
             paymentPostReq.intermediary_bank_name = remitInfo.intermediaryBankName;
             breakdownAddress(
-                    remitInfo.intermediaryBankAddress,
+                    remitInfo,
                     paymentPostReq.intermediary_bank_address1,
                     paymentPostReq.intermediary_bank_address2,
                     paymentPostReq.intermediary_bank_address3,
@@ -316,34 +316,35 @@ public class SilvergateApiService {
         PaymentGetReq paymentGetReq = new PaymentGetReq();
         paymentGetReq.accountNumber = accountNumber;
         paymentGetReq.paymentId = payable.referenceNo;
-        PaymentGetResp paymentGetResp = getPaymentDetails(paymentGetReq);
+        List<PaymentGetResp> paymentDetails = getPaymentDetails(paymentGetReq);
+        PaymentGetResp paymentGetResp = paymentDetails.get(0);
         if (paymentGetResp != null && PRE_APPROVAL.equalsIgnoreCase(paymentGetResp.status)) {
-            PaymentPutReq paymentPutReq = new PaymentPutReq();
-            paymentPutReq.paymentId = payable.referenceNo;
-            paymentPutReq.accountNumber = accountNumber;
-            paymentPutReq.action = SilvergateConstant.PAYMENT_ACTION.CANCEL;
-            paymentPutReq.timestamp = paymentGetResp.entry_date;
-            PaymentPutResp paymentPutResp = initialPaymentPut(paymentPutReq);
-            if (paymentPutResp != null && CANCELED.equalsIgnoreCase(paymentPutResp.payment_status)) {
-                payable.status = PayableStatus.UNPAID;
-                payableService.updateById(payable);
-                NotificationSender
-                        .by(SILVERGATE_PAY_CANCELLED)
-                        .to(notificationProperties.financeRecipient)
-                        .dataMap(Map.of(
-                                "payment_id", paymentPutResp.payment_id,
-                                "payable_id", payable.id + "",
-                                "amount", payable.amount.toString() + " " + payable.currency,
-                                "payable_url", notificationProperties.portalUrlPrefix + "/payable-info/" + payable.id + ""
-                        ))
-                        .send();
-                return payable;
+                PaymentPutReq paymentPutReq = new PaymentPutReq();
+                paymentPutReq.paymentId = payable.referenceNo;
+                paymentPutReq.accountNumber = accountNumber;
+                paymentPutReq.action = SilvergateConstant.PAYMENT_ACTION.CANCEL;
+                paymentPutReq.timestamp = paymentGetResp.entry_date;
+                PaymentPutResp paymentPutResp = initialPaymentPut(paymentPutReq);
+                if (paymentPutResp != null && CANCELED.equalsIgnoreCase(paymentPutResp.payment_status)) {
+                    payable.status = PayableStatus.UNPAID;
+                    payableService.updateById(payable);
+                    NotificationSender
+                            .by(SILVERGATE_PAY_CANCELLED)
+                            .to(notificationProperties.financeRecipient)
+                            .dataMap(Map.of(
+                                    "payment_id", paymentPutResp.payment_id,
+                                    "payable_id", payable.id + "",
+                                    "amount", payable.amount.toString() + " " + payable.currency,
+                                    "payable_url", notificationProperties.portalUrlPrefix + "/payable-info/" + payable.id + ""
+                            ))
+                            .send();
+                    return payable;
+                } else {
+                    throw new ValidationException(ErrorMessage.PAYABLE.PAYMENT_CANCEL_FAILED(payable.id, paymentPutResp));
+                }
             } else {
-                throw new ValidationException(ErrorMessage.PAYABLE.PAYMENT_CANCEL_FAILED(payable.id, paymentPutResp));
+                throw new ValidationException(INVALID_PAYABLE);
             }
-        } else {
-            throw new ValidationException(INVALID_PAYABLE);
-        }
     }
 
     private PaymentPutResp initialPaymentPut(PaymentPutReq paymentPutReq)  {
@@ -384,7 +385,7 @@ public class SilvergateApiService {
      * @param accountNumber Silvergate account number
      * @param payableId Payable Id wants to check payment status
      */
-    public PaymentGetResp getPaymentDetails(String accountNumber, Long payableId) {
+    public List<PaymentGetResp> getPaymentDetails(String accountNumber, Long payableId) {
         Payable payable = payableService.getById(payableId);
         if (payable == null || payable.remitInfoId == null || payable.status == PayableStatus.UNPAID || payable.status == PayableStatus.CANCELLED) {
             throw new ValidationException(INVALID_PAYABLE);
@@ -395,7 +396,7 @@ public class SilvergateApiService {
         return getPaymentDetails(paymentGetReq);
     }
 
-    private PaymentGetResp getPaymentDetails(PaymentGetReq paymentGetReq) {
+    private List<PaymentGetResp> getPaymentDetails(PaymentGetReq paymentGetReq) {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
@@ -426,7 +427,8 @@ public class SilvergateApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         String body = response.getBody();
-        return JSON.parseObject(body, PaymentGetResp.class);
+        JSONArray jsonArray = JSON.parseArray(body);
+        return JSON.parseArray(jsonArray.toJSONString(), PaymentGetResp.class);
     }
 
     /**
@@ -510,18 +512,55 @@ public class SilvergateApiService {
         return JSON.parseObject(responseBody, WebHooksGetRegisterResp.class);
     }
 
-    private void breakdownAddress(String fullAddressString, String line1, String line2, String line3, PaymentPostReq paymentPostReq) {
-        String[] temp = fullAddressString.split(" ");
-        for (int i = 0; i < temp.length; i++) {
-            if ((line1 + temp[i]).length() < 35) {
-                line1 = String.format("%s%s", line1, temp[i] + " ");
-                paymentPostReq.beneficiary_address1 = line1;
-            } else if ((line2 + temp[i]).length() < 35) {
-                line2 = String.format("%s%s", line2, temp[i] + " ");
-                paymentPostReq.beneficiary_address2 = line2;
-            } else if ((line3 + temp[i]).length() < 35) {
-                line3 = String.format("%s%s", line3, temp[i] + " ");
-                paymentPostReq.beneficiary_address3 = line3;
+    private void breakdownAddress(RemitInfo remitInfo, String line1, String line2, String line3, PaymentPostReq paymentPostReq) {
+       if (!StringUtils.isBlank(remitInfo.beneficiaryAddress)) {
+           String fullAddressString = remitInfo.beneficiaryAddress;
+           String[] temp = fullAddressString.split(" ");
+           for (int i = 0; i < temp.length; i++) {
+               if ((line1 + temp[i]).length() < 35) {
+                   line1 = String.format("%s%s", line1, temp[i] + " ");
+                   paymentPostReq.beneficiary_address1 = line1;
+               } else if ((line2 + temp[i]).length() < 35) {
+                   line2 = String.format("%s%s", line2, temp[i] + " ");
+                   paymentPostReq.beneficiary_address2 = line2;
+               } else if ((line3 + temp[i]).length() < 35) {
+                   line3 = String.format("%s%s", line3, temp[i] + " ");
+                   paymentPostReq.beneficiary_address3 = line3;
+               }
+           }
+       }
+
+        if (!StringUtils.isBlank(remitInfo.beneficiaryBankAddress)) {
+            String fullAddressString = remitInfo.beneficiaryBankAddress;
+            String[] temp = fullAddressString.split(" ");
+            for (int i = 0; i < temp.length; i++) {
+                if ((line1 + temp[i]).length() < 35) {
+                    line1 = String.format("%s%s", line1, temp[i] + " ");
+                    paymentPostReq.beneficiary_bank_address1 = line1;
+                } else if ((line2 + temp[i]).length() < 35) {
+                    line2 = String.format("%s%s", line2, temp[i] + " ");
+                    paymentPostReq.beneficiary_bank_address2 = line2;
+                } else if ((line3 + temp[i]).length() < 35) {
+                    line3 = String.format("%s%s", line3, temp[i] + " ");
+                    paymentPostReq.beneficiary_bank_address3 = line3;
+                }
+            }
+        }
+
+        if (!StringUtils.isBlank(remitInfo.intermediaryBankAddress)) {
+            String fullAddressString = remitInfo.intermediaryBankAddress;
+            String[] temp = fullAddressString.split(" ");
+            for (int i = 0; i < temp.length; i++) {
+                if ((line1 + temp[i]).length() < 35) {
+                    line1 = String.format("%s%s", line1, temp[i] + " ");
+                    paymentPostReq.intermediary_bank_address1 = line1;
+                } else if ((line2 + temp[i]).length() < 35) {
+                    line2 = String.format("%s%s", line2, temp[i] + " ");
+                    paymentPostReq.intermediary_bank_address2 = line2;
+                } else if ((line3 + temp[i]).length() < 35) {
+                    line3 = String.format("%s%s", line3, temp[i] + " ");
+                    paymentPostReq.intermediary_bank_address3 = line3;
+                }
             }
         }
     }
