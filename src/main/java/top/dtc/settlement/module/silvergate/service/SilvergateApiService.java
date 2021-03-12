@@ -216,6 +216,7 @@ public class SilvergateApiService {
                 paymentPostReq.beneficiary_bank_address1,
                 paymentPostReq.beneficiary_bank_address2,
                 paymentPostReq.beneficiary_bank_address3
+                ,paymentPostReq
         );
         paymentPostReq.beneficiary_name = remitInfo.beneficiaryName;
         paymentPostReq.beneficiary_account_number = remitInfo.beneficiaryAccount;
@@ -223,7 +224,8 @@ public class SilvergateApiService {
                 remitInfo.beneficiaryAddress,
                 paymentPostReq.beneficiary_address1,
                 paymentPostReq.beneficiary_address2,
-                paymentPostReq.beneficiary_address3
+                paymentPostReq.beneficiary_address3,
+                paymentPostReq
         );
         paymentPostReq.originator_to_beneficiary_info = String.valueOf(payable.id);
         if (remitInfo.isIntermediaryRequired) {
@@ -235,7 +237,8 @@ public class SilvergateApiService {
                     remitInfo.intermediaryBankAddress,
                     paymentPostReq.intermediary_bank_address1,
                     paymentPostReq.intermediary_bank_address2,
-                    paymentPostReq.intermediary_bank_address3
+                    paymentPostReq.intermediary_bank_address3,
+                    paymentPostReq
             );
         }
         initialPaymentPost(paymentPostReq, payable);
@@ -492,15 +495,18 @@ public class SilvergateApiService {
         return JSON.parseObject(responseBody, WebHooksGetRegisterResp.class);
     }
 
-    private void breakdownAddress(String fullAddressString, String line1, String line2, String line3) {
+    private void breakdownAddress(String fullAddressString, String line1, String line2, String line3, PaymentPostReq paymentPostReq) {
         String[] temp = fullAddressString.split(" ");
         for (int i = 0; i < temp.length; i++) {
             if ((line1 + temp[i]).length() < 35) {
                 line1 = String.format("%s%s", line1, temp[i] + " ");
+                paymentPostReq.beneficiary_address1 = line1;
             } else if ((line2 + temp[i]).length() < 35) {
                 line2 = String.format("%s%s", line2, temp[i] + " ");
+                paymentPostReq.beneficiary_address2 = line2;
             } else if ((line3 + temp[i]).length() < 35) {
                 line3 = String.format("%s%s", line3, temp[i] + " ");
+                paymentPostReq.beneficiary_address3 = line3;
             }
         }
     }
