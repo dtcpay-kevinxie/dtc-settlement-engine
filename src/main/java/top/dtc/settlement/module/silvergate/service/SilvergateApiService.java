@@ -259,13 +259,7 @@ public class SilvergateApiService {
                 .header(IDEMPOTENCY_KEY, "")
                 .body(paymentPostReq)
                 .getUrl();
-        Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .header(IDEMPOTENCY_KEY, "")
-                .body(paymentPostReq)
-                .getBody().ifPresent(body -> log.info("request body: {}", JSON.toJSONString(body)));
+       log.info("request body: {}", JSON.toJSONString(paymentPostReq));
         HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()) // Content-Type optional
