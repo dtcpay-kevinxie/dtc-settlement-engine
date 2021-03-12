@@ -48,7 +48,7 @@ public class SilvergateController {
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountList);
     }
 
-    @PostMapping("/payment/init/{payableId}")
+    @GetMapping("/payment/init/{payableId}")
     public ApiResponse<?> initPayment(@PathVariable("payableId") Long payableId) {
         log.info("initPayment for Payable {}", payableId);
         try {
