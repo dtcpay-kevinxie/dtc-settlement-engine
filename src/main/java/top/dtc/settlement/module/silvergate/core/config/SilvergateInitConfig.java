@@ -26,28 +26,33 @@ public class SilvergateInitConfig {
 
     @PostConstruct
     public void init() {
-        WebHooksGetReq webHooksGetReq = new WebHooksGetReq();
-        webHooksGetReq.accountNumber = silvergateProperties.defaultAccount;
-        log.info("Settlement Engine init Silvergate WebHookRegister {}", webHooksGetReq);
-        List<WebHooksGetRegisterResp> registerRespList = silvergateApiService.webHooksGet(webHooksGetReq);
-        log.info("Registered WebHook {}", registerRespList);
-        if (registerRespList != null && registerRespList.size() > 0) {
-            Map<String, WebHooksGetRegisterResp> webHookMap = registerRespList.stream()
-                    .collect(Collectors.toMap(WebHooksGetRegisterResp::getAccountNumber, registerResp -> registerResp));
-            if (webHookMap.containsKey(silvergateProperties.defaultAccount)
-                    && silvergateProperties.webHookUrl.equals(webHookMap.get(silvergateProperties.defaultAccount).webHookUrl)
-                    && silvergateProperties.webHookEmails.equals(webHookMap.get(silvergateProperties.defaultAccount).emails)
-            ) {
-                log.info("WebHook registered");
-                return;
+        try {
+            WebHooksGetReq webHooksGetReq = new WebHooksGetReq();
+            webHooksGetReq.accountNumber = silvergateProperties.defaultAccount;
+            log.info("Settlement Engine init Silvergate WebHookRegister {}", webHooksGetReq);
+            List<WebHooksGetRegisterResp> registerRespList = silvergateApiService.webHooksGet(webHooksGetReq);
+            log.info("Registered WebHook {}", registerRespList);
+            if (registerRespList != null && registerRespList.size() > 0) {
+                Map<String, WebHooksGetRegisterResp> webHookMap = registerRespList.stream()
+                        .collect(Collectors.toMap(WebHooksGetRegisterResp::getAccountNumber, registerResp -> registerResp));
+                if (webHookMap.containsKey(silvergateProperties.defaultAccount)
+                        && silvergateProperties.webHookUrl.equals(webHookMap.get(silvergateProperties.defaultAccount).webHookUrl)
+                        && silvergateProperties.webHookEmails.equals(webHookMap.get(silvergateProperties.defaultAccount).emails)
+                ) {
+                    log.info("WebHook registered");
+                    return;
+                }
             }
+            WebHooksRegisterReq webHooksRegisterReq = new WebHooksRegisterReq();
+            webHooksRegisterReq.accountNumber = silvergateProperties.defaultAccount;
+            webHooksRegisterReq.webHookUrl = silvergateProperties.webHookUrl;
+            webHooksRegisterReq.emails = silvergateProperties.webHookEmails;
+            WebHooksGetRegisterResp resp = silvergateApiService.webHooksRegister(webHooksRegisterReq);
+            log.info("WebHook register Success, webHookId: {}", resp.webHookId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("init error", e);
         }
-        WebHooksRegisterReq webHooksRegisterReq = new WebHooksRegisterReq();
-        webHooksRegisterReq.accountNumber = silvergateProperties.defaultAccount;
-        webHooksRegisterReq.webHookUrl = silvergateProperties.webHookUrl;
-        webHooksRegisterReq.emails = silvergateProperties.webHookEmails;
-        WebHooksGetRegisterResp resp = silvergateApiService.webHooksRegister(webHooksRegisterReq);
-        log.info("WebHook register Success, webHookId: {}", resp.webHookId);
 
     }
 
