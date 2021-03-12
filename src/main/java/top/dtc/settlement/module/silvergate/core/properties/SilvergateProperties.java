@@ -15,4 +15,8 @@ public class SilvergateProperties {
 
     public String defaultAccount;
 
+    public String webHookUrl;
+
+    public String webHookEmails;
+
 }
