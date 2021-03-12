@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.18.0] - 12 Mar 2021
+
+* Add Silvergate WebHoot when init Settlement Engine
+* Add Silvergate WebHootUrl
+
 [0.17.0] - 10 Mar 2021
 
 * Migrate Merchant to NonIndividual

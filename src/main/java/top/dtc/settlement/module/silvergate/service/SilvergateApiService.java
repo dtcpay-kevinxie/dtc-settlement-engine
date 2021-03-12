@@ -23,14 +23,14 @@ import top.dtc.settlement.module.silvergate.constant.SilvergateConstant;
 import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.model.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.INVALID_PAYABLE;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.PAYMENT_INIT_FAILED;
-import static top.dtc.settlement.constant.NotificationConstant.NAMES.SILVERGATE_PAY_CANCELLED;
-import static top.dtc.settlement.constant.NotificationConstant.NAMES.SILVERGATE_PAY_INITIAL;
+import static top.dtc.settlement.constant.NotificationConstant.NAMES.*;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.BANK_TYPE.SWIFT;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.PAYMENT_STATUS.CANCELED;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.PAYMENT_STATUS.PRE_APPROVAL;
@@ -110,6 +110,21 @@ public class SilvergateApiService {
             return acquireAccessToken();
         }
     }
+
+    public void notify(NotificationPost notificationPost) {
+        BigDecimal changedAmount = new BigDecimal(notificationPost.previousBalance).subtract(new BigDecimal(notificationPost.availableBalance));
+        NotificationSender
+                .by(SILVERGATE_FUND_RECEIVED)
+                .to(notificationProperties.financeRecipient)
+                .dataMap(Map.of(
+                        "account_number", notificationPost.accountNumber,
+                        "amount", changedAmount.toString(),
+                        "previous_balance", notificationPost.previousBalance,
+                        "available_balance", notificationPost.availableBalance
+                ))
+                .send();
+    }
+
     /**
      * Find an account balance by account number
      * @param accountNumber

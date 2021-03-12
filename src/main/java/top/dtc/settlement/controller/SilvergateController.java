@@ -28,6 +28,12 @@ public class SilvergateController {
     @Autowired
     SilvergateProperties silvergateProperties;
 
+    @PostMapping("/notify")
+    public void notify(@RequestBody NotificationPost notificationPost) {
+        log.info("Notify {}", notificationPost);
+        apiService.notify(notificationPost);
+    }
+
     @GetMapping("/account/get-account-balance/{accountNumber}")
     public ApiResponse<?> getAccountBalance(@PathVariable("accountNumber") String accountNumber) {
         AccountBalanceResp accountBalance = apiService.getAccountBalance(accountNumber);
