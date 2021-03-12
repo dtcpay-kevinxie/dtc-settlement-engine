@@ -252,17 +252,13 @@ public class SilvergateApiService {
     }
 
     private Payable initialPaymentPost(PaymentPostReq paymentPostReq, Payable payable)  {
-        String url = silvergateProperties.apiUrlPrefix + "/payment" ;
-        Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
+        String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .header(IDEMPOTENCY_KEY, "")
                 .body(paymentPostReq)
-                .getBody()
-                .ifPresent(body -> {
-                    log.info("request from {} \n request body: {}", url, body);
-                });
+                .getUrl();
         HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()) // Content-Type optional
