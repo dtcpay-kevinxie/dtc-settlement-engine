@@ -316,8 +316,7 @@ public class SilvergateApiService {
         PaymentGetReq paymentGetReq = new PaymentGetReq();
         paymentGetReq.accountNumber = accountNumber;
         paymentGetReq.paymentId = payable.referenceNo;
-        List<PaymentGetResp> paymentDetails = getPaymentDetails(paymentGetReq);
-        PaymentGetResp paymentGetResp = paymentDetails.get(0);
+        PaymentGetResp paymentGetResp = getPaymentDetails(paymentGetReq);
         if (paymentGetResp != null && PRE_APPROVAL.equalsIgnoreCase(paymentGetResp.status)) {
                 PaymentPutReq paymentPutReq = new PaymentPutReq();
                 paymentPutReq.paymentId = payable.referenceNo;
@@ -385,7 +384,7 @@ public class SilvergateApiService {
      * @param accountNumber Silvergate account number
      * @param payableId Payable Id wants to check payment status
      */
-    public List<PaymentGetResp> getPaymentDetails(String accountNumber, Long payableId) {
+    public PaymentGetResp getPaymentDetails(String accountNumber, Long payableId) {
         Payable payable = payableService.getById(payableId);
         if (payable == null || payable.remitInfoId == null || payable.status == PayableStatus.UNPAID || payable.status == PayableStatus.CANCELLED) {
             throw new ValidationException(INVALID_PAYABLE);
@@ -396,17 +395,12 @@ public class SilvergateApiService {
         return getPaymentDetails(paymentGetReq);
     }
 
-    private List<PaymentGetResp> getPaymentDetails(PaymentGetReq paymentGetReq) {
+    private PaymentGetResp getPaymentDetails(PaymentGetReq paymentGetReq) {
         String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("account_number", paymentGetReq.accountNumber)
                 .queryString("payment_id", paymentGetReq.paymentId)
-                .queryString("begin_date", paymentGetReq.beginDate)
-                .queryString("end_date", paymentGetReq.endDate)
-                .queryString("sort_order", paymentGetReq.sortOrder)
-                .queryString("page_size", paymentGetReq.pageSize)
-                .queryString("page_number", paymentGetReq.pageNumber)
                 .getUrl();
         log.info("request from {}", url);
         HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
@@ -414,11 +408,6 @@ public class SilvergateApiService {
                 .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
                 .queryString("account_number", paymentGetReq.accountNumber)
                 .queryString("payment_id", paymentGetReq.paymentId)
-                .queryString("begin_date", paymentGetReq.beginDate)
-                .queryString("end_date", paymentGetReq.endDate)
-                .queryString("sort_order", paymentGetReq.sortOrder)
-                .queryString("page_size", paymentGetReq.pageSize)
-                .queryString("page_number", paymentGetReq.pageNumber)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", url, resp.getStatus());
@@ -428,7 +417,8 @@ public class SilvergateApiService {
                 response.getStatus(), response.getBody(), response.getHeaders());
         String body = response.getBody();
         JSONArray jsonArray = JSON.parseArray(body);
-        return JSON.parseArray(jsonArray.toJSONString(), PaymentGetResp.class);
+        List<PaymentGetResp> paymentGetResps = JSON.parseArray(jsonArray.toJSONString(), PaymentGetResp.class);
+        return paymentGetResps.get(0);
     }
 
     /**

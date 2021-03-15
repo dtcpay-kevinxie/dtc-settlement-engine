@@ -80,8 +80,8 @@ public class SilvergateController {
     public ApiResponse<?> getPaymentStatus(@PathVariable("payableId") Long payableId) {
         log.info("[GET] /payment/status Payable: {}", payableId);
         try {
-            List<PaymentGetResp> paymentDetails = apiService.getPaymentDetails(silvergateProperties.defaultAccount, payableId);
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentDetails);
+            PaymentGetResp paymentGetResp = apiService.getPaymentDetails(silvergateProperties.defaultAccount, payableId);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentGetResp);
         } catch (Exception e) {
             return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
         }
