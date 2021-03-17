@@ -13,10 +13,5 @@ public class PaymentGetReq {
 
     public String accountNumber;// required
     public String paymentId;
-    public String beginDate;
-    public String endDate;
-    public String sortOrder;
-    public Integer pageSize;
-    public Integer pageNumber;
 
 }

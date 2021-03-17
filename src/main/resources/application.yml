@@ -28,3 +28,5 @@ silvergate:
   api-url-prefix: ${SILVERGATE_API_URL_PREFIX}
   subscription-key: ${SILVERGATE_SUBSCRIPTION_KEY}
   default-account: ${SILVERGATE_DEFAULT_ACCOUNT}
+  web-hook-url: ${SILVERGATE_WEB_HOOK_URL}
+  web-hook-email: ${SILVERGATE_WEB_HOOK_EMAILS}

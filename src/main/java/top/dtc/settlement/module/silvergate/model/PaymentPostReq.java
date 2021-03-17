@@ -18,20 +18,20 @@ public class PaymentPostReq {
     public String intermediary_bank_routing_id;
     public String intermediary_bank_account_number;
     public String intermediary_bank_name;
-    public String intermediary_bank_address1;
-    public String intermediary_bank_address2;
-    public String intermediary_bank_address3;
+    public String intermediary_bank_address1 = "";
+    public String intermediary_bank_address2 = "";
+    public String intermediary_bank_address3 = "";
     public String beneficiary_bank_type;
     public String beneficiary_bank_routing_id;
     public String beneficiary_bank_name;
-    public String beneficiary_bank_address1;
-    public String beneficiary_bank_address2;
-    public String beneficiary_bank_address3;
+    public String beneficiary_bank_address1 = "";
+    public String beneficiary_bank_address2 = "";
+    public String beneficiary_bank_address3 = "";
     public String beneficiary_name; //required
     public String beneficiary_account_number; //required
-    public String beneficiary_address1; //required
-    public String beneficiary_address2;
-    public String beneficiary_address3;
+    public String beneficiary_address1 = ""; //required
+    public String beneficiary_address2 = "";
+    public String beneficiary_address3 = "";
     public String originator_to_beneficiary_info;
 
 }
