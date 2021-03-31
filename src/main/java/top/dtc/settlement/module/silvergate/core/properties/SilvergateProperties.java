@@ -23,4 +23,6 @@ public class SilvergateProperties {
 
     public String certificatePassword;
 
+    public Boolean devMode;
+
 }
