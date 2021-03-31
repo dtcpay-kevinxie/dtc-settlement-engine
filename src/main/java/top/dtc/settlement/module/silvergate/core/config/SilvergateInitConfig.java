@@ -26,34 +26,47 @@ public class SilvergateInitConfig {
 
     @PostConstruct
     public void init() {
+        String defaultSenAccount = silvergateProperties.senAccountInfo.split(",")[0].split(":")[0];
+        log.info("Settlement Engine init Silvergate WebHookRegister {}", defaultSenAccount);
         try {
-            WebHooksGetReq webHooksGetReq = new WebHooksGetReq();
-            webHooksGetReq.accountNumber = silvergateProperties.defaultAccount;
-            log.info("Settlement Engine init Silvergate WebHookRegister {}", webHooksGetReq);
-            List<WebHooksGetRegisterResp> registerRespList = silvergateApiService.webHooksGet(webHooksGetReq);
-            log.info("Registered WebHook {}", registerRespList);
-            if (registerRespList != null && registerRespList.size() > 0) {
-                Map<String, WebHooksGetRegisterResp> webHookMap = registerRespList.stream()
-                        .collect(Collectors.toMap(WebHooksGetRegisterResp::getAccountNumber, registerResp -> registerResp));
-                if (webHookMap.containsKey(silvergateProperties.defaultAccount)
-                        && silvergateProperties.webHookUrl.equals(webHookMap.get(silvergateProperties.defaultAccount).webHookUrl)
-                        && silvergateProperties.webHookEmails.equals(webHookMap.get(silvergateProperties.defaultAccount).emails)
-                ) {
-                    log.info("WebHook registered");
-                    return;
-                }
-            }
-            WebHooksRegisterReq webHooksRegisterReq = new WebHooksRegisterReq();
-            webHooksRegisterReq.accountNumber = silvergateProperties.defaultAccount;
-            webHooksRegisterReq.webHookUrl = silvergateProperties.webHookUrl;
-            webHooksRegisterReq.emails = silvergateProperties.webHookEmails;
-            WebHooksGetRegisterResp resp = silvergateApiService.webHooksRegister(webHooksRegisterReq);
-            log.info("WebHook register Success, webHookId: {}", resp.webHookId);
+            hookAccount(defaultSenAccount);
         } catch (Exception e) {
             e.printStackTrace();
-            log.error("init error", e);
+            log.error("hook sen account error", e);
+        }
+        String defaultTradingAccount = silvergateProperties.tradingAccountInfo.split(",")[0].split(":")[0];
+        log.info("Settlement Engine init Silvergate WebHookRegister {}", defaultTradingAccount);
+        try {
+            hookAccount(defaultTradingAccount);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("hook trading account error", e);
         }
 
+    }
+
+    private void hookAccount(String accountNumber) {
+        WebHooksGetReq webHooksGetReq = new WebHooksGetReq();
+        webHooksGetReq.accountNumber = accountNumber;
+        List<WebHooksGetRegisterResp> registerRespList = silvergateApiService.webHooksGet(webHooksGetReq);
+        log.info("Registered WebHook {}", registerRespList);
+        if (registerRespList != null && registerRespList.size() > 0) {
+            Map<String, WebHooksGetRegisterResp> webHookMap = registerRespList.stream()
+                    .collect(Collectors.toMap(WebHooksGetRegisterResp::getAccountNumber, registerResp -> registerResp));
+            if (webHookMap.containsKey(accountNumber)
+                    && silvergateProperties.webHookUrl.equals(webHookMap.get(accountNumber).webHookUrl)
+                    && silvergateProperties.webHookEmails.equals(webHookMap.get(accountNumber).emails)
+            ) {
+                log.info("WebHook registered");
+                return;
+            }
+        }
+        WebHooksRegisterReq webHooksRegisterReq = new WebHooksRegisterReq();
+        webHooksRegisterReq.accountNumber = accountNumber;
+        webHooksRegisterReq.webHookUrl = silvergateProperties.webHookUrl;
+        webHooksRegisterReq.emails = silvergateProperties.webHookEmails;
+        WebHooksGetRegisterResp resp = silvergateApiService.webHooksRegister(webHooksRegisterReq);
+        log.info("WebHook register Success, webHookId: {}", resp.webHookId);
     }
 
 }
