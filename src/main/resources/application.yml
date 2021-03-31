@@ -29,4 +29,6 @@ silvergate:
   subscription-key: ${SILVERGATE_SUBSCRIPTION_KEY}
   default-account: ${SILVERGATE_DEFAULT_ACCOUNT}
   web-hook-url: ${SILVERGATE_WEB_HOOK_URL}
-  web-hook-email: ${SILVERGATE_WEB_HOOK_EMAILS}
+  web-hook-emails: ${SILVERGATE_WEB_HOOK_EMAILS}
+  certificate-path: ${SILVERGATE_CERTIFICATE_PATH}
+  certificate-password: ${SILVERGATE_CERTIFICATE_PASSWORD}
