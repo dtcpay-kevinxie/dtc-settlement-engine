@@ -116,16 +116,10 @@ public class SilvergateApiService {
     private String getAccessTokenFromCache(String accountNumber) {
         String token = settlementEngineRedisTemplate.opsForValue().get(
                 SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber));
-        int trialIndex = 0;
-        while (StringUtils.isBlank(token)) {
-            if (trialIndex > 5) {
-                throw new ValidationException(SILVERGATE_TOKEN_RETRIEVAL_FAILED(accountNumber));
-            }
-            trialIndex++;
+        if (StringUtils.isBlank(token)) {
             refreshAccessToken(accountNumber);
             token = settlementEngineRedisTemplate.opsForValue().get(
                     SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber));
-            log.debug("RefreshAccessToken [{}]", trialIndex);
         }
         log.debug("getAccessTokenFromCache token : {}", token);
         return token;
@@ -134,16 +128,10 @@ public class SilvergateApiService {
     private String getAccessTokenSubscriptionKeyFromCache(String accountNumber) {
         String subscriptionKey = settlementEngineRedisTemplate.opsForValue().get(
                 SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber));
-        int trialIndex = 0;
-        while (StringUtils.isBlank(subscriptionKey)) {
-            if (trialIndex > 5) {
-                throw new ValidationException(SILVERGATE_TOKEN_RETRIEVAL_FAILED(accountNumber));
-            }
-            trialIndex++;
+        if (StringUtils.isBlank(subscriptionKey)) {
             refreshAccessToken(accountNumber);
             subscriptionKey = settlementEngineRedisTemplate.opsForValue().get(
                     SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber));
-            log.debug("RefreshAccessToken [{}]", trialIndex);
         }
         log.debug("getAccessTokenSubscriptionKeyFromCache subscriptionKey : {}", subscriptionKey);
         return subscriptionKey;
