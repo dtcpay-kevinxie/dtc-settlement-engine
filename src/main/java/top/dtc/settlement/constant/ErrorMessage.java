@@ -96,6 +96,18 @@ public class ErrorMessage {
                     (resp == null) ? "Empty Reponse from Silvergate" : "Error:" + JSON.toJSONString(resp.errorList)
             );
         }
+        public static String SILVERGATE_TOKEN_RETRIEVAL_FAILED(String accountNumber) {
+            return String.format("Couldn't retrieve Access Token by AccountNumber %s", accountNumber);
+        }
+        public static String SILVERGATE_ACCOUNT_NUMBER_NOT_REGISTERED(String accountNumber) {
+            return String.format("Silvergate Account Number %s Not Registered in System", accountNumber);
+        }
+        public static String SILVERGATE_INVALID_ACCOUNT_TYPE(String accountType) {
+            return String.format("Invalid Silvergate Account Type %s ", accountType);
+        }
+        public static String SILVERGATE_SUBSCRIPTION_KEY_NOT_REGISTERED(String accountNumber) {
+            return String.format("Silvergate Account Number %s Not Registered in System", accountNumber);
+        }
     }
 
     public static final class OTC {

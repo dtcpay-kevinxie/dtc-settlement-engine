@@ -48,9 +48,9 @@ public class SilvergateController {
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountHistory);
     }
 
-    @GetMapping("/account/get-account-list")
-    public ApiResponse<?> getAccountList() {
-        AccountListResp accountList = apiService.getAccountList();
+    @GetMapping("/account/get-account-list/{accountType}")
+    public ApiResponse<?> getAccountList(@PathVariable("accountType") String accountType) {
+        AccountListResp accountList = apiService.getAccountList(accountType);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountList);
     }
 
@@ -58,7 +58,7 @@ public class SilvergateController {
     public ApiResponse<?> initPayment(@PathVariable("payableId") Long payableId) {
         log.info("initPayment for Payable {}", payableId);
         try {
-            Payable payable = apiService.initialPaymentPost(silvergateProperties.defaultAccount, payableId);
+            Payable payable = apiService.initialPaymentPost(payableId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, payable);
         } catch (Exception e) {
             return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
@@ -69,7 +69,7 @@ public class SilvergateController {
     public ApiResponse<?> cancelPayment(@PathVariable("payableId") Long payableId) {
         log.info("cancelPayment for Payable {}", payableId);
         try {
-            Payable payable = apiService.cancelPayment(silvergateProperties.defaultAccount, payableId);
+            Payable payable = apiService.cancelPayment(payableId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, payable);
         } catch (Exception e) {
             return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
@@ -80,16 +80,16 @@ public class SilvergateController {
     public ApiResponse<?> getPaymentStatus(@PathVariable("payableId") Long payableId) {
         log.info("[GET] /payment/status Payable: {}", payableId);
         try {
-            PaymentGetResp paymentGetResp = apiService.getPaymentDetails(silvergateProperties.defaultAccount, payableId);
+            PaymentGetResp paymentGetResp = apiService.getPaymentDetails(payableId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentGetResp);
         } catch (Exception e) {
             return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
         }
     }
 
-    @DeleteMapping("/webhooks/delete/{webHookId}")
-    public ApiResponse<?> webHooksDelete(@PathVariable(value = "webHookId") String webHookId) {
-        String result = apiService.webhooksDelete(webHookId);
+    @DeleteMapping("/webhooks/delete/{accountNumber}/{webHookId}")
+    public ApiResponse<?> webHooksDelete(@PathVariable(value = "accountNumber") String accountNumber, @PathVariable(value = "webHookId") String webHookId) {
+        String result = apiService.webhooksDelete(webHookId, accountNumber);
         log.info("[GET] webhooks/delete request: {}", webHookId);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
     }

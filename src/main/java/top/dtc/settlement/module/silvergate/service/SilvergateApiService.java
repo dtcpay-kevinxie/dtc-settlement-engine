@@ -24,13 +24,18 @@ import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties
 import top.dtc.settlement.module.silvergate.model.*;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.INVALID_PAYABLE;
-import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.PAYMENT_INIT_FAILED;
+import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.*;
 import static top.dtc.settlement.constant.NotificationConstant.NAMES.*;
+import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.ACCOUNTS_SPLITTER;
+import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.ACCOUNT_INFO_SPLITTER;
+import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.ACCOUNT_TYPE.SEN;
+import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.ACCOUNT_TYPE.TRADING;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.BANK_TYPE.SWIFT;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.PAYMENT_STATUS.CANCELED;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.PAYMENT_STATUS.PRE_APPROVAL;
@@ -63,13 +68,24 @@ public class SilvergateApiService {
      * is required on all other calls.
      * Tokens are valid for 15 minutes and can only be requested twice every 5 minutes.
      */
-    public String acquireAccessToken() {
-        String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .getUrl();
-        log.info("request from {}", url);
+    private void refreshAccessToken(String accountNumber) {
+        String[] keys = getKeys(accountNumber);
+        String accessToken = requestAccessToken(keys[0]);
+        String subscriptionKey = keys[0];
+        if (StringUtils.isBlank(accessToken)) {
+            accessToken = requestAccessToken(keys[1]);
+            if (StringUtils.isBlank(accessToken)) {
+                throw new ValidationException(SILVERGATE_TOKEN_RETRIEVAL_FAILED(accountNumber));
+            }
+            subscriptionKey = keys[1];
+        }
+        // Save token and key to Redis Cache
+        storeAccessTokenAndKey(accountNumber, accessToken, subscriptionKey);
+    }
+
+    private String requestAccessToken(String subscriptionKey) {
         HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, subscriptionKey)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request silvergate api [/access/token] failed, status={}", resp.getStatus());
@@ -78,37 +94,47 @@ public class SilvergateApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         Headers headers = response.getHeaders();
-        String accessToken = headers.getFirst(HeaderNames.AUTHORIZATION);
-        if (!StringUtils.isBlank(accessToken)) {
-            // Save token to Redis Cache meanwhile
-            storeAccessToken(accessToken);
-        }
-        return accessToken;
+        return headers.getFirst(HeaderNames.AUTHORIZATION);
     }
 
-    private void storeAccessToken(String accessToken) {
-        //Take current date as key: specific format as : 20210301
-        String key = "20210304";
-        storeAccessToken(accessToken, key);
+    private void storeAccessTokenAndKey(String accountNumber, String accessToken, String subscriptionKey) {
+        String accessTokenAccount = getAccountType(accountNumber) + accountNumber;
+        settlementEngineRedisTemplate.opsForValue().set(
+                SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(accessTokenAccount),
+                accessToken,
+                SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN,
+                TimeUnit.MINUTES
+        );
+        settlementEngineRedisTemplate.opsForValue().set(
+                SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(accessTokenAccount),
+                subscriptionKey,
+                SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN,
+                TimeUnit.MINUTES
+        );
     }
 
-    private void storeAccessToken(String accessToken, String key) {
-        String atKey = SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(key);
-        if (!StringUtils.isBlank(accessToken)) {
-            settlementEngineRedisTemplate.opsForValue().set(atKey, accessToken,
-                    SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN, TimeUnit.MINUTES);
+    private String getAccessTokenFromCache(String accountNumber) {
+        String token = settlementEngineRedisTemplate.opsForValue().get(
+                SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber));
+        if (StringUtils.isBlank(token)) {
+            refreshAccessToken(accountNumber);
+            token = settlementEngineRedisTemplate.opsForValue().get(
+                    SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber));
         }
+        log.debug("getAccessTokenFromCache token : {}", token);
+        return token;
     }
 
-    public String getAccessTokenFromCache() {
-        String accessKey = "20210304";
-        String token = settlementEngineRedisTemplate.opsForValue().get(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(accessKey));
-        if (!StringUtils.isBlank(token)) {
-            return token;
-        } else {
-            //refresh accessToken if token invalid
-            return acquireAccessToken();
+    private String getAccessTokenSubscriptionKeyFromCache(String accountNumber) {
+        String subscriptionKey = settlementEngineRedisTemplate.opsForValue().get(
+                SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber));
+        if (StringUtils.isBlank(subscriptionKey)) {
+            refreshAccessToken(accountNumber);
+            subscriptionKey = settlementEngineRedisTemplate.opsForValue().get(
+                    SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber));
         }
+        log.debug("getAccessTokenSubscriptionKeyFromCache subscriptionKey : {}", subscriptionKey);
+        return subscriptionKey;
     }
 
     public void notify(NotificationPost notificationPost) {
@@ -130,20 +156,14 @@ public class SilvergateApiService {
      * @param accountNumber
      */
     public AccountBalanceResp getAccountBalance(String accountNumber)  {
-        String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/balance")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString("accountNumber", accountNumber)
-                .getUrl();
-        log.info("request from {}", url);
         HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/balance")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountNumber))
                 .queryString("accountNumber", accountNumber)
                 .asString()
                 .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                    log.error("request api failed, path={}, status={}", "/account/balance", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/account/balance", e));
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
@@ -158,20 +178,14 @@ public class SilvergateApiService {
      * If MOREDATA is Y then either reduce date range or use GET account/extendedhistory.
      */
     public AccountHistoryResp getAccountHistory(AccountHistoryReq accountHistoryReq)  {
-        String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/history")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString(JSON.parseObject(JSON.toJSONString(accountHistoryReq)))
-                .getUrl();
-        log.info("request from {}", url);
         HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/history")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountHistoryReq.accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountHistoryReq.accountNumber))
                 .queryString(JSON.parseObject(JSON.toJSONString(accountHistoryReq)))
                 .asString()
                 .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                    log.error("request api failed, path={}, status={}", "/account/history", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/account/history", e));
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
@@ -182,19 +196,15 @@ public class SilvergateApiService {
     /**
      * Retrieve List of Accounts, based on subscription key (formerly known as CustAcctInq)
      */
-    public AccountListResp getAccountList()  {
-        String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/list")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .getUrl();
-        log.info("request from {}", url);
+    public AccountListResp getAccountList(String accountType)  {
+        String defaultAccount = getDefaultAccount(accountType);
         HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/list")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(defaultAccount))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(defaultAccount))
                 .asString()
                 .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                    log.error("request api failed, path={}, status={}", "/account/list", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/account/list", e));
                 });
         String result = response.getBody();
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
@@ -205,17 +215,16 @@ public class SilvergateApiService {
     /**
      * Initiates a wire payment for a Payable
      *
-     * @param accountNumber Silvergate account number
      * @param payableId Payable Id wants to proceed payment
      */
-    public Payable initialPaymentPost(String accountNumber, Long payableId) {
+    public Payable initialPaymentPost(Long payableId) {
         Payable payable = payableService.getById(payableId);
         if (payable.status != PayableStatus.UNPAID || payable.remitInfoId == null) {
             throw new ValidationException(INVALID_PAYABLE);
         }
         RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
         PaymentPostReq paymentPostReq = new PaymentPostReq();
-        paymentPostReq.originator_account_number = accountNumber;
+        paymentPostReq.originator_account_number = getTransferAccountNumber(remitInfo);
         paymentPostReq.amount = payable.amount;
         //TODO Not sure what is receiving bank, need to check with Silvergate Bank and test
 //        paymentPostReq.receiving_bank_routing_id = ;
@@ -269,24 +278,17 @@ public class SilvergateApiService {
         return payable;
     }
 
-    private Payable initialPaymentPost(PaymentPostReq paymentPostReq, Payable payable)  {
-        String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .header(IDEMPOTENCY_KEY, "")
-                .body(paymentPostReq)
-                .getUrl();
+    private Payable initialPaymentPost(PaymentPostReq paymentPostReq, Payable payable) {
        log.info("request body: {}", JSON.toJSONString(paymentPostReq));
         HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(paymentPostReq.originator_account_number))
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()) // Content-Type optional
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(paymentPostReq.originator_account_number))
                 .body(paymentPostReq)
                 .asString()
                 .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                    log.error("request api failed, path={}, status={}", "/payment", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/payment", e));
                 });
         String result = response.getBody();
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
@@ -305,15 +307,16 @@ public class SilvergateApiService {
     /**
      * Cancel a wire payment
      *
-     * @param accountNumber Silvergate account number
      * @param payableId Payable Id wants to proceed payment
      */
-    public Payable cancelPayment(String accountNumber, Long payableId) {
+    public Payable cancelPayment(Long payableId) {
         Payable payable = payableService.getById(payableId);
         if (payable.status != PayableStatus.PENDING) {
             throw new ValidationException(INVALID_PAYABLE);
         }
         PaymentGetReq paymentGetReq = new PaymentGetReq();
+        RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
+        String accountNumber = getTransferAccountNumber(remitInfo);
         paymentGetReq.accountNumber = accountNumber;
         paymentGetReq.paymentId = payable.referenceNo;
         PaymentGetResp paymentGetResp = getPaymentDetails(paymentGetReq);
@@ -347,26 +350,17 @@ public class SilvergateApiService {
     }
 
     private PaymentPutResp initialPaymentPut(PaymentPutReq paymentPutReq)  {
-        String url = Unirest.put(silvergateProperties.apiUrlPrefix + "/payment")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString("account_number", paymentPutReq.accountNumber)
-                .queryString("payment_id", paymentPutReq.paymentId)
-                .queryString("action", paymentPutReq.action)
-                .queryString("timestamp", paymentPutReq.timestamp)
-                .getUrl();
-        log.info("request from {}", url);
         HttpResponse<String> response = Unirest.put(silvergateProperties.apiUrlPrefix + "/payment")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(paymentPutReq.accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(paymentPutReq.accountNumber))
                 .queryString("account_number", paymentPutReq.accountNumber)
                 .queryString("payment_id", paymentPutReq.paymentId)
                 .queryString("action", paymentPutReq.action)
                 .queryString("timestamp", paymentPutReq.timestamp)
                 .asString()
                 .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                    log.error("request api failed, path={}, status={}", "/payment", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/payment", e));
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
@@ -381,37 +375,30 @@ public class SilvergateApiService {
     /**
      * Check wire payment status
      *
-     * @param accountNumber Silvergate account number
      * @param payableId Payable Id wants to check payment status
      */
-    public PaymentGetResp getPaymentDetails(String accountNumber, Long payableId) {
+    public PaymentGetResp getPaymentDetails(Long payableId) {
         Payable payable = payableService.getById(payableId);
         if (payable == null || payable.remitInfoId == null || payable.status == PayableStatus.UNPAID || payable.status == PayableStatus.CANCELLED) {
             throw new ValidationException(INVALID_PAYABLE);
         }
         PaymentGetReq paymentGetReq = new PaymentGetReq();
-        paymentGetReq.accountNumber = accountNumber;
+        RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
+        paymentGetReq.accountNumber = getTransferAccountNumber(remitInfo);
         paymentGetReq.paymentId = payable.referenceNo;
         return getPaymentDetails(paymentGetReq);
     }
 
     private PaymentGetResp getPaymentDetails(PaymentGetReq paymentGetReq) {
-        String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString("account_number", paymentGetReq.accountNumber)
-                .queryString("payment_id", paymentGetReq.paymentId)
-                .getUrl();
-        log.info("request from {}", url);
         HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(paymentGetReq.accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(paymentGetReq.accountNumber))
                 .queryString("account_number", paymentGetReq.accountNumber)
                 .queryString("payment_id", paymentGetReq.paymentId)
                 .asString()
                 .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                    log.error("request api failed, path={}, status={}", "/payment", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/payment", e));
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
@@ -424,22 +411,16 @@ public class SilvergateApiService {
     /**
      * Delete a previously registered webhook
      */
-    public String webhooksDelete(String webhookId) {
-        String url = Unirest.delete(silvergateProperties.apiUrlPrefix + "/webhooks/delete")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString("webHookId", webhookId) // Required
-                .getUrl();
-        log.info("request from {}", url);
+    public String webhooksDelete(String webhookId, String accountNumber) {
         HttpResponse<String> response = Unirest.delete(silvergateProperties.apiUrlPrefix + "/webhooks/delete")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountNumber))
                 .queryString("webHookId", webhookId)
                 .asString()
                 .ifSuccess(resp -> log.info("request api successfully: {}", resp))
                 .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                    log.error("request api failed, path={}, status={}", "/webhooks/delete", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/webhooks/delete", e));
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
@@ -452,22 +433,15 @@ public class SilvergateApiService {
      * @return
      */
     public List<WebHooksGetRegisterResp> webHooksGet(WebHooksGetReq webHooksGetReq) {
-        String url = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .queryString("accountNumber", webHooksGetReq.accountNumber) //optional
-                .queryString("webHookId", webHooksGetReq.webHookId) // optional
-                .getUrl();
-        log.info("request from {}", url);
         HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(webHooksGetReq.accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(webHooksGetReq.accountNumber))
                 .queryString("accountNumber", webHooksGetReq.accountNumber)
                 .queryString("webHookId", webHooksGetReq.webHookId)
                 .asString()
                 .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", url, resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", url, e));
+                    log.error("request api failed, path={}, status={}", "/webhooks/get", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/webhooks/get", e));
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
@@ -480,16 +454,10 @@ public class SilvergateApiService {
      * via http post and/or email when a balance on a given account changes.
      */
     public WebHooksGetRegisterResp webHooksRegister(WebHooksRegisterReq webHooksRegisterReq)  {
-        String url = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
-                .body(webHooksRegisterReq)
-                .getUrl();
-        log.info("request from {}", url);
         HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
-                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache())
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(webHooksRegisterReq.accountNumber))
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
-                .header(OCP_APIM_SUBSCRIPTION_KEY, silvergateProperties.subscriptionKey)
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(webHooksRegisterReq.accountNumber))
                 .body(webHooksRegisterReq)
                 .asString()
                 .ifFailure(resp -> {
@@ -554,4 +522,50 @@ public class SilvergateApiService {
             }
         }
     }
+
+    private String getDefaultAccount(String accountType) {
+        switch (accountType) {
+            case SEN:
+                return silvergateProperties.senAccountInfo.split(ACCOUNTS_SPLITTER)[0].split(ACCOUNT_INFO_SPLITTER)[0];
+            case TRADING:
+                return silvergateProperties.tradingAccountInfo.split(ACCOUNTS_SPLITTER)[0].split(ACCOUNT_INFO_SPLITTER)[0];
+            default:
+                throw new ValidationException(SILVERGATE_INVALID_ACCOUNT_TYPE(accountType));
+        }
+    }
+
+    private String getTransferAccountNumber(RemitInfo remitInfo) {
+        if (remitInfo.beneficiaryName.equalsIgnoreCase(SilvergateConstant.SILVERGATE_NAME)) {
+            return getDefaultAccount(SEN);
+        } else {
+            return getDefaultAccount(TRADING);
+        }
+    }
+
+    private String getAccountType(String accountNumber) {
+        if (silvergateProperties.tradingAccountInfo.contains(accountNumber)) {
+            return TRADING;
+        } else if (silvergateProperties.senAccountInfo.contains(accountNumber)) {
+            return SEN;
+        } else {
+            throw new ValidationException(SILVERGATE_ACCOUNT_NUMBER_NOT_REGISTERED(accountNumber));
+        }
+    }
+
+    private String[] getKeys(String accountNumber) {
+        if (silvergateProperties.senAccountInfo.contains(accountNumber)) {
+            Map<String, String[]> accountMap = Arrays.stream(silvergateProperties.senAccountInfo.split(ACCOUNTS_SPLITTER))
+                    .map(accountInfo -> accountInfo.split(ACCOUNT_INFO_SPLITTER))
+                    .collect(Collectors.toMap(accountInfo -> accountInfo[0], accountInfo -> new String[]{ accountInfo[1], accountInfo[2]}));
+            return accountMap.get(accountNumber);
+        } else if (silvergateProperties.tradingAccountInfo.contains(accountNumber)) {
+            Map<String, String[]> accountMap = Arrays.stream(silvergateProperties.tradingAccountInfo.split(ACCOUNTS_SPLITTER))
+                    .map(accountInfo -> accountInfo.split(ACCOUNT_INFO_SPLITTER))
+                    .collect(Collectors.toMap(accountInfo -> accountInfo[0], accountInfo -> new String[]{ accountInfo[1], accountInfo[2]}));
+            return accountMap.get(accountNumber);
+        } else {
+            throw new ValidationException(SILVERGATE_ACCOUNT_NUMBER_NOT_REGISTERED(accountNumber));
+        }
+    }
+
 }

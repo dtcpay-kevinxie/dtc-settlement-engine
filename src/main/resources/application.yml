@@ -25,8 +25,11 @@ etherscan:
   max-end-block: ${ETHERSCAN_MAX_END_BLOCK}
 
 silvergate:
+  dev-mode: ${SILVERGATE_DEV_MODE}
   api-url-prefix: ${SILVERGATE_API_URL_PREFIX}
-  subscription-key: ${SILVERGATE_SUBSCRIPTION_KEY}
-  default-account: ${SILVERGATE_DEFAULT_ACCOUNT}
+  sen-account-info: ${SILVERGATE_SEN_ACCOUNT_INFO}
+  trading-account-info: ${SILVERGATE_TRADING_ACCOUNT_INFO}
   web-hook-url: ${SILVERGATE_WEB_HOOK_URL}
-  web-hook-email: ${SILVERGATE_WEB_HOOK_EMAILS}
+  web-hook-emails: ${SILVERGATE_WEB_HOOK_EMAILS}
+  certificate-path: ${SILVERGATE_CERTIFICATE_PATH}
+  certificate-password: ${SILVERGATE_CERTIFICATE_PASSWORD}

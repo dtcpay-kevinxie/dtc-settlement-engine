@@ -3,6 +3,10 @@ package top.dtc.settlement.module.silvergate.constant;
 public class SilvergateConstant {
 
     public final static String TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
+    public final static String ACCOUNTS_SPLITTER = ",";
+    public final static String ACCOUNT_INFO_SPLITTER = ":";
+
+    public final static String SILVERGATE_NAME = "Silvergate Bank";
 
     public static class PAYMENT_STATUS {
         public final static String PRE_APPROVAL = "Pre-Approval";
@@ -20,6 +24,11 @@ public class SilvergateConstant {
     public static class BANK_TYPE {
         public final static String SWIFT = "SWIFT";
         public final static String ABA = "ABA";
+    }
+
+    public static class ACCOUNT_TYPE {
+        public final static String SEN = "SEN";
+        public final static String TRADING = "TRADING";
     }
 
 }

@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.19.0] - 01 Apr 2021
+
+* Change to multiple Silvergate accounts logic
+* Apply Silvergate API secondary subscription key logic
+
 [0.18.0] - 12 Mar 2021
 
 * Add Silvergate WebHoot when init Settlement Engine
