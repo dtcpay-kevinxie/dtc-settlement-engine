@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.20.0] - 08 Apr 2021
+
+* Remove useless redis config
+
 [0.19.0] - 01 Apr 2021
 
 * Change to multiple Silvergate accounts logic

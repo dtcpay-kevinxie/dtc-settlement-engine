@@ -28,17 +28,6 @@ public class CacheConfig extends CommonCacheConfig {
     @Value("${CORE_REDIS_PASSWORD:}")
     private String password;
 
-    // REGISTER
-    @Bean(SettlementEngineRedisConstant.DB.CORE_ENGINE_REGISTER.CONNECTION_FACTORY)
-    RedisConnectionFactory registerConnectionFactory() {
-        return connectionFactory(SettlementEngineRedisConstant.DB.CORE_ENGINE_REGISTER.INDEX);
-    }
-
-    @Bean(SettlementEngineRedisConstant.DB.CORE_ENGINE_REGISTER.REDIS_TEMPLATE)
-    RedisTemplate<?, ?> registerRedisTemplate(@Qualifier(SettlementEngineRedisConstant.DB.CORE_ENGINE_REGISTER.CONNECTION_FACTORY) RedisConnectionFactory registerConnectionFactory) {
-        return redisTemplate(registerConnectionFactory);
-    }
-
     @Bean(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.CONNECTION_FACTORY)
     RedisConnectionFactory settlementEngineConnectionFactory() {
         return connectionFactory(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.INDEX);
