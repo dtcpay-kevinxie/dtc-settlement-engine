@@ -9,7 +9,7 @@ public class SettlementEngineRedisConstant {
 
     public static final class DB {
         public static final class SETTLEMENT_ENGINE {
-            public static final int INDEX = 8;
+            public static final int INDEX = 12;
             public static final String CONNECTION_FACTORY = "settlementEngineCacheConnectionFactory";
             public static final String REDIS_TEMPLATE = "settlementEngineCacheRedisTemplate";
             public static final class KEY {
