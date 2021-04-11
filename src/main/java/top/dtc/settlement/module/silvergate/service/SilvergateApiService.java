@@ -23,6 +23,7 @@ import top.dtc.settlement.module.silvergate.constant.SilvergateConstant;
 import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.model.*;
 
+import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -62,6 +63,17 @@ public class SilvergateApiService {
 
     @Autowired
     private NotificationProperties notificationProperties;
+    
+    private UnirestInstance unirest;
+    
+    @PostConstruct
+    public void initUnirest() {
+        if (!silvergateProperties.devMode) {
+            unirest = Unirest.spawnInstance();
+            unirest.config()
+                    .clientCertificateStore(silvergateProperties.certificatePath, silvergateProperties.certificatePassword);
+        }
+    }
 
     /**
      * The Subscription access key is passed in the header to receive back a security token which
@@ -84,7 +96,7 @@ public class SilvergateApiService {
     }
 
     private String requestAccessToken(String subscriptionKey) {
-        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/access/token")
                 .header(OCP_APIM_SUBSCRIPTION_KEY, subscriptionKey)
                 .asString()
                 .ifFailure(resp -> {
@@ -156,7 +168,7 @@ public class SilvergateApiService {
      * @param accountNumber
      */
     public AccountBalanceResp getAccountBalance(String accountNumber)  {
-        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/balance")
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/balance")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountNumber))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountNumber))
                 .queryString("accountNumber", accountNumber)
@@ -178,7 +190,7 @@ public class SilvergateApiService {
      * If MOREDATA is Y then either reduce date range or use GET account/extendedhistory.
      */
     public AccountHistoryResp getAccountHistory(AccountHistoryReq accountHistoryReq)  {
-        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/history")
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/history")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountHistoryReq.accountNumber))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountHistoryReq.accountNumber))
                 .queryString(JSON.parseObject(JSON.toJSONString(accountHistoryReq)))
@@ -198,7 +210,7 @@ public class SilvergateApiService {
      */
     public AccountListResp getAccountList(String accountType)  {
         String defaultAccount = getDefaultAccount(accountType);
-        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/account/list")
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/list")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(defaultAccount))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(defaultAccount))
                 .asString()
@@ -280,7 +292,7 @@ public class SilvergateApiService {
 
     private Payable initialPaymentPost(PaymentPostReq paymentPostReq, Payable payable) {
        log.info("request body: {}", JSON.toJSONString(paymentPostReq));
-        HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
+        HttpResponse<String> response = unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(paymentPostReq.originator_account_number))
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()) // Content-Type optional
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(paymentPostReq.originator_account_number))
@@ -350,7 +362,7 @@ public class SilvergateApiService {
     }
 
     private PaymentPutResp initialPaymentPut(PaymentPutReq paymentPutReq)  {
-        HttpResponse<String> response = Unirest.put(silvergateProperties.apiUrlPrefix + "/payment")
+        HttpResponse<String> response = unirest.put(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(paymentPutReq.accountNumber))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(paymentPutReq.accountNumber))
                 .queryString("account_number", paymentPutReq.accountNumber)
@@ -390,7 +402,7 @@ public class SilvergateApiService {
     }
 
     private PaymentGetResp getPaymentDetails(PaymentGetReq paymentGetReq) {
-        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(paymentGetReq.accountNumber))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(paymentGetReq.accountNumber))
                 .queryString("account_number", paymentGetReq.accountNumber)
@@ -412,7 +424,7 @@ public class SilvergateApiService {
      * Delete a previously registered webhook
      */
     public String webhooksDelete(String webhookId, String accountNumber) {
-        HttpResponse<String> response = Unirest.delete(silvergateProperties.apiUrlPrefix + "/webhooks/delete")
+        HttpResponse<String> response = unirest.delete(silvergateProperties.apiUrlPrefix + "/webhooks/delete")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountNumber))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountNumber))
                 .queryString("webHookId", webhookId)
@@ -433,7 +445,7 @@ public class SilvergateApiService {
      * @return
      */
     public List<WebHooksGetRegisterResp> webHooksGet(WebHooksGetReq webHooksGetReq) {
-        HttpResponse<String> response = Unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/webhooks/get")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(webHooksGetReq.accountNumber))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(webHooksGetReq.accountNumber))
                 .queryString("accountNumber", webHooksGetReq.accountNumber)
@@ -454,7 +466,7 @@ public class SilvergateApiService {
      * via http post and/or email when a balance on a given account changes.
      */
     public WebHooksGetRegisterResp webHooksRegister(WebHooksRegisterReq webHooksRegisterReq)  {
-        HttpResponse<String> response = Unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
+        HttpResponse<String> response = unirest.post(silvergateProperties.apiUrlPrefix + "/webhooks/register")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(webHooksRegisterReq.accountNumber))
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(webHooksRegisterReq.accountNumber))
