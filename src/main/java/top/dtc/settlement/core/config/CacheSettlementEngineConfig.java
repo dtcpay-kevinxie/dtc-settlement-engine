@@ -17,7 +17,7 @@ import top.dtc.settlement.constant.SettlementEngineRedisConstant;
  */
 @Getter
 @Configuration
-public class CacheConfig extends CommonCacheConfig {
+public class CacheSettlementEngineConfig extends CommonCacheConfig {
 
     @Value("${CORE_REDIS_HOST}")
     private String host;
