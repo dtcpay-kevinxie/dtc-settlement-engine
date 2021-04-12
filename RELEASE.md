@@ -3,7 +3,7 @@
 [0.20.0] - 08 Apr 2021
 
 * Remove useless redis config
-* Create Unirest instance for Slivergate
+* Create Unirest instance for Silvergate
 
 [0.19.0] - 01 Apr 2021
 
