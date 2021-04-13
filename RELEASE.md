@@ -2,7 +2,6 @@
 
 [0.21.0] - 12 Apr 2021
 
-* Added EnableSettlementEngine annotation
 
 [0.20.0] - 08 Apr 2021
 
