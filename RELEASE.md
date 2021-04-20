@@ -2,7 +2,7 @@
 
 [0.21.0] - 20 Apr 2021
 
-* Create Unirest instance for Slivergate
+* Create Unirest instance for Silvergate
 * Update parent & data-*
 
 [0.20.0] - 08 Apr 2021
