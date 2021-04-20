@@ -1,9 +1,13 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.21.0] - 20 Apr 2021
+
+* Create Unirest instance for Silvergate
+* Update parent & data-*
+
 [0.20.0] - 08 Apr 2021
 
 * Remove useless redis config
-* Create Unirest instance for Slivergate
 
 [0.19.0] - 01 Apr 2021
 
