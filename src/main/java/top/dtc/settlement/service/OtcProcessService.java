@@ -45,7 +45,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static top.dtc.data.risk.enums.MainNet.ERC20;
+import static top.dtc.common.enums.MainNet.ERC20;
 import static top.dtc.settlement.constant.ErrorMessage.OTC.HIGH_RISK_OTC;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.CANCEL_PAYABLE_ERROR;
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.OTC_NOT_RECEIVED;
