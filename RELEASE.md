@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.23.0] - 23 Apr 2021
+
+* Change Transaction to PaymentTransaction
+* Upgrade dtc-parent
+
 [0.22.0] - 23 Apr 2021
 
 * Fix the docker base image version to 11.0.10-jre-slim-buster

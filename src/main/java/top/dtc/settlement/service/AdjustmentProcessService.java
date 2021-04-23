@@ -3,7 +3,6 @@ package top.dtc.settlement.service;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.enums.ClientType;
 import top.dtc.common.enums.SettlementStatus;
 import top.dtc.data.finance.enums.AdjustmentStatus;
 import top.dtc.data.finance.model.Adjustment;
@@ -23,9 +22,6 @@ public class AdjustmentProcessService {
     @Autowired
     private SettlementService settlementService;
 
-    @Autowired
-    private ClientAccountProcessService clientAccountProcessService;
-
     public void addAdjustment(Adjustment adjustment) {
         Settlement settlement = settlementService.getById(adjustment.settlementId);
         if (settlement == null || settlement.status != SettlementStatus.PENDING || adjustment.totalAmount == null) {
@@ -36,7 +32,6 @@ public class AdjustmentProcessService {
         adjustment.status = AdjustmentStatus.PENDING;
         adjustmentService.save(adjustment);
         settlementService.updateById(settlement);
-        clientAccountProcessService.calculateBalance(settlement.merchantId, ClientType.PAYMENT_MERCHANT, settlement.currency);
     }
 
     public void removeAdjustment(Long adjustmentId) {
@@ -50,7 +45,6 @@ public class AdjustmentProcessService {
             settlement.settleFinalAmount = settlement.settleFinalAmount.subtract(adjustment.totalAmount);
             settlementService.updateById(settlement);
             adjustmentService.removeById(adjustmentId);
-            clientAccountProcessService.calculateBalance(settlement.merchantId, ClientType.PAYMENT_MERCHANT, settlement.currency);
         }
     }
 
