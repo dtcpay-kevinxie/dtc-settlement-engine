@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.22.0] - 23 Apr 2021
+
+* Fix the docker base image version to 11.0.10-jre-slim-buster
+* Fix kycWalletAddress updateById
+
 [0.21.0] - 20 Apr 2021
 
 * Create Unirest instance for Silvergate

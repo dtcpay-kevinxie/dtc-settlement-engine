@@ -10,11 +10,14 @@ import org.springframework.stereotype.Service;
 import top.dtc.common.enums.ClientType;
 import top.dtc.common.model.api.ApiResponse;
 import top.dtc.common.util.NotificationSender;
+import top.dtc.data.core.enums.IndividualStatus;
 import top.dtc.data.core.enums.NonIndividualStatus;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.enums.OtcType;
+import top.dtc.data.core.model.Individual;
 import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.model.Otc;
+import top.dtc.data.core.service.IndividualService;
 import top.dtc.data.core.service.NonIndividualService;
 import top.dtc.data.core.service.OtcService;
 import top.dtc.data.finance.enums.InvoiceType;
@@ -97,6 +100,9 @@ public class OtcProcessService {
     @Autowired
     private NonIndividualService nonIndividualService;
 
+    @Autowired
+    private IndividualService individualService;
+
     public void scheduledBlockchain() {
         // OTC waiting for receiving token
         List<Otc> waitingList = otcService.getByParams(
@@ -163,7 +169,7 @@ public class OtcProcessService {
                 default:
                     break;
             }
-            kycWalletAddressService.updateById(dtcOpsAddress);
+            kycWalletAddressService.updateById(dtcOpsAddress, "Etherscan", "Update last block height");
         }
         log.debug("Unexpected List {}", String.join("\n", unexpectedList));
         if (unexpectedList.size() > 0) {
@@ -305,9 +311,10 @@ public class OtcProcessService {
     }
 
     private boolean isClientActivated(Otc otc) {
-        boolean isActivated = false;
+        boolean isActivated;
         if (otc.clientType == ClientType.INDIVIDUAL) {
-            // TODO: Add Individual Account validation
+            Individual individual = individualService.getById(otc.clientId);
+            isActivated = individual.status == IndividualStatus.ACTIVATED;
         } else {
             NonIndividual nonIndividual = nonIndividualService.getById(otc.clientId);
             isActivated = nonIndividual.status == NonIndividualStatus.ACTIVATED;
