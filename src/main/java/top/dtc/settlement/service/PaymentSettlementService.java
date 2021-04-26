@@ -3,14 +3,13 @@ package top.dtc.settlement.service;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.enums.ClientType;
 import top.dtc.common.enums.SettlementStatus;
 import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.enums.NonIndividualStatus;
 import top.dtc.data.core.model.NonIndividual;
-import top.dtc.data.core.model.Transaction;
+import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.NonIndividualService;
-import top.dtc.data.core.service.TransactionService;
+import top.dtc.data.core.service.PaymentTransactionService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.PayableStatus;
 import top.dtc.data.finance.enums.ReserveStatus;
@@ -56,16 +55,10 @@ public class PaymentSettlementService {
     private InvoiceNumberService invoiceNumberService;
 
     @Autowired
-    private TransactionService transactionService;
+    private PaymentTransactionService transactionService;
 
     @Autowired
     private NonIndividualService nonIndividualService;
-
-    @Autowired
-    private ClientAccountService clientAccountService;
-
-    @Autowired
-    private ClientAccountProcessService clientAccountProcessService;
 
     @Autowired
     private PayableProcessService payableProcessService;
@@ -148,7 +141,6 @@ public class PaymentSettlementService {
         transactionService.updateSettlementStatusByIdIn(SettlementStatus.APPROVED, transactionIds);
         invoiceNumberService.saveOrUpdate(invoiceNumber);
 //        createPayable(settlement);
-        clientAccountProcessService.calculateBalance(settlement.merchantId, ClientType.PAYMENT_MERCHANT, settlement.currency);
     }
 
     // Reviewer reject settlement submitted
@@ -178,7 +170,7 @@ public class PaymentSettlementService {
     }
 
     private void packTransactionByDate(SettlementConfig settlementConfig, LocalDate cycleStart, LocalDate cycleEnd) {
-        List<Transaction> transactionList = transactionService.getTransactionsForSettlement(
+        List<PaymentTransaction> transactionList = transactionService.getTransactionsForSettlement(
                 cycleStart.atStartOfDay(),
                 cycleEnd.plusDays(1).atStartOfDay(),
                 settlementConfig.merchantId,
@@ -190,12 +182,6 @@ public class PaymentSettlementService {
             log.info("No unsettled transactions under SettlementConfig [{}] between [{} ~ {}]",
                     settlementConfig.id, cycleStart.atStartOfDay(), cycleEnd.plusDays(1).atStartOfDay());
             return;
-        }
-        ClientAccount clientAccount = clientAccountService.getClientAccount(
-                settlementConfig.merchantId, ClientType.PAYMENT_MERCHANT, settlementConfig.currency);
-        if (clientAccount == null) {
-            log.error("No ClientAccount under {}", settlementConfig);
-            throw new SettlementException("No ClientAccount Found");
         }
         Settlement settlement = settlementService.getSettlement(settlementConfig.merchantId, cycleStart, cycleEnd, settlementConfig.currency);
         if (settlement != null) {
@@ -262,7 +248,6 @@ public class PaymentSettlementService {
                     settlement.settleDate = LocalDate.now().plusDays(1);
                     break;
             }
-            settlement.remitInfoId = clientAccount.remitInfoId;
         }
         boolean isSettlementUpdated = calculateTransaction(transactionList, settlementConfig, settlement);
         if (!isSettlementUpdated) {
@@ -273,12 +258,11 @@ public class PaymentSettlementService {
         Reserve reserve = calculateReserve(settlement);
         settlementService.updateById(settlement);
         calculatePayable(settlement, reserve);
-        clientAccountProcessService.calculateBalance(clientAccount);
     }
 
-    private boolean calculateTransaction(List<Transaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
+    private boolean calculateTransaction(List<PaymentTransaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
         boolean isSettlementUpdated = false;
-        for (Transaction transaction : transactionList) {
+        for (PaymentTransaction transaction : transactionList) {
             PayoutReconcile payoutReconcile = payoutReconcileService.getById(transaction.id);
             if (payoutReconcile.settlementId != null || payoutReconcile.payoutAmount != null || payoutReconcile.payoutCurrency != null) {
                 // Transaction has been packed into settlement.

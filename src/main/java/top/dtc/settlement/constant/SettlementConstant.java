@@ -1,7 +1,7 @@
 package top.dtc.settlement.constant;
 
+import top.dtc.common.enums.PaymentTransactionState;
 import top.dtc.common.enums.SettlementStatus;
-import top.dtc.common.enums.TransactionState;
 import top.dtc.data.finance.enums.ScheduleType;
 
 import java.math.BigDecimal;
@@ -35,9 +35,9 @@ public class SettlementConstant {
         }
     }
 
-    public static final ArrayList<TransactionState> STATE_FOR_SETTLE = new ArrayList<>(Arrays.asList(
-            TransactionState.SUCCESS,
-            TransactionState.REFUNDED
+    public static final ArrayList<PaymentTransactionState> STATE_FOR_SETTLE = new ArrayList<>(Arrays.asList(
+            PaymentTransactionState.SUCCESS,
+            PaymentTransactionState.REFUNDED
     ));
 
     public static final ArrayList<SettlementStatus> NOT_SETTLED = new ArrayList<>(Arrays.asList(

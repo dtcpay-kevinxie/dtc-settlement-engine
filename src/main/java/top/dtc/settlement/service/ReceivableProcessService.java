@@ -11,10 +11,10 @@ import top.dtc.common.exception.ValidationException;
 import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.model.AcqRoute;
 import top.dtc.data.core.model.Module;
-import top.dtc.data.core.model.Transaction;
+import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.AcqRouteService;
 import top.dtc.data.core.service.ModuleService;
-import top.dtc.data.core.service.TransactionService;
+import top.dtc.data.core.service.PaymentTransactionService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.enums.ReconcileStatus;
@@ -44,7 +44,7 @@ import static top.dtc.settlement.constant.ErrorMessage.RECEIVABLE.*;
 public class ReceivableProcessService {
 
     @Autowired
-    private TransactionService transactionService;
+    private PaymentTransactionService transactionService;
 
     @Autowired
     private AcqRouteService acqRouteService;
@@ -62,7 +62,7 @@ public class ReceivableProcessService {
     private SettlementCalendarService settlementCalendarService;
 
     public void processReceivable(LocalDate date) {
-        Map<ReceivableKey, List<Transaction>> txnReceivableMap = processReceivable(null, date.minusDays(1).atStartOfDay(), date.atStartOfDay());
+        Map<ReceivableKey, List<PaymentTransaction>> txnReceivableMap = processReceivable(null, date.minusDays(1).atStartOfDay(), date.atStartOfDay());
         if (txnReceivableMap == null) {
             return;
         }
@@ -134,9 +134,9 @@ public class ReceivableProcessService {
         return receivable;
     }
 
-    private Map<ReceivableKey, List<Transaction>> processReceivable(Long moduleId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+    private Map<ReceivableKey, List<PaymentTransaction>> processReceivable(Long moduleId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
         log.debug("Receivable Process for {}, {} - {}", moduleId, startDateTime, endDateTime);
-        List<Transaction> transactionList = transactionService.getReceivableTransactions(
+        List<PaymentTransaction> transactionList = transactionService.getReceivableTransactions(
                 moduleId, // null means ALL modules
                 startDateTime,
                 endDateTime
@@ -149,7 +149,7 @@ public class ReceivableProcessService {
                 .collect(Collectors.toMap(
                         o -> new ReceivableKey(o.settlementCurrency, o.moduleId, o.dtcTimestamp.toLocalDate()),
                         x -> {
-                            List<Transaction> list = new ArrayList<>();
+                            List<PaymentTransaction> list = new ArrayList<>();
                             list.add(x);
                             return list;
                         },
@@ -161,7 +161,7 @@ public class ReceivableProcessService {
                 ));
     }
 
-    private void processAletaReceivable(ReceivableKey receivableKey, List<Transaction> transactionList) {
+    private void processAletaReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList) {
         LocalDate receivableDate = settlementCalendarService.getClosestSettleDate(
                 receivableKey.moduleId,
                 receivableKey.currency,
@@ -173,14 +173,14 @@ public class ReceivableProcessService {
         calculateReceivable(receivableKey, transactionList, receivableDate);
     }
 
-    private void processGlobalPaymentReceivable(ReceivableKey receivableKey, List<Transaction> transactionList) {
+    private void processGlobalPaymentReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList) {
         //TODO : Add GP settlement cycle and generate Receivable
         List<Long> ids = new ArrayList<>();
         transactionList.forEach(transaction -> {ids.add(transaction.id);});
         transactionService.updateSettlementStatusByIdIn(SettlementStatus.ACQ_SETTLED, ids);
     }
 
-    private void calculateReceivable(ReceivableKey receivableKey, List<Transaction> transactionList, LocalDate receivableDate) {
+    private void calculateReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList, LocalDate receivableDate) {
         Receivable receivable = receivableService.getReceivableByDateAndPayerAndCurrency(
                 receivableDate,
                 SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME,
@@ -198,7 +198,7 @@ public class ReceivableProcessService {
             receivable.receivableDate = receivableDate;
             receivableService.save(receivable);
         }
-        for (Transaction transaction : transactionList) {
+        for (PaymentTransaction transaction : transactionList) {
             PayoutReconcile reconcile = payoutReconcileService.getById(transaction.id);
             if (reconcile != null) {
                 log.info("Transaction {} is exist with ReceivableId {}", transaction.id, reconcile.receivableId);
@@ -211,7 +211,7 @@ public class ReceivableProcessService {
         receivableService.updateById(receivable);
     }
 
-    private void initialReconcile(Transaction transaction, Long receivableId) {
+    private void initialReconcile(PaymentTransaction transaction, Long receivableId) {
         PayoutReconcile payoutReconcile = new PayoutReconcile();
         payoutReconcile.transactionId = transaction.id;
         payoutReconcile.status = ReconcileStatus.PENDING;
@@ -221,7 +221,7 @@ public class ReceivableProcessService {
         payoutReconcileService.save(payoutReconcile);
     }
 
-    private void calculateAmount(Receivable receivable, Transaction transaction, AcqRoute acqRoute) {
+    private void calculateAmount(Receivable receivable, PaymentTransaction transaction, AcqRoute acqRoute) {
         BigDecimal receivableRate = BigDecimal.ONE.subtract(acqRoute.mdrCost);
         switch (transaction.type) {
             case SALE:

@@ -7,8 +7,8 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import top.dtc.data.core.model.Transaction;
-import top.dtc.data.core.service.TransactionService;
+import top.dtc.data.core.model.PaymentTransaction;
+import top.dtc.data.core.service.PaymentTransactionService;
 import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.model.PayoutReconcile;
 import top.dtc.data.finance.model.Receivable;
@@ -39,7 +39,7 @@ public class AletaReconcileService {
     private ReceivableService receivableService;
 
     @Autowired
-    private TransactionService transactionService;
+    private PaymentTransactionService transactionService;
 
     @Autowired
     private AletaProperties aletaProperties;
@@ -82,7 +82,7 @@ public class AletaReconcileService {
             if (record.orderId == null || record.num == null) {
                 continue;
             }
-            Transaction transaction = transactionService.getById(Long.valueOf(record.orderId));
+            PaymentTransaction transaction = transactionService.getById(Long.valueOf(record.orderId));
             if (transaction == null) {
                 log.warn("Undefined transactionId {}", record.orderId);
                 continue;

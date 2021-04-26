@@ -4,12 +4,9 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.util.StringUtils;
-import top.dtc.data.core.service.TransactionService;
 import top.dtc.data.finance.enums.PayableStatus;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.service.PayableService;
-import top.dtc.data.finance.service.PayoutReconcileService;
-import top.dtc.data.finance.service.SettlementService;
 import top.dtc.settlement.exception.PayableException;
 
 import java.time.LocalDate;
@@ -22,15 +19,6 @@ public class PayableProcessService {
 
     @Autowired
     private PayableService payableService;
-
-    @Autowired
-    private SettlementService settlementService;
-
-    @Autowired
-    private PayoutReconcileService payoutReconcileService;
-
-    @Autowired
-    private TransactionService transactionService;
 
     public void createPayable(Payable payable) {
         payableService.save(payable);
