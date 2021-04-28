@@ -65,6 +65,7 @@ public class SilvergateInitConfig {
         webHooksRegisterReq.accountNumber = accountNumber;
         webHooksRegisterReq.webHookUrl = silvergateProperties.webHookUrl;
         webHooksRegisterReq.emails = silvergateProperties.webHookEmails;
+        webHooksRegisterReq.sms = silvergateProperties.webHookSms;
         WebHooksGetRegisterResp resp = silvergateApiService.webHooksRegister(webHooksRegisterReq);
         log.info("WebHook register Success, webHookId: {}", resp.webHookId);
     }

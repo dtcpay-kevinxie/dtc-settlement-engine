@@ -26,6 +26,8 @@ public class SilvergateProperties {
      */
     public String webHookEmails;
 
+    public String webHookSms;
+
     public String certificatePath;
 
     public String certificatePassword;

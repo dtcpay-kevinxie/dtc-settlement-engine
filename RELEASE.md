@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.24.0] - 28 Apr 2021
+
+* Added Silvergate Webhook SMS config 
+
 [0.23.0] - 23 Apr 2021
 
 * Change Transaction to PaymentTransaction
