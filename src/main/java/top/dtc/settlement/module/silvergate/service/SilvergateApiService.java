@@ -462,7 +462,7 @@ public class SilvergateApiService {
     }
 
     /**
-     *Creates a new webhook which sends notifications
+     * Creates a new webhook which sends notifications
      * via http post and/or email when a balance on a given account changes.
      */
     public WebHooksGetRegisterResp webHooksRegister(WebHooksRegisterReq webHooksRegisterReq)  {

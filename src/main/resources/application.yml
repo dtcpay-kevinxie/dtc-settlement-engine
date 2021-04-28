@@ -31,5 +31,6 @@ silvergate:
   trading-account-info: ${SILVERGATE_TRADING_ACCOUNT_INFO}
   web-hook-url: ${SILVERGATE_WEB_HOOK_URL}
   web-hook-emails: ${SILVERGATE_WEB_HOOK_EMAILS}
+  web-hook-sms: ${SILVERGATE_WEB_HOOK_SMS}
   certificate-path: ${SILVERGATE_CERTIFICATE_PATH}
   certificate-password: ${SILVERGATE_CERTIFICATE_PASSWORD}
