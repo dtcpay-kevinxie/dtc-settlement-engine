@@ -7,7 +7,7 @@
 [0.23.0] - 23 Apr 2021
 
 * Change Transaction to PaymentTransaction
-* Upgrade dtc-parent
+* Update dtc-parent & data-*
 
 [0.22.0] - 23 Apr 2021
 
