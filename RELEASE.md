@@ -4,6 +4,11 @@
 
 * Added Silvergate Webhook SMS config 
 
+[0.24.0] - 29 Apr 2021
+
+* Fix AccountHistory null bug
+* Add logs
+
 [0.23.0] - 23 Apr 2021
 
 * Change Transaction to PaymentTransaction
