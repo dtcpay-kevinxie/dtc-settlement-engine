@@ -115,5 +115,16 @@ public class SilvergateController {
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksRegisterResp);
     }
 
+    @GetMapping("/account/transfer-sen/{payableId}")
+    public ApiResponse<?> getAccountTransferSen(@PathVariable("payableId") Long payableId) {
+        log.info("account/transfer-sen request: {}", payableId);
+        try {
+            AccountTransferSenResp accountTransferSenResp = apiService.getAccountTransferSen(payableId);
+            log.info("account/transfer-sen response: {}", accountTransferSenResp);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountTransferSenResp);
+        } catch (Exception e) {
+            return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
+        }
+    }
 
 }

@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.25.0] - 10 May 2021
+
+* Silvergate TransferSEN API & WireDetail & WireSummary API reference
+
 [0.24.0] - 28 Apr 2021
 
 * Added Silvergate Webhook SMS config 

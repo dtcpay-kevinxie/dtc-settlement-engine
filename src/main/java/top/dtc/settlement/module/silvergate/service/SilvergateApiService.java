@@ -580,4 +580,91 @@ public class SilvergateApiService {
         }
     }
 
+    /**
+     * Queries and returns extensive wire record data. It can be used in conjunction with Wire summary
+     * or History calls once transaction number or unique identifier is known for a specific transaction.
+     * @param accountWireDetailReq
+     * @return
+     */
+    public AccountWireDetailResp getAccountWireDetail(AccountWireDetailReq accountWireDetailReq) {
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/wiredetail")
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountWireDetailReq.accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountWireDetailReq.accountNumber))
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", "/account/wiredetail", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/account/wiredetail", e));
+                });
+        log.info("response status: {}, \n response body: {}, \n response headers: {}",
+                response.getStatus(), response.getBody(), response.getHeaders());
+        String body = response.getBody();
+        if (response.getStatus() == HttpStatus.OK) {
+            return JSON.parseObject(body, AccountWireDetailResp.class);
+        }
+        return null;
+    }
+
+    /**
+     * Queries e-wire data and returns the resultant records.
+     * @param accountWireSummaryReq
+     * @return
+     */
+    public AccountWireSummaryResp getAccountWireSummary(AccountWireSummaryReq accountWireSummaryReq) {
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/wiresummary")
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountWireSummaryReq.accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountWireSummaryReq.accountNumber))
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", "/account/wiresummary", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/account/wiresummary", e));
+                });
+        log.info("response status: {}, \n response body: {}, \n response headers: {}",
+                response.getStatus(), response.getBody(), response.getHeaders());
+        String body = response.getBody();
+        if (response.getStatus() == HttpStatus.OK) {
+            return JSON.parseObject(body, AccountWireSummaryResp.class);
+        }
+        return null;
+    }
+
+    /**
+     * Transfer funds across the Silvergate Exchange Network to another client.
+     * @param payableId
+     * @return
+     */
+    public AccountTransferSenResp getAccountTransferSen(Long payableId) {
+        Payable payable = payableService.getById(payableId);
+        if (payable.status != PayableStatus.UNPAID || payable.remitInfoId == null) {
+            throw new ValidationException(INVALID_PAYABLE);
+        }
+        RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
+        AccountTransferSenReq accountTransferSenReq = new AccountTransferSenReq();
+        accountTransferSenReq.accountNumberFrom = getTransferAccountNumber(remitInfo);
+        accountTransferSenReq.accountNumberTo = remitInfo.beneficiaryAccount;
+        accountTransferSenReq.amount = payable.amount;
+
+        return getAccountTransferSen(accountTransferSenReq);
+    }
+
+    public AccountTransferSenResp getAccountTransferSen(AccountTransferSenReq accountTransferSenReq) {
+        log.info("request body: {}", JSON.toJSONString(accountTransferSenReq));
+        HttpResponse<String> response = unirest.post(silvergateProperties.apiUrlPrefix + "/account/transfersen")
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountTransferSenReq.accountNumberFrom))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountTransferSenReq.accountNumberFrom))
+                .body(accountTransferSenReq)
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", "/account/transfersen", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/account/transfersen", e));
+                });
+        log.info("response status: {}, \n response body: {}, \n response headers: {}",
+                response.getStatus(), response.getBody(), response.getHeaders());
+        String body = response.getBody();
+        if (response.getStatus() == HttpStatus.OK) {
+            return JSON.parseObject(body, AccountTransferSenResp.class);
+        }
+        return null;
+    }
+
+
 }
