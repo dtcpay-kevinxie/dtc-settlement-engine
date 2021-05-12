@@ -31,4 +31,14 @@ public class SilvergateConstant {
         public final static String TRADING = "TRADING";
     }
 
+    public static class PAYMENT_FLAG {
+        public final static String DEBIT = "D";
+        public final static String CREDIT = "C";
+    }
+
+    public static class TRANSACTION_DESC {
+        public final static String BENEFICIARY = "BENE";
+        public final static String ORIGINAL = "ORIG";
+    }
+
 }

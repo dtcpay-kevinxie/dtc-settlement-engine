@@ -426,7 +426,7 @@ public class OtcProcessService {
             payable.recipientAddressId = otc.recipientAddressId;
         } else if (otc.type == OtcType.SELLING) {
             // Receive crypto from client
-            KycWalletAddress recipientAddress = kycWalletAddressService.getById(otc.recipientAddressId);
+            KycWalletAddress recipientAddress = kycWalletAddressService.getDtcOpsAddress(otc.clientId, otc.item);
             receivable.bankName = recipientAddress.mainNet.desc;
             receivable.bankAccount = recipientAddress.address;
             receivable.currency = otc.item;

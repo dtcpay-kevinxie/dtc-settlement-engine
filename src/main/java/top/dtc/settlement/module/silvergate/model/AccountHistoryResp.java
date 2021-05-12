@@ -21,7 +21,7 @@ public class AccountHistoryResp {
     public List<Error> error;
 
     @Data
-    static class ResponseData {
+    public static class ResponseData {
         @JSONField(name = "RECS_RETURNED")
         public Integer recs_returned; //default: 0
         @JSONField(name = "MOREDATA")
@@ -31,7 +31,7 @@ public class AccountHistoryResp {
     }
 
     @Data
-    static class Transaction {
+    public static class Transaction {
         @JSONField(name = "TRANDATE")
         public String tranDate;
         @JSONField(name = "TRANCD")
@@ -93,7 +93,7 @@ public class AccountHistoryResp {
     }
 
     @Data
-    static class SenTransferResponse {
+    public static class SenTransferResponse {
         @JSONField(name = "CounterPartyAccountNumber")
         public String counterPartyAccountNumber;
         @JSONField(name = "Timestamp")
@@ -105,7 +105,7 @@ public class AccountHistoryResp {
     }
 
     @Data
-    static class Error {
+    public static class Error {
         @JSONField(name = "MESSAGEID")
         public String messageId;
         @JSONField(name = "MESSAGETYPE")

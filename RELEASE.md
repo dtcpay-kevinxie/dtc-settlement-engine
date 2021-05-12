@@ -4,6 +4,11 @@
 
 * Silvergate TransferSEN API & WireDetail & WireSummary API reference
 
+[0.25.0] - 07 May 2021
+
+* Add Silvergate log
+* Standardize Silvergate notification format
+
 [0.24.0] - 28 Apr 2021
 
 * Added Silvergate Webhook SMS config 
