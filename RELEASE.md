@@ -1,8 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.25.0] - 10 May 2021
+[0.25.0] - 18 May 2021
 
 * Silvergate TransferSEN API & WireDetail & WireSummary API reference
+* Standardize Silvergate Notification
 
 [0.25.0] - 07 May 2021
 
