@@ -15,6 +15,7 @@ import top.dtc.data.finance.enums.PayableStatus;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.RemitInfo;
 import top.dtc.data.finance.service.PayableService;
+import top.dtc.data.finance.service.ReceivableService;
 import top.dtc.data.finance.service.RemitInfoService;
 import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.constant.SettlementEngineRedisConstant;
@@ -25,6 +26,9 @@ import top.dtc.settlement.module.silvergate.model.*;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +42,7 @@ import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.A
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.ACCOUNT_TYPE.SEN;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.ACCOUNT_TYPE.TRADING;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.BANK_TYPE.SWIFT;
+import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.PAYMENT_FLAG.DEBIT;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.PAYMENT_STATUS.CANCELED;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.PAYMENT_STATUS.PRE_APPROVAL;
 
@@ -57,6 +62,9 @@ public class SilvergateApiService {
 
     @Autowired
     private PayableService payableService;
+
+    @Autowired
+    private ReceivableService receivableService;
 
     @Autowired
     private RemitInfoService remitInfoService;
@@ -150,17 +158,65 @@ public class SilvergateApiService {
     }
 
     public void notify(NotificationPost notificationPost) {
-        BigDecimal changedAmount = new BigDecimal(notificationPost.previousBalance).subtract(new BigDecimal(notificationPost.availableBalance));
-        NotificationSender
-                .by(SILVERGATE_FUND_RECEIVED)
-                .to(notificationProperties.financeRecipient)
-                .dataMap(Map.of(
-                        "account_number", notificationPost.accountNumber,
-                        "amount", changedAmount.toString(),
-                        "previous_balance", notificationPost.previousBalance,
-                        "available_balance", notificationPost.availableBalance
-                ))
-                .send();
+        BigDecimal previousAmount = new BigDecimal(notificationPost.previousBalance);
+        BigDecimal availableAmount = new BigDecimal(notificationPost.availableBalance);
+        BigDecimal changedAmount = availableAmount.subtract(previousAmount);
+        AccountHistoryReq accountHistoryReq = new AccountHistoryReq();
+        accountHistoryReq.accountNumber = notificationPost.accountNumber;
+        accountHistoryReq.beginDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        accountHistoryReq.endDate = LocalDate.now().plusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        log.info("AccountHistoryReq {}", accountHistoryReq);
+        AccountHistoryResp historyResp = this.getAccountHistory(accountHistoryReq);
+        StringBuilder transactionDetails = new StringBuilder();
+        if (historyResp.error != null
+                && historyResp.responseDataList != null
+                && historyResp.responseDataList.size() > 0
+                && historyResp.responseDataList.get(0).recs_returned > 0
+        ) {
+            List<AccountHistoryResp.Transaction> newTransactions = historyResp.responseDataList.get(0).transactionList.stream()
+                    .takeWhile(silvergateTxn -> new BigDecimal(silvergateTxn.currAvailbal).compareTo(previousAmount) == 0)
+                    .collect(Collectors.toList());
+            log.debug("New Transactions {}", newTransactions);
+            for (AccountHistoryResp.Transaction txn : newTransactions) {
+                transactionDetails
+                        .append("\n")
+                        .append(txn.tranDescS).append(" ")
+                        .append(txn.drcrFlag.equals(DEBIT) ? "Debit" : "Credit").append(" ")
+                        .append("Amount: ").append(new BigDecimal(txn.tranAmt).setScale(2, RoundingMode.UP)).append(" ")
+                ;
+            }
+            log.debug("Transaction Details {}", transactionDetails);
+            NotificationSender
+                    .by(SILVERGATE_BALANCE_CHANGED)
+                    .to(notificationProperties.financeRecipient)
+                    .dataMap(Map.of(
+                            "account_number", notificationPost.accountNumber,
+                            "amount", changedAmount.divide(new BigDecimal(100), 2, RoundingMode.UP).toString(),
+                            "previous_balance", previousAmount.divide(new BigDecimal(100), 2, RoundingMode.UP).toString(),
+                            "available_balance", availableAmount.divide(new BigDecimal(100), 2, RoundingMode.UP).toString(),
+                            "transaction_details", transactionDetails.toString()
+                    ))
+                    .send();
+            for (AccountHistoryResp.Transaction txn : newTransactions) {
+                AccountWireDetailReq accountWireDetailReq = new AccountWireDetailReq();
+                accountWireDetailReq.uniqueId = txn.uniqueId;
+                try {
+                    log.info("AccountWireDetailReq {}", accountWireDetailReq);
+                    this.getAccountWireDetail(accountWireDetailReq);
+                } catch (Exception e) {
+                    log.error("getAccountWireDetail Error", e);
+                }
+                AccountWireSummaryReq accountWireSummaryReq = new AccountWireSummaryReq();
+                accountWireSummaryReq.uniqueId = txn.uniqueId;
+                try {
+                    log.info("AccountWireSummaryReq {}", accountWireSummaryReq);
+                    this.getAccountWireSummary(accountWireSummaryReq);
+                } catch (Exception e) {
+                    log.error("getAccountWireSummary Error", e);
+                }
+            }
+        }
+
     }
 
     /**
@@ -383,6 +439,91 @@ public class SilvergateApiService {
        return null;
     }
 
+    /**
+     * Queries and returns extensive wire record data. It can be used in conjunction with Wire summary
+     * or History calls once transaction number or unique identifier is known for a specific transaction.
+     * @param accountWireDetailReq
+     * @return
+     */
+    public AccountWireDetailResp getAccountWireDetail(AccountWireDetailReq accountWireDetailReq) {
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/wiredetail")
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountWireDetailReq.accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountWireDetailReq.accountNumber))
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", "/account/wiredetail", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/account/wiredetail", e));
+                });
+        log.info("response status: {}, \n response body: {}, \n response headers: {}",
+                response.getStatus(), response.getBody(), response.getHeaders());
+        String body = response.getBody();
+        if (response.getStatus() == HttpStatus.OK) {
+            return JSON.parseObject(body, AccountWireDetailResp.class);
+        }
+        return null;
+    }
+
+    /**
+     * Queries e-wire data and returns the resultant records.
+     * @param accountWireSummaryReq
+     * @return
+     */
+    public AccountWireSummaryResp getAccountWireSummary(AccountWireSummaryReq accountWireSummaryReq) {
+        HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/wiresummary")
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountWireSummaryReq.accountNumber))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountWireSummaryReq.accountNumber))
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", "/account/wiresummary", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/account/wiresummary", e));
+                });
+        log.info("response status: {}, \n response body: {}, \n response headers: {}",
+                response.getStatus(), response.getBody(), response.getHeaders());
+        String body = response.getBody();
+        if (response.getStatus() == HttpStatus.OK) {
+            return JSON.parseObject(body, AccountWireSummaryResp.class);
+        }
+        return null;
+    }
+
+    /**
+     * Transfer funds across the Silvergate Exchange Network to another client.
+     * @param payableId
+     * @return
+     */
+    public AccountTransferSenResp getAccountTransferSen(Long payableId) {
+        Payable payable = payableService.getById(payableId);
+        if (payable.status != PayableStatus.UNPAID || payable.remitInfoId == null) {
+            throw new ValidationException(INVALID_PAYABLE);
+        }
+        RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
+        AccountTransferSenReq accountTransferSenReq = new AccountTransferSenReq();
+        accountTransferSenReq.accountNumberFrom = getTransferAccountNumber(remitInfo);
+        accountTransferSenReq.accountNumberTo = remitInfo.beneficiaryAccount;
+        accountTransferSenReq.amount = payable.amount;
+
+        return getAccountTransferSen(accountTransferSenReq);
+    }
+
+    public AccountTransferSenResp getAccountTransferSen(AccountTransferSenReq accountTransferSenReq) {
+        log.info("request body: {}", JSON.toJSONString(accountTransferSenReq));
+        HttpResponse<String> response = unirest.post(silvergateProperties.apiUrlPrefix + "/account/transfersen")
+                .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountTransferSenReq.accountNumberFrom))
+                .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountTransferSenReq.accountNumberFrom))
+                .body(accountTransferSenReq)
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", "/account/transfersen", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/account/transfersen", e));
+                });
+        log.info("response status: {}, \n response body: {}, \n response headers: {}",
+                response.getStatus(), response.getBody(), response.getHeaders());
+        String body = response.getBody();
+        if (response.getStatus() == HttpStatus.OK) {
+            return JSON.parseObject(body, AccountTransferSenResp.class);
+        }
+        return null;
+    }
 
     /**
      * Check wire payment status

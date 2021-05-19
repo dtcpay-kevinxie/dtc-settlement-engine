@@ -10,7 +10,7 @@ public class NotificationConstant {
         public static final String FUND_RECEIVED = "FUND_RECEIVED";
         public static final String SILVERGATE_PAY_CANCELLED = "SILVERGATE_PAY_CANCELLED";
         public static final String SILVERGATE_PAY_INITIAL = "SILVERGATE_PAY_INITIAL";
-        public static final String SILVERGATE_FUND_RECEIVED = "SILVERGATE_FUND_RECEIVED";
+        public static final String SILVERGATE_BALANCE_CHANGED = "SILVERGATE_BALANCE_CHANGED";
     }
 
 }
