@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.26.0] - 24 May 2021
+
+* Change blockchain scheduler logic
+
 [0.25.0] - 18 May 2021
 
 * Silvergate TransferSEN API & WireDetail & WireSummary API reference
