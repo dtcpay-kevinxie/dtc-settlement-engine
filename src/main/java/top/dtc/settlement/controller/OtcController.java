@@ -2,7 +2,6 @@ package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,7 +32,7 @@ public class OtcController {
     @Autowired
     private NotificationProperties notificationProperties;
 
-    @Scheduled(fixedDelay = 5 * 60 * 1000)
+    @PostMapping(value = "/scheduled/blockchain-screening")
     public void scheduledBlockchain() {
         try {
             log.debug("/scheduled-blockchain");

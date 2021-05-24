@@ -165,9 +165,9 @@ public class OtcProcessService {
                     break;
                 case BTC:
                     //TODO: Integrate with BTC explorer API
-                    break;
+                    continue;
                 default:
-                    break;
+                    continue;
             }
             kycWalletAddressService.updateById(dtcOpsAddress, "Etherscan", "Update last block height");
         }
