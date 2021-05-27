@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.27.0] - 24 May 2021
+
+* Fix etherscan verify ETH transaction bug
+
 [0.26.0] - 24 May 2021
 
 * Change blockchain scheduler logic

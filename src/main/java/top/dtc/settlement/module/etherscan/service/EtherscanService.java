@@ -37,15 +37,29 @@ public class EtherscanService {
             EtherscanTxnByHash respObject = JSON.parseObject(respStr.getBody(), EtherscanTxnByHash.class);
             if (respObject != null && respObject.result != null) {
                 String txnInput = respObject.result.input;
-                String methodId = txnInput.substring(0, 10);
-                String addressTo = txnInput.substring(10, 74).toLowerCase();
-                String value = txnInput.substring(74);
-                log.debug("methodId={} \n addressTo={} \n value={}", methodId, addressTo, value);
-                if (!addressTo.contains(recipientAddress.substring(2).toLowerCase())) { // remove "0x" from address
-                    throw new ValidationException("Transaction Recipient Unmatched");
-                }
-                if (new BigInteger(value, 16).compareTo(amount.multiply(new BigDecimal(1000000)).toBigInteger()) < 0) {
-                    throw new ValidationException("Amount from blockchain is smaller than write-off amount.");
+                if (txnInput.equals("0x")) {
+                    // ETH transaction
+                    String addressTo = respObject.result.to;
+                    String value = respObject.result.value.substring(2);
+                    log.debug("addressTo={} \n value={}", addressTo, value);
+                    if (!addressTo.contains(recipientAddress.toLowerCase())) { // remove "0x" from address
+                        throw new ValidationException("Transaction Recipient Unmatched");
+                    }
+                    if (new BigInteger(value, 16).compareTo(amount.multiply(BigDecimal.TEN.pow(18)).toBigInteger()) < 0) {
+                        throw new ValidationException("Amount from blockchain is smaller than write-off amount.");
+                    }
+                } else {
+                    // Other token (USDT, etc.) smart contract transaction in Ethereum
+                    String methodId = txnInput.substring(0, 10);
+                    String addressTo = txnInput.substring(10, 74).toLowerCase();
+                    String value = txnInput.substring(74);
+                    log.debug("methodId={} \n addressTo={} \n value={}", methodId, addressTo, value);
+                    if (!addressTo.contains(recipientAddress.substring(2).toLowerCase())) { // remove "0x" from address
+                        throw new ValidationException("Transaction Recipient Unmatched");
+                    }
+                    if (new BigInteger(value, 16).compareTo(amount.multiply(BigDecimal.TEN.pow(6)).toBigInteger()) < 0) {
+                        throw new ValidationException("Amount from blockchain is smaller than write-off amount.");
+                    }
                 }
                 return;
             }
