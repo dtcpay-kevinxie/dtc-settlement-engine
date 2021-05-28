@@ -1,6 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.27.0] - 24 May 2021
+[0.28.0] - 28 May 2021
+
+* Update data-* version
+* Remove ClientAccountProcessService
+
+[0.27.0] - 27 May 2021
 
 * Fix etherscan verify ETH transaction bug
 
