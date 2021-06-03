@@ -42,4 +42,9 @@ public class ApiHeaderConstant {
         public static final ApiHeader INVALID_TYPE = new ApiHeader("13002", "Invalid Payable Type");
         public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("13999", errMsg); }
     }
+
+    // STARTS WITH "14"
+    public static class CRYPTO_TXN {
+        public static ApiHeader OTHER_ERROR(String errMsg) {return new ApiHeader("14999", errMsg);}
+    }
 }

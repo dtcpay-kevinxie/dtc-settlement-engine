@@ -4,6 +4,8 @@
 
 * Update data-* version
 * Remove ClientAccountProcessService
+* Add cryptoTransaction withdraw logic reference  
+* Add a scheduler for Satoshi_Test status check
 
 [0.27.0] - 27 May 2021
 
