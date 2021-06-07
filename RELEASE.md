@@ -1,11 +1,15 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.29.0] - 07 Jun 2021
+
+* Add cryptoTransaction withdraw logic reference
+* Add a scheduler for Satoshi_Test status check
+* Withdraw-complete & withdraw-cancel & withdraw-request process
+
 [0.28.0] - 28 May 2021
 
 * Update data-* version
 * Remove ClientAccountProcessService
-* Add cryptoTransaction withdraw logic reference  
-* Add a scheduler for Satoshi_Test status check
 
 [0.27.0] - 27 May 2021
 

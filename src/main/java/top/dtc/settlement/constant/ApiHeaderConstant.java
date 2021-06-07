@@ -45,6 +45,7 @@ public class ApiHeaderConstant {
 
     // STARTS WITH "14"
     public static class CRYPTO_TXN {
+        public static ApiHeader NOT_EXIST = new ApiHeader("14001", "CryptoTransaction does not exist");
         public static ApiHeader OTHER_ERROR(String errMsg) {return new ApiHeader("14999", errMsg);}
     }
 }
