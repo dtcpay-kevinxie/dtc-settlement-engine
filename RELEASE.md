@@ -4,7 +4,7 @@
 
 * Add cryptoTransaction withdraw logic reference
 * Add a scheduler for Satoshi_Test status check
-* Remove Withdraw-complete & withdraw-cancel process
+* Remove Withdrawal-complete & withdrawal-cancel & withdrawal-request process
 
 [0.28.0] - 28 May 2021
 
