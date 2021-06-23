@@ -2,9 +2,7 @@ package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import top.dtc.settlement.service.CryptoTransactionProcessService;
 
 /**
@@ -24,6 +22,11 @@ public class CryptoTransactionController {
     public String scheduledPendingChecker() {
         cryptoTransactionProcessService.scheduledStatusChecker();
         return "SUCCESS";
+    }
+
+    @PostMapping("/notify")
+    public void notify(@RequestBody TransactionResult transactionResult) {
+        cryptoTransactionProcessService.notify(transactionResult);
     }
 
 }
