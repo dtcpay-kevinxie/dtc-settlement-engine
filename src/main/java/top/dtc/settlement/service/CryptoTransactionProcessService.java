@@ -5,15 +5,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
-import top.dtc.common.exception.ValidationException;
+import top.dtc.common.enums.MainNet;
 import top.dtc.data.core.model.CryptoTransaction;
 import top.dtc.data.core.service.CryptoTransactionService;
+import top.dtc.data.risk.enums.WalletAddressType;
 import top.dtc.data.risk.model.KycWalletAddress;
 import top.dtc.data.risk.service.KycWalletAddressService;
+import top.dtc.data.wallet.model.WalletAccount;
+import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.settlement.controller.TransactionResult;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @Log4j2
@@ -24,6 +29,12 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     KycWalletAddressService kycWalletAddressService;
+
+    @Autowired
+    KycCommonService kycCommonService;
+
+    @Autowired
+    WalletAccountService walletAccountService;
 
     public void scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
@@ -43,67 +54,108 @@ public class CryptoTransactionProcessService {
     }
 
     public void notify(TransactionResult transactionResult) {
-        if (validateTransactionResult(transactionResult)) {
-            //TODO if validated then send notification
-        }
-    }
-
-    private Boolean validateTransactionResult(TransactionResult transactionResult) {
         if (!transactionResult.success
-            || transactionResult.contracts == null
-            || transactionResult.contracts.size() < 1) {
-            return false;
+                || transactionResult.contracts == null
+                || transactionResult.contracts.size() < 1) {
+            log.error("Notify txn result invalid {}", transactionResult);
         }
-        CryptoTransaction cryptoTransaction = cryptoTransactionService.getOneByTxnHash(transactionResult.hash);
-        if (cryptoTransaction != null) {
-            switch(cryptoTransaction.type) {
-                case SATOSHI:
-                    return verifySatoshiTest(cryptoTransaction, transactionResult);
-                case TOP_UP:
-                    return verifyTopUp(cryptoTransaction, transactionResult);
-                default:
-                    return true;
-            }
+        CryptoTransaction existingTxn = cryptoTransactionService.getOneByTxnHash(transactionResult.hash);
+        if (existingTxn != null) {
+            log.debug("Transaction is linked to {}", existingTxn);
+            return;
         }
-        return true;
-    }
+        TransactionResult.ContractResult result = transactionResult.contracts.get(0);
+        MainNet mainNet;
+        String currency = result.name.toUpperCase(Locale.ROOT);
+        if (result.from.toLowerCase(Locale.ROOT).startsWith("0x")) {
+            mainNet = MainNet.ERC20;
+        } else if (result.from.startsWith("T")) {
+            mainNet = MainNet.TRC20;
+        } else {
+            log.error("Undefined address {}", result.from);
+            return;
+        }
+        // Validate recipient
+        KycWalletAddress recipientAddress = kycWalletAddressService.getOneByAddressAndCurrencyAndMainNet(result.to, currency, mainNet);
+        if (recipientAddress == null) {
+            log.error("Recipient address not found {}, txnHash {}", result.to, transactionResult.hash);
+            return;
+        } else if (recipientAddress.type != WalletAddressType.DTC_CLIENT_WALLET) {
+            log.error("Invalid recipient address type {}", recipientAddress);
+            return;
+        } else if (!recipientAddress.enabled) {
+            log.error("Recipient address is disabled {}", recipientAddress);
+            return;
+        }
+        // Validate sender
+        KycWalletAddress senderAddress = kycWalletAddressService.getOneByAddressAndCurrencyAndMainNet(result.from, currency, mainNet);
+        if (senderAddress == null
+                || senderAddress.type != WalletAddressType.CLIENT_OWN
+        ) {
+            log.error("Transaction not from whitelist address.");
+            return;
+        }
+        if (!senderAddress.ownerId.equals(recipientAddress.subId)) {
+            log.error("Whitelist address owner {} is different from Recipient address owner {}", senderAddress.ownerId, recipientAddress.subId);
+            //TODO: Send alert to Compliance
+            return;
+        }
+        Long clientId = senderAddress.ownerId;
+        try {
+            // Validate client status
+            kycCommonService.validateClientStatus(clientId);
+        } catch (Exception e) {
+            log.error("Invalid client status", e);
+            return;
+        }
+        // Validate wallet account
+        WalletAccount walletAccount = walletAccountService.getOneByClientIdAndCurrency(clientId, currency);
+        if (walletAccount == null) {
+            log.error("Wallet account is not activated.");
+            return;
+        }
 
-    private Boolean verifyTopUp(CryptoTransaction cryptoTransaction, TransactionResult transactionResult) {
-        if (transactionResult.contracts.get(0).amount.compareTo(cryptoTransaction.amount) != 0) {
-            throw new ValidationException("Invalid amount");
-        }
-        if (cryptoTransaction.senderAddressId != null) {
-            KycWalletAddress senderAddress = kycWalletAddressService.getById(cryptoTransaction.senderAddressId);
-            if (!transactionResult.contracts.get(0).from.equals(senderAddress.address)) {
-                throw new ValidationException("Invalid SenderAddress");
+        // Check whether is Satoshi test txn first
+        List<CryptoTransaction> satoshiTestList = cryptoTransactionService.getByParams(
+                null,
+                CryptoTransactionState.PENDING,
+                CryptoTransactionType.SATOSHI,
+                senderAddress.id,
+                recipientAddress.id,
+                currency,
+                mainNet,
+                null,
+                null
+        );
+        if (satoshiTestList != null && satoshiTestList.size() > 0) {
+            CryptoTransaction satoshiTest = satoshiTestList.get(0);
+            if (satoshiTest.amount.compareTo(result.amount) == 0) {
+                satoshiTest.state = CryptoTransactionState.COMPLETED;
+                cryptoTransactionService.updateById(satoshiTest);
+                senderAddress.enabled = true;
+                kycWalletAddressService.updateById(senderAddress, "dtc-settlement-engine", "Satoshi Test completed");
+                log.debug("Satoshi Test detected and completed");
+                return;
             }
         }
-        if (cryptoTransaction.recipientAddressId != null) {
-            KycWalletAddress recipientAddress = kycWalletAddressService.getById(cryptoTransaction.recipientAddressId);
-            if (!transactionResult.contracts.get(0).to.equals(recipientAddress.address)) {
-                throw new ValidationException("Invalid RecipientAddress");
-            }
-        }
-        return true;
-    }
-
-    private Boolean verifySatoshiTest(CryptoTransaction cryptoTransaction, TransactionResult transactionResult) {
-        if (cryptoTransaction.senderAddressId != null) {
-            KycWalletAddress senderAddress = kycWalletAddressService.getById(cryptoTransaction.senderAddressId);
-            if (!transactionResult.contracts.get(0).from.equals(senderAddress.address)) {
-                throw new ValidationException("Invalid SenderAddress");
-            }
-        }
-        if (transactionResult.contracts.get(0).amount.compareTo(cryptoTransaction.amount) != 0) {
-            throw new ValidationException("Invalid amount");
-        }
-        if (cryptoTransaction.recipientAddressId != null) {
-            KycWalletAddress recipientAddress = kycWalletAddressService.getById(cryptoTransaction.recipientAddressId);
-            if (!transactionResult.contracts.get(0).to.equals(recipientAddress.address)) {
-                throw new ValidationException("Invalid RecipientAddress");
-            }
-        }
-        return true;
+        CryptoTransaction cryptoTransaction = new CryptoTransaction();
+        cryptoTransaction.type = CryptoTransactionType.TOP_UP;
+        cryptoTransaction.state = CryptoTransactionState.COMPLETED;
+        cryptoTransaction.clientId = clientId;
+        cryptoTransaction.mainNet = mainNet;
+        cryptoTransaction.amount = result.amount;
+        cryptoTransaction.operator = "dtc-settlement-engine";
+        cryptoTransaction.currency = currency;
+        cryptoTransaction.senderAddressId = senderAddress.id;
+        cryptoTransaction.recipientAddressId = recipientAddress.id;
+        cryptoTransaction.txnHash = transactionResult.hash;
+        cryptoTransaction.gas = BigDecimal.ZERO;
+        cryptoTransaction.requestTimestamp = transactionResult.block.datetime;
+        cryptoTransactionService.save(cryptoTransaction);
+        // Update balance
+        walletAccount.balance = walletAccount.balance.add(cryptoTransaction.amount);
+        walletAccountService.updateById(walletAccount);
+        log.debug("Deposit detected and completed");
     }
 
 }

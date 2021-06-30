@@ -26,6 +26,7 @@ public class CryptoTransactionController {
 
     @PostMapping("/notify")
     public void notify(@RequestBody TransactionResult transactionResult) {
+        log.debug("crypto-transaction/notify {}", transactionResult);
         cryptoTransactionProcessService.notify(transactionResult);
     }
 
