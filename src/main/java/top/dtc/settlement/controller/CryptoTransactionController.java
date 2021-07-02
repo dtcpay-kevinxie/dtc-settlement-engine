@@ -2,7 +2,10 @@ package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import top.dtc.settlement.service.CryptoTransactionProcessService;
 
 /**
@@ -18,10 +21,14 @@ public class CryptoTransactionController {
     @Autowired
     CryptoTransactionProcessService cryptoTransactionProcessService;
 
-    @GetMapping("/scheduled-pending-checker")
-    public String scheduledPendingChecker() {
-        cryptoTransactionProcessService.scheduledStatusChecker();
-        return "SUCCESS";
+    @PostMapping("/scheduled/satoshi-pending-checker")
+    public void scheduledPendingChecker() {
+        try {
+            log.debug("/scheduled/satoshi-pending-checker");
+            cryptoTransactionProcessService.scheduledStatusChecker();
+        } catch (Exception e) {
+            log.error("Cannot process scheduled satoshi pending checker, {}", e.getMessage());
+        }
     }
 
     @PostMapping("/notify")
