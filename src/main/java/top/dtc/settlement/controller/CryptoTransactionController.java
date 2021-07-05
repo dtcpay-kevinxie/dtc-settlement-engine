@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import top.dtc.settlement.constant.ApiHeaderConstant;
+import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.CryptoTransactionProcessService;
 
 /**
@@ -22,13 +24,14 @@ public class CryptoTransactionController {
     CryptoTransactionProcessService cryptoTransactionProcessService;
 
     @PostMapping("/scheduled/satoshi-pending-checker")
-    public void scheduledPendingChecker() {
+    public ApiResponse<?> scheduledPendingChecker() {
         try {
             log.debug("/scheduled/satoshi-pending-checker");
             cryptoTransactionProcessService.scheduledStatusChecker();
         } catch (Exception e) {
             log.error("Cannot process scheduled satoshi pending checker, {}", e.getMessage());
         }
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
     }
 
     @PostMapping("/notify")
