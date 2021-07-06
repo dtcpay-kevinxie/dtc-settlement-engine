@@ -9,9 +9,11 @@ import top.dtc.common.core.data.config.EnableDataAspect;
 import top.dtc.data.core.core.config.EnableDataCore;
 import top.dtc.data.finance.core.config.EnableDataFinance;
 import top.dtc.data.risk.core.config.EnableDataRisk;
+import top.dtc.data.wallet.core.config.EnableDataWallet;
 
 @DtcApplication
 @EnableWeb
+@EnableDataWallet
 @EnableDataCore
 @EnableDataRisk
 @EnableDataFinance
