@@ -34,6 +34,17 @@ public class CryptoTransactionController {
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
     }
 
+    @PostMapping("/scheduled/auto-sweep")
+    public ApiResponse<?> scheduledSweep() {
+        try {
+            log.debug("/scheduled/auto-sweep");
+            cryptoTransactionProcessService.scheduledAutoSweep();
+        } catch (Exception e) {
+            log.error("Cannot process scheduled SWEEP walletAddress, {}", e.getMessage());
+        }
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    }
+
     @PostMapping("/notify")
     public void notify(@RequestBody TransactionResult transactionResult) {
         log.debug("crypto-transaction/notify {}", transactionResult);

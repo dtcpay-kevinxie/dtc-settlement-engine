@@ -20,4 +20,7 @@ public class HttpProperties {
     // Risk Engine http url
     public String riskEngineUrl;
 
+    // Crypto Engine http url
+    public String cryptoEngineUrl;
+
 }

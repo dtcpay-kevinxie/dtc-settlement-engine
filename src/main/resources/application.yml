@@ -12,6 +12,7 @@ aleta:
 http:
   schedulerUrl: ${HTTP_SCHEDULER_URL}
   riskEngineUrl: ${RISK_ENGINE_URL}
+  cryptoEngineUrl: ${CRYPTO_ENGINE_URL}
 
 notification:
   otc-agreed-recipient: ${NOTIFICATION_OTC_AGREED_RECIPIENT}

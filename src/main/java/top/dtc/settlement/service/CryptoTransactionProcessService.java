@@ -1,12 +1,20 @@
 package top.dtc.settlement.service;
 
+import com.alibaba.fastjson.JSON;
+import kong.unirest.GenericType;
+import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.MainNet;
+import top.dtc.common.model.crypto.CryptoBalance;
+import top.dtc.common.model.crypto.CryptoContractSend;
+import top.dtc.common.model.crypto.CryptoTransactionSend;
+import top.dtc.data.core.model.Config;
 import top.dtc.data.core.model.CryptoTransaction;
+import top.dtc.data.core.service.ConfigService;
 import top.dtc.data.core.service.CryptoTransactionService;
 import top.dtc.data.risk.enums.WalletAddressType;
 import top.dtc.data.risk.model.KycWalletAddress;
@@ -14,9 +22,12 @@ import top.dtc.data.risk.service.KycWalletAddressService;
 import top.dtc.data.wallet.model.WalletAccount;
 import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.settlement.controller.TransactionResult;
+import top.dtc.settlement.core.properties.HttpProperties;
+import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -35,6 +46,13 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     WalletAccountService walletAccountService;
+
+    @Autowired
+    HttpProperties httpProperties;
+
+    @Autowired
+    ConfigService configService;
+
 
     public void scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
@@ -155,7 +173,136 @@ public class CryptoTransactionProcessService {
         // Update balance
         walletAccount.balance = walletAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(walletAccount);
+        // sweep if amount exceeds the specific currency threshold
+        KycWalletAddress dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
+                cryptoTransaction.currency, cryptoTransaction.mainNet);
+        Config walletConfig = configService.getById(1L);
+        if (dtcOpsAddress != null) {
+            switch (cryptoTransaction.currency) {
+                case "USDT":
+                    if (cryptoTransaction.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
+                         sweep(cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
+                    }
+                    break;
+                case "ETH":
+                    if (cryptoTransaction.amount.compareTo(walletConfig.thresholdSweepEth) > 0) {
+                        sweep(cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
+                    }
+                    break;
+                case "BTC":
+                    if (cryptoTransaction.amount.compareTo(walletConfig.thresholdSweepBtc) > 0) {
+                        sweep(cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
+                    }
+                    break;
+            }
+        }
         log.debug("Deposit detected and completed");
+    }
+
+    /**
+     * Auto-sweep logic:
+     * 1.Retrieve all of DTC_ASSIGNED_WALLET addresses existing in our system
+     * 2.Inquiry each of addresses of its balance on chain
+     * 3.Compare the balances with each currency of its threshold
+     * 4.Transfer balance to DTC_OPS address
+     */
+    public void scheduledAutoSweep() {
+        kycWalletAddressService.getByParams(1L, null,
+                WalletAddressType.DTC_CLIENT_WALLET, null, null, Boolean.TRUE).forEach(senderAddress ->
+        {
+            // Inquiry chain's balances by calling crypto-engine balance API
+            ApiResponse<CryptoBalance> response = Unirest.get(
+                    httpProperties.cryptoEngineUrl + "/crypto/{netName}/balances/{address}/{force}")
+                    .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
+                    .routeParam("address", senderAddress.address)
+                    .routeParam("force", Boolean.TRUE + "")
+                    .asObject(new GenericType<ApiResponse<CryptoBalance>>() {
+                    })
+                    .getBody();
+            if (response == null ||
+                    !response.header.success
+                    || response.result == null) {
+                log.error("Call Crypto-engine Balance query API failed");
+            }
+            if (response != null && response.result != null) {
+                Config walletConfig = configService.getById(1L);
+                CryptoBalance balance = response.result;
+                autoSweep(senderAddress, walletConfig, balance);
+            }
+
+        });
+
+    }
+
+    private void autoSweep(KycWalletAddress senderAddress, Config walletConfig, CryptoBalance balance) {
+        switch(balance.coinName) {
+            case "USDT":
+                if (balance.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
+                    // If chain's amount bigger than configured threshold then do sweep
+                    KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
+                            senderAddress.currency, senderAddress.mainNet);
+                    if (recipientAddress != null) {
+                        sweep(balance.amount, senderAddress, recipientAddress);
+                    }
+                    log.error("DTC_OPS wallet address not added yet");
+                }
+                break;
+            case "ETH":
+                if (balance.amount.compareTo(walletConfig.thresholdSweepEth) > 0) {
+                    KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
+                            senderAddress.currency, senderAddress.mainNet);
+                    if (recipientAddress != null) {
+                        sweep(balance.amount, senderAddress, recipientAddress);
+                    }
+                    log.error("DTC_OPS wallet address not added yet");
+                }
+                break;
+            case "BTC":
+                if (balance.amount.compareTo(walletConfig.thresholdSweepBtc) > 0) {
+                    KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
+                            senderAddress.currency, senderAddress.mainNet);
+                    if (recipientAddress != null) {
+                        sweep(balance.amount, senderAddress, recipientAddress);
+                    }
+                    log.error("DTC_OPS wallet address not added yet");
+                }
+                break;
+        }
+    }
+
+    private void sweep(BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
+        CryptoTransactionSend cryptoTransactionSend = new CryptoTransactionSend();
+        cryptoTransactionSend.contracts = new ArrayList<>();
+        CryptoContractSend contract = new CryptoContractSend();
+        contract.amount = amount;
+        contract.to = recipientAddress.address;
+        contract.name = recipientAddress.currency;
+        contract.type = (recipientAddress.mainNet == MainNet.ERC20
+                && !recipientAddress.currency.equalsIgnoreCase("ETH")) ? "smart" : "transfer";
+        cryptoTransactionSend.contracts.add(contract);
+        String url = Unirest.post(httpProperties.cryptoEngineUrl
+                + "/crypto/{netName}/txn/send/{account}/{addressIndex}")
+                .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
+                .routeParam("account", "0")
+                .routeParam("addressIndex", senderAddress.id + "")
+                .body(cryptoTransactionSend)
+                .getUrl();
+        log.debug("Request url: {}", url);
+        ApiResponse<String> sendTxnResp = Unirest.post(httpProperties.cryptoEngineUrl
+                + "/crypto/{netName}/txn/send/{account}/{addressIndex}")
+                .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
+                .routeParam("account", "0")
+                .routeParam("addressIndex", senderAddress.id + "")
+                .body(cryptoTransactionSend)
+                .asObject(new GenericType<ApiResponse<String>>() {})
+                .getBody();
+        log.debug("Request Body: {}", JSON.toJSONString(cryptoTransactionSend));
+        if (sendTxnResp == null || sendTxnResp.header == null) {
+            log.error("Error when connecting crypto-engine");
+        } else if (!sendTxnResp.header.success) {
+            log.error(sendTxnResp.header.errMsg);
+        }
+        log.debug("Sweep txnHash: {}", sendTxnResp.result);
     }
 
 }
