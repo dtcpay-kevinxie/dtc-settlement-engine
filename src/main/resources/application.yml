@@ -10,7 +10,6 @@ aleta:
   localPath: ${ALETA_LOCAL_PATH}
 
 http:
-  scheduler-url-prefix: ${HTTP_SCHEDULER_URL_PREFIX}
   risk-engine-url-prefix: ${RISK_ENGINE_URL_PREFIX}
   crypto-engine-url-prefix: ${CRYPTO_ENGINE_URL_PREFIX}
 

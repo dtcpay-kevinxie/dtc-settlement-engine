@@ -11,12 +11,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "http")
 public class HttpProperties {
 
-    // Reconcile http url
-    public String reconcileUrlPrefix;
-
-    // Scheduler http url
-    public String schedulerUrlPrefix;
-
     // Risk Engine http url
     public String riskEngineUrlPrefix;
 
