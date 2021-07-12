@@ -12,15 +12,15 @@ import org.springframework.stereotype.Component;
 public class HttpProperties {
 
     // Reconcile http url
-    public String reconcileUrl;
+    public String reconcileUrlPrefix;
 
     // Scheduler http url
-    public String schedulerUrl;
+    public String schedulerUrlPrefix;
 
     // Risk Engine http url
-    public String riskEngineUrl;
+    public String riskEngineUrlPrefix;
 
     // Crypto Engine http url
-    public String cryptoEngineUrl;
+    public String cryptoEngineUrlPrefix;
 
 }

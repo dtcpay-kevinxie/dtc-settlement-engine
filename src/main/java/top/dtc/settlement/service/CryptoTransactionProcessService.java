@@ -212,7 +212,7 @@ public class CryptoTransactionProcessService {
         {
             // Inquiry chain's balances by calling crypto-engine balance API
             ApiResponse<CryptoBalance> response = Unirest.get(
-                    httpProperties.cryptoEngineUrl + "/crypto/{netName}/balances/{address}/{force}")
+                    httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
                     .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
                     .routeParam("address", senderAddress.address)
                     .routeParam("force", Boolean.TRUE + "")
@@ -222,7 +222,7 @@ public class CryptoTransactionProcessService {
             if (response == null ||
                     !response.header.success
                     || response.result == null) {
-                log.error("Call Crypto-engine Balance query API failed");
+                log.error("Call Crypto-engine Balance Query API Failed.");
             }
             if (response != null && response.result != null) {
                 Config walletConfig = configService.getById(1L);
@@ -280,7 +280,7 @@ public class CryptoTransactionProcessService {
         contract.type = (recipientAddress.mainNet == MainNet.ERC20
                 && !recipientAddress.currency.equalsIgnoreCase("ETH")) ? "smart" : "transfer";
         cryptoTransactionSend.contracts.add(contract);
-        String url = Unirest.post(httpProperties.cryptoEngineUrl
+        String url = Unirest.post(httpProperties.cryptoEngineUrlPrefix
                 + "/crypto/{netName}/txn/send/{account}/{addressIndex}")
                 .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
                 .routeParam("account", "0")
@@ -288,7 +288,7 @@ public class CryptoTransactionProcessService {
                 .body(cryptoTransactionSend)
                 .getUrl();
         log.debug("Request url: {}", url);
-        ApiResponse<String> sendTxnResp = Unirest.post(httpProperties.cryptoEngineUrl
+        ApiResponse<String> sendTxnResp = Unirest.post(httpProperties.cryptoEngineUrlPrefix
                 + "/crypto/{netName}/txn/send/{account}/{addressIndex}")
                 .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
                 .routeParam("account", "0")

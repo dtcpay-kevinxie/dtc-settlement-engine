@@ -391,7 +391,7 @@ public class OtcProcessService {
     private void registerTxn(Long addressId, String txnRef, boolean isReceivedTxn) {
         String path = String.format("/chainalysis/register/%s/{addressId}/{transactionHash}", isReceivedTxn ? "received-transaction" : "withdraw-transaction");
         try {
-            ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrl + path)
+            ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrlPrefix + path)
                     .routeParam("addressId", addressId +"")
                     .routeParam("transactionHash", txnRef)
                     .asObject(new GenericType<ApiResponse<String>>() {
