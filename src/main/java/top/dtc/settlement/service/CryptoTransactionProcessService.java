@@ -238,7 +238,6 @@ public class CryptoTransactionProcessService {
         for (CryptoBalance balance : balanceList) {
             switch(balance.coinName) {
                 case "USDT":
-                    log.debug("Enter USDT sweep process..");
                     if (balance.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
                         // If cryptoBalance amount bigger than sweep threshold then do sweep
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
@@ -250,7 +249,6 @@ public class CryptoTransactionProcessService {
                     }
                     break;
                 case "ETH":
-                    log.debug("Enter ETH sweep process..");
                     if (balance.amount.compareTo(walletConfig.thresholdSweepEth) > 0) {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
                                 senderAddress.currency, senderAddress.mainNet);
@@ -261,7 +259,6 @@ public class CryptoTransactionProcessService {
                     }
                     break;
                 case "BTC":
-                    log.debug("Enter BTC sweep process..");
                     if (balance.amount.compareTo(walletConfig.thresholdSweepBtc) > 0) {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
                                 senderAddress.currency, senderAddress.mainNet);
