@@ -220,52 +220,56 @@ public class CryptoTransactionProcessService {
                     .getBody();
             if (response == null ||
                     !response.header.success
-                    || response.result == null) {
+                    || response.result == null
+                    || response.resultList == null
+                    || response.resultList.size() < 1) {
                 log.error("Call Crypto-engine Balance Query API Failed.");
             }
-            if (response != null && response.result != null) {
+            if (response != null && response.resultList != null && response.resultList.size() > 0) {
                 Config walletConfig = configService.getById(1L);
-                CryptoBalance balance = response.result;
-                autoSweep(senderAddress, walletConfig, balance);
+                List<CryptoBalance> resultList = response.resultList;
+                autoSweep(senderAddress, walletConfig, resultList);
             }
 
         });
 
     }
 
-    private void autoSweep(KycWalletAddress senderAddress, Config walletConfig, CryptoBalance balance) {
-        switch(balance.coinName) {
-            case "USDT":
-                if (balance.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
-                    // If cryptoBalance amount bigger than sweep threshold then do sweep
-                    KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
-                            senderAddress.currency, senderAddress.mainNet);
-                    if (recipientAddress != null) {
-                        sweep(balance.amount, senderAddress, recipientAddress);
+    private void autoSweep(KycWalletAddress senderAddress, Config walletConfig, List<CryptoBalance> balanceList) {
+        for (CryptoBalance balance : balanceList) {
+            switch(balance.coinName) {
+                case "USDT":
+                    if (balance.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
+                        // If cryptoBalance amount bigger than sweep threshold then do sweep
+                        KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
+                                senderAddress.currency, senderAddress.mainNet);
+                        if (recipientAddress != null) {
+                            sweep(balance.amount, senderAddress, recipientAddress);
+                        }
+                        log.error("DTC_OPS wallet address not added yet");
                     }
-                    log.error("DTC_OPS wallet address not added yet");
-                }
-                break;
-            case "ETH":
-                if (balance.amount.compareTo(walletConfig.thresholdSweepEth) > 0) {
-                    KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
-                            senderAddress.currency, senderAddress.mainNet);
-                    if (recipientAddress != null) {
-                        sweep(balance.amount, senderAddress, recipientAddress);
+                    break;
+                case "ETH":
+                    if (balance.amount.compareTo(walletConfig.thresholdSweepEth) > 0) {
+                        KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
+                                senderAddress.currency, senderAddress.mainNet);
+                        if (recipientAddress != null) {
+                            sweep(balance.amount, senderAddress, recipientAddress);
+                        }
+                        log.error("DTC_OPS wallet address not added yet");
                     }
-                    log.error("DTC_OPS wallet address not added yet");
-                }
-                break;
-            case "BTC":
-                if (balance.amount.compareTo(walletConfig.thresholdSweepBtc) > 0) {
-                    KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
-                            senderAddress.currency, senderAddress.mainNet);
-                    if (recipientAddress != null) {
-                        sweep(balance.amount, senderAddress, recipientAddress);
+                    break;
+                case "BTC":
+                    if (balance.amount.compareTo(walletConfig.thresholdSweepBtc) > 0) {
+                        KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
+                                senderAddress.currency, senderAddress.mainNet);
+                        if (recipientAddress != null) {
+                            sweep(balance.amount, senderAddress, recipientAddress);
+                        }
+                        log.error("DTC_OPS wallet address not added yet");
                     }
-                    log.error("DTC_OPS wallet address not added yet");
-                }
-                break;
+                    break;
+            }
         }
     }
 
