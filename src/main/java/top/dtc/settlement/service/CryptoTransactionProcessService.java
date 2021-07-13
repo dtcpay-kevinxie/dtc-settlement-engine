@@ -220,7 +220,6 @@ public class CryptoTransactionProcessService {
                     .getBody();
             if (response == null ||
                     !response.header.success
-                    || response.result == null
                     || response.resultList == null
                     || response.resultList.size() < 1) {
                 log.error("Call Crypto-engine Balance Query API Failed.");
