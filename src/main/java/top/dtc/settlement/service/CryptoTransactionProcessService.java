@@ -27,9 +27,7 @@ import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 @Service
 @Log4j2
@@ -210,12 +208,14 @@ public class CryptoTransactionProcessService {
         kycWalletAddressService.getByParams(1L, null,
                 WalletAddressType.DTC_CLIENT_WALLET, null, null, Boolean.TRUE).forEach(senderAddress ->
         {
-            // Inquiry chain's balances by calling crypto-engine balance API
+            Map<String, Object> routeMap = new HashMap<>();
+            routeMap.put("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT));
+            routeMap.put("address", senderAddress.address);
+            routeMap.put("force", Boolean.TRUE);
+            // Inquiry balance by calling crypto-engine balance API
             ApiResponse<CryptoBalance> response = Unirest.get(
                     httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
-                    .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
-                    .routeParam("address", senderAddress.address)
-                    .routeParam("force", Boolean.TRUE + "")
+                    .routeParam(routeMap)
                     .asObject(new GenericType<ApiResponse<CryptoBalance>>() {
                     })
                     .getBody();
@@ -238,7 +238,7 @@ public class CryptoTransactionProcessService {
         switch(balance.coinName) {
             case "USDT":
                 if (balance.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
-                    // If chain's amount bigger than configured threshold then do sweep
+                    // If cryptoBalance amount bigger than sweep threshold then do sweep
                     KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
                             senderAddress.currency, senderAddress.mainNet);
                     if (recipientAddress != null) {
