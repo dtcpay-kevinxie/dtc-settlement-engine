@@ -27,7 +27,9 @@ import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 @Service
 @Log4j2
@@ -208,14 +210,11 @@ public class CryptoTransactionProcessService {
         kycWalletAddressService.getByParams(1L, null,
                 WalletAddressType.DTC_CLIENT_WALLET, null, null, Boolean.TRUE).forEach(senderAddress ->
         {
-            Map<String, Object> routeMap = new HashMap<>();
-            routeMap.put("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT));
-            routeMap.put("address", senderAddress.address);
-            routeMap.put("force", Boolean.TRUE);
             // Inquiry balance by calling crypto-engine balance API
             ApiResponse<CryptoBalance> response = Unirest.get(
-                    httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
-                    .routeParam(routeMap)
+                    httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}")
+                    .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
+                    .routeParam("address", senderAddress.address)
                     .asObject(new GenericType<ApiResponse<CryptoBalance>>() {
                     })
                     .getBody();

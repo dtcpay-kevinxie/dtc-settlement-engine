@@ -41,6 +41,7 @@ public class CryptoTransactionController {
             cryptoTransactionProcessService.scheduledAutoSweep();
         } catch (Exception e) {
             log.error("Cannot process scheduled SWEEP walletAddress, {}", e.getMessage());
+            return new ApiResponse<>(ApiHeaderConstant.CRYPTO_TRANSACTION.OTHER_ERROR(e.getMessage()));
         }
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
     }
