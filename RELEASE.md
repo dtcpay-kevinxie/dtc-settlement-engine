@@ -4,6 +4,7 @@
 
 * Add the scheduler for auto-sweep logic 
 * Add the sweep logic when deposit amount exceeds sweepThreshold
+* Update dtc-parent dep version
 
 [0.29.0] - 07 Jul 2021
 

@@ -278,7 +278,7 @@ public class CryptoTransactionProcessService {
         CryptoContractSend contract = new CryptoContractSend();
         contract.amount = amount;
         contract.to = recipientAddress.address;
-        contract.name = recipientAddress.currency;
+        contract.coinName = recipientAddress.currency;
         contract.type = (recipientAddress.mainNet == MainNet.ERC20
                 && !recipientAddress.currency.equalsIgnoreCase("ETH")) ? "smart" : "transfer";
         cryptoTransactionSend.contracts.add(contract);
