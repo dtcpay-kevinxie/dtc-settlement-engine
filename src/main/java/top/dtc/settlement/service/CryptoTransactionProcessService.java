@@ -212,9 +212,10 @@ public class CryptoTransactionProcessService {
         {
             // Inquiry balance by calling crypto-engine balance API
             ApiResponse<CryptoBalance> response = Unirest.get(
-                    httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}")
+                    httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
                     .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
                     .routeParam("address", senderAddress.address)
+                    .routeParam("force", Boolean.TRUE + "")
                     .asObject(new GenericType<ApiResponse<CryptoBalance>>() {
                     })
                     .getBody();
