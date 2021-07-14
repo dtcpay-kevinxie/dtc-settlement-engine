@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import top.dtc.common.model.crypto.CryptoTransactionResult;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.CryptoTransactionProcessService;
@@ -47,7 +48,7 @@ public class CryptoTransactionController {
     }
 
     @PostMapping("/notify")
-    public void notify(@RequestBody TransactionResult transactionResult) {
+    public void notify(@RequestBody CryptoTransactionResult transactionResult) {
         log.debug("crypto-transaction/notify {}", transactionResult);
         cryptoTransactionProcessService.notify(transactionResult);
     }

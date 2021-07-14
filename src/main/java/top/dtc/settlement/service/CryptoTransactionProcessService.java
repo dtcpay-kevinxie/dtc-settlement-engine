@@ -9,9 +9,7 @@ import org.springframework.stereotype.Service;
 import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.MainNet;
-import top.dtc.common.model.crypto.CryptoBalance;
-import top.dtc.common.model.crypto.CryptoContractSend;
-import top.dtc.common.model.crypto.CryptoTransactionSend;
+import top.dtc.common.model.crypto.*;
 import top.dtc.data.core.model.Config;
 import top.dtc.data.core.model.CryptoTransaction;
 import top.dtc.data.core.service.ConfigService;
@@ -21,7 +19,6 @@ import top.dtc.data.risk.model.KycWalletAddress;
 import top.dtc.data.risk.service.KycWalletAddressService;
 import top.dtc.data.wallet.model.WalletAccount;
 import top.dtc.data.wallet.service.WalletAccountService;
-import top.dtc.settlement.controller.TransactionResult;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.model.api.ApiResponse;
 
@@ -71,7 +68,7 @@ public class CryptoTransactionProcessService {
         });
     }
 
-    public void notify(TransactionResult transactionResult) {
+    public void notify(CryptoTransactionResult transactionResult) {
         if (!transactionResult.success
                 || transactionResult.contracts == null
                 || transactionResult.contracts.size() < 1) {
@@ -82,9 +79,9 @@ public class CryptoTransactionProcessService {
             log.debug("Transaction is linked to {}", existingTxn);
             return;
         }
-        TransactionResult.ContractResult result = transactionResult.contracts.get(0);
+        CryptoContractResult result = transactionResult.contracts.get(0);
         MainNet mainNet;
-        String currency = result.name.toUpperCase(Locale.ROOT);
+        String currency = result.coinName.toUpperCase(Locale.ROOT);
         if (result.from.toLowerCase(Locale.ROOT).startsWith("0x")) {
             mainNet = MainNet.ERC20;
         } else if (result.from.startsWith("T")) {
