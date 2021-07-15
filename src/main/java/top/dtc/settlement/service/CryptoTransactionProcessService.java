@@ -95,18 +95,13 @@ public class CryptoTransactionProcessService {
         if (recipientAddress == null) {
             log.error("Recipient address not found {}, txnHash {}", result.to, transactionResult.hash);
             return;
-        } else if (recipientAddress.type != WalletAddressType.DTC_CLIENT_WALLET) {
-            log.error("Invalid recipient address type {}", recipientAddress);
-            return;
         } else if (!recipientAddress.enabled) {
             log.error("Recipient address is disabled {}", recipientAddress);
             return;
         }
         // Validate sender
         KycWalletAddress senderAddress = kycWalletAddressService.getOneByAddressAndCurrencyAndMainNet(result.from, currency, mainNet);
-        if (senderAddress == null
-                || senderAddress.type != WalletAddressType.CLIENT_OWN
-        ) {
+        if (senderAddress == null) {
             log.error("Transaction not from whitelist address.");
             return;
         }
@@ -129,32 +124,48 @@ public class CryptoTransactionProcessService {
             log.error("Wallet account is not activated.");
             return;
         }
-
-        // Check whether is Satoshi test txn first
-        List<CryptoTransaction> satoshiTestList = cryptoTransactionService.getByParams(
-                null,
-                CryptoTransactionState.PENDING,
-                CryptoTransactionType.SATOSHI,
-                senderAddress.id,
-                recipientAddress.id,
-                currency,
-                mainNet,
-                null,
-                null
-        );
-        if (satoshiTestList != null && satoshiTestList.size() > 0) {
-            CryptoTransaction satoshiTest = satoshiTestList.get(0);
-            if (satoshiTest.amount.compareTo(result.amount) == 0) {
-                satoshiTest.state = CryptoTransactionState.COMPLETED;
-                cryptoTransactionService.updateById(satoshiTest);
-                senderAddress.enabled = true;
-                kycWalletAddressService.updateById(senderAddress, "dtc-settlement-engine", "Satoshi Test completed");
-                log.debug("Satoshi Test detected and completed");
-                return;
+        // satoshi-test or deposit
+        if (senderAddress.type == WalletAddressType.CLIENT_OWN
+                && recipientAddress.type == WalletAddressType.DTC_CLIENT_WALLET
+        ) {
+            // Check whether is Satoshi test txn first
+            List<CryptoTransaction> satoshiTestList = cryptoTransactionService.getByParams(
+                    null,
+                    CryptoTransactionState.PENDING,
+                    CryptoTransactionType.SATOSHI,
+                    senderAddress.id,
+                    recipientAddress.id,
+                    currency,
+                    mainNet,
+                    null,
+                    null
+            );
+            if (satoshiTestList != null && satoshiTestList.size() > 0) {
+                CryptoTransaction satoshiTest = satoshiTestList.get(0);
+                if (satoshiTest.amount.compareTo(result.amount) == 0) {
+                    satoshiTest.state = CryptoTransactionState.COMPLETED;
+                    cryptoTransactionService.updateById(satoshiTest);
+                    senderAddress.enabled = true;
+                    kycWalletAddressService.updateById(senderAddress, "dtc-settlement-engine", "Satoshi Test completed");
+                    log.debug("Satoshi Test detected and completed");
+                    return;
+                }
             }
+            handleDeposit(transactionResult, result, mainNet, currency, recipientAddress, senderAddress, clientId, walletAccount);
+            log.debug("Deposit detected and completed");
+        } else if (senderAddress.type == WalletAddressType.DTC_CLIENT_WALLET
+                && recipientAddress.type == WalletAddressType.DTC_OPS
+        ) {
+            // Sweep
+            handleDeposit(transactionResult, result, mainNet, currency, recipientAddress, senderAddress, clientId, walletAccount);
+            log.debug("Sweep detected and completed");
         }
+
+    }
+
+    private void handleDeposit(CryptoTransactionResult transactionResult, CryptoContractResult result, MainNet mainNet, String currency, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, Long clientId, WalletAccount walletAccount) {
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
-        cryptoTransaction.type = CryptoTransactionType.TOP_UP;
+        cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
         cryptoTransaction.clientId = clientId;
         cryptoTransaction.mainNet = mainNet;
@@ -178,7 +189,7 @@ public class CryptoTransactionProcessService {
             switch (cryptoTransaction.currency) {
                 case "USDT":
                     if (cryptoTransaction.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
-                         sweep(cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
+                        sweep(cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
                     }
                     break;
                 case "ETH":
@@ -193,7 +204,6 @@ public class CryptoTransactionProcessService {
                     break;
             }
         }
-        log.debug("Deposit detected and completed");
     }
 
     /**
