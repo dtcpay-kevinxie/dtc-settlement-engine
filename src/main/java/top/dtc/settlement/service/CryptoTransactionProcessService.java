@@ -151,19 +151,19 @@ public class CryptoTransactionProcessService {
                     return;
                 }
             }
-            handleDeposit(transactionResult, result, mainNet, currency, recipientAddress, senderAddress, clientId, walletAccount);
+            handleDeposit(transactionResult, result, mainNet, currency, recipientAddress, senderAddress, clientId, walletAccount, Boolean.TRUE);
             log.debug("Deposit detected and completed");
         } else if (senderAddress.type == WalletAddressType.DTC_CLIENT_WALLET
                 && recipientAddress.type == WalletAddressType.DTC_OPS
         ) {
             // Sweep
-            handleDeposit(transactionResult, result, mainNet, currency, recipientAddress, senderAddress, clientId, walletAccount);
+            handleDeposit(transactionResult, result, mainNet, currency, recipientAddress, senderAddress, clientId, walletAccount, Boolean.FALSE);
             log.debug("Sweep detected and completed");
         }
 
     }
 
-    private void handleDeposit(CryptoTransactionResult transactionResult, CryptoContractResult result, MainNet mainNet, String currency, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, Long clientId, WalletAccount walletAccount) {
+    private void handleDeposit(CryptoTransactionResult transactionResult, CryptoContractResult result, MainNet mainNet, String currency, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, Long clientId, WalletAccount walletAccount, Boolean checkSweep) {
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
@@ -181,6 +181,13 @@ public class CryptoTransactionProcessService {
         // Update balance
         walletAccount.balance = walletAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(walletAccount);
+        // If it is sweep then skip process below
+        if (checkSweep) {
+            handleSweep(recipientAddress, cryptoTransaction);
+        }
+    }
+
+    private void handleSweep(KycWalletAddress recipientAddress, CryptoTransaction cryptoTransaction) {
         // sweep if amount exceeds the specific currency threshold
         KycWalletAddress dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
                 cryptoTransaction.currency, cryptoTransaction.mainNet);
