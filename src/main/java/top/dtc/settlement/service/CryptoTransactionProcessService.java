@@ -105,11 +105,6 @@ public class CryptoTransactionProcessService {
             log.error("Transaction not from whitelist address.");
             return;
         }
-        if (!senderAddress.ownerId.equals(recipientAddress.subId)) {
-            log.error("Whitelist address owner {} is different from Recipient address owner {}", senderAddress.ownerId, recipientAddress.subId);
-            //TODO: Send alert to Compliance
-            return;
-        }
         Long clientId = senderAddress.ownerId;
         try {
             // Validate client status
@@ -128,6 +123,11 @@ public class CryptoTransactionProcessService {
         if (senderAddress.type == WalletAddressType.CLIENT_OWN
                 && recipientAddress.type == WalletAddressType.DTC_CLIENT_WALLET
         ) {
+            if (!senderAddress.ownerId.equals(recipientAddress.subId)) {
+                log.error("Whitelist address owner {} is different from Recipient address owner {}", senderAddress.ownerId, recipientAddress.subId);
+                //TODO: Send alert to Compliance
+                return;
+            }
             // Check whether is Satoshi test txn first
             List<CryptoTransaction> satoshiTestList = cryptoTransactionService.getByParams(
                     null,
