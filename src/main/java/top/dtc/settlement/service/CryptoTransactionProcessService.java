@@ -94,16 +94,19 @@ public class CryptoTransactionProcessService {
         // Validate recipient
         KycWalletAddress recipientAddress = kycWalletAddressService.getOneByAddressAndCurrencyAndMainNet(result.to, currency, mainNet);
         if (recipientAddress == null) {
+            //TODO: Alert to IT Security, fund was sent out from DTC_CLIENT_WALLET to an undefined address.
             log.error("Recipient address not found {}, txnHash {}", result.to, transactionResult.hash);
             return;
         } else if (!recipientAddress.enabled) {
+            //TODO: Alert to Ops Team, fund was sent to a disabled address.
             log.error("Recipient address is disabled {}", recipientAddress);
             return;
         }
         // Validate sender
         KycWalletAddress senderAddress = kycWalletAddressService.getOneByAddressAndCurrencyAndMainNet(result.from, currency, mainNet);
         if (senderAddress == null) {
-            log.error("Transaction not from whitelist address.");
+            //TODO: Alert to Ops Team and Compliance Team, received fund from undefined address.
+            log.error("Transaction sent from undefined address.");
             return;
         }
         Long clientId = senderAddress.ownerId;
@@ -111,6 +114,7 @@ public class CryptoTransactionProcessService {
             // Validate client status
             kycCommonService.validateClientStatus(clientId);
         } catch (Exception e) {
+            //TODO: Alert to Ops Team and Compliance Team, received fund from inactivated client.
             log.error("Invalid client status", e);
             return;
         }
@@ -120,13 +124,12 @@ public class CryptoTransactionProcessService {
             log.error("Wallet account is not activated.");
             return;
         }
-        // satoshi-test or deposit
         if (senderAddress.type == WalletAddressType.CLIENT_OWN
                 && recipientAddress.type == WalletAddressType.DTC_CLIENT_WALLET
-        ) {
+        ) { // satoshi-test or deposit
             if (!senderAddress.ownerId.equals(recipientAddress.subId)) {
-                log.error("Whitelist address owner {} is different from Recipient address owner {}", senderAddress.ownerId, recipientAddress.subId);
                 //TODO: Send alert to Compliance
+                log.error("Whitelist address owner {} is different from Recipient address owner {}", senderAddress.ownerId, recipientAddress.subId);
                 return;
             }
             // Check whether is Satoshi test txn first
@@ -148,23 +151,21 @@ public class CryptoTransactionProcessService {
                     cryptoTransactionService.updateById(satoshiTest);
                     senderAddress.enabled = true;
                     kycWalletAddressService.updateById(senderAddress, "dtc-settlement-engine", "Satoshi Test completed");
-                    log.debug("Satoshi Test detected and completed");
                     return;
                 }
             }
-            handleDeposit(transactionResult, result, mainNet, currency, recipientAddress, senderAddress, clientId, walletAccount, Boolean.TRUE);
-            log.debug("Deposit detected and completed");
+            // If it is not Satoshi Test, process as Deposit
+            handleDeposit(transactionResult, result, mainNet, currency, recipientAddress, senderAddress, clientId, walletAccount);
         } else if (senderAddress.type == WalletAddressType.DTC_CLIENT_WALLET
                 && recipientAddress.type == WalletAddressType.DTC_OPS
-        ) {
-            // Sweep
-            handleDeposit(transactionResult, result, mainNet, currency, recipientAddress, senderAddress, clientId, walletAccount, Boolean.FALSE);
+        ) { // Sweep
             log.debug("Sweep detected and completed");
+            //TODO: Inform Ops Team / Trader, fund has been collected to DTC_OPS address
         }
-
     }
 
-    private void handleDeposit(CryptoTransactionResult transactionResult, CryptoContractResult result, MainNet mainNet, String currency, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, Long clientId, WalletAccount walletAccount, Boolean checkSweep) {
+    private void handleDeposit(CryptoTransactionResult transactionResult, CryptoContractResult result, MainNet mainNet, String currency, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, Long clientId, WalletAccount walletAccount) {
+        log.debug("Deposit detected and completed");
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
@@ -182,10 +183,7 @@ public class CryptoTransactionProcessService {
         // Update balance
         walletAccount.balance = walletAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(walletAccount);
-        // If it is sweep then skip process below
-        if (checkSweep) {
-            handleSweep(recipientAddress, cryptoTransaction);
-        }
+        handleSweep(recipientAddress, cryptoTransaction);
     }
 
     private void handleSweep(KycWalletAddress recipientAddress, CryptoTransaction cryptoTransaction) {
