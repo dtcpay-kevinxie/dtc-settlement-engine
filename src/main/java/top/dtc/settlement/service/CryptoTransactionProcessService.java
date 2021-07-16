@@ -2,6 +2,7 @@ package top.dtc.settlement.service;
 
 import com.alibaba.fastjson.JSON;
 import kong.unirest.GenericType;
+import kong.unirest.RequestBodyEntity;
 import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -297,21 +298,15 @@ public class CryptoTransactionProcessService {
         contract.type = (recipientAddress.mainNet == MainNet.ERC20
                 && !recipientAddress.currency.equalsIgnoreCase("ETH")) ? "smart" : "transfer";
         cryptoTransactionSend.contracts.add(contract);
-        String url = Unirest.post(httpProperties.cryptoEngineUrlPrefix
+        RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.cryptoEngineUrlPrefix
                 + "/crypto/{netName}/txn/send/{account}/{addressIndex}")
                 .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
                 .routeParam("account", "0")
                 .routeParam("addressIndex", senderAddress.id + "")
-                .body(cryptoTransactionSend)
-                .getUrl();
-        log.debug("Request url: {}", url);
-        ApiResponse<String> sendTxnResp = Unirest.post(httpProperties.cryptoEngineUrlPrefix
-                + "/crypto/{netName}/txn/send/{account}/{addressIndex}")
-                .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
-                .routeParam("account", "0")
-                .routeParam("addressIndex", senderAddress.id + "")
-                .body(cryptoTransactionSend)
-                .asObject(new GenericType<ApiResponse<String>>() {})
+                .body(cryptoTransactionSend);
+        log.debug("Request url: {}", requestBodyEntity.getUrl());
+        ApiResponse<String> sendTxnResp = requestBodyEntity.asObject(
+                new GenericType<ApiResponse<String>>() {})
                 .getBody();
         log.debug("Request Body: {}", JSON.toJSONString(cryptoTransactionSend));
         if (sendTxnResp == null || sendTxnResp.header == null) {
