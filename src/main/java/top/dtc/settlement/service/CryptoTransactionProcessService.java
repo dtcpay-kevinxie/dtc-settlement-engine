@@ -92,7 +92,7 @@ public class CryptoTransactionProcessService {
             return;
         }
         // Validate recipient
-        KycWalletAddress recipientAddress = kycWalletAddressService.getOneByAddressAndCurrencyAndMainNet(result.to, currency, mainNet);
+        KycWalletAddress recipientAddress = kycWalletAddressService.getEnabledAddress(result.to);
         if (recipientAddress == null) {
             //TODO: Alert to IT Security, fund was sent out from DTC_CLIENT_WALLET to an undefined address.
             log.error("Recipient address not found {}, txnHash {}", result.to, transactionResult.hash);
@@ -103,7 +103,7 @@ public class CryptoTransactionProcessService {
             return;
         }
         // Validate sender
-        KycWalletAddress senderAddress = kycWalletAddressService.getOneByAddressAndCurrencyAndMainNet(result.from, currency, mainNet);
+        KycWalletAddress senderAddress = kycWalletAddressService.getEnabledAddress(result.from);
         if (senderAddress == null) {
             //TODO: Alert to Ops Team and Compliance Team, received fund from undefined address.
             log.error("Transaction sent from undefined address.");
@@ -188,26 +188,26 @@ public class CryptoTransactionProcessService {
 
     private void handleSweep(KycWalletAddress recipientAddress, CryptoTransaction cryptoTransaction) {
         // sweep if amount exceeds the specific currency threshold
-        KycWalletAddress dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
-                cryptoTransaction.currency, cryptoTransaction.mainNet);
+        KycWalletAddress dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, cryptoTransaction.mainNet);
         Config walletConfig = configService.getById(1L);
+        BigDecimal threshold;
         if (dtcOpsAddress != null) {
             switch (cryptoTransaction.currency) {
                 case "USDT":
-                    if (cryptoTransaction.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
-                        sweep(cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
-                    }
+                    threshold = walletConfig.thresholdSweepUsdt;
                     break;
                 case "ETH":
-                    if (cryptoTransaction.amount.compareTo(walletConfig.thresholdSweepEth) > 0) {
-                        sweep(cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
-                    }
+                    threshold = walletConfig.thresholdSweepEth;
                     break;
                 case "BTC":
-                    if (cryptoTransaction.amount.compareTo(walletConfig.thresholdSweepBtc) > 0) {
-                        sweep(cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
-                    }
+                    threshold = walletConfig.thresholdSweepBtc;
                     break;
+                default:
+                    log.error("Unsupported Currency, {}", cryptoTransaction.currency);
+                    return;
+            }
+            if (cryptoTransaction.amount.compareTo(threshold) > 0) {
+                sweep(cryptoTransaction.currency, cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
             }
         }
     }
@@ -220,9 +220,13 @@ public class CryptoTransactionProcessService {
      * 4.Transfer balance to DTC_OPS address
      */
     public void scheduledAutoSweep() {
-        kycWalletAddressService.getByParams(1L, null,
-                WalletAddressType.DTC_CLIENT_WALLET, null, null, Boolean.TRUE).forEach(senderAddress ->
-        {
+        kycWalletAddressService.getByParams(
+                1L,
+                null,
+                WalletAddressType.DTC_CLIENT_WALLET,
+                null,
+                Boolean.TRUE
+        ).forEach(senderAddress -> {
             // Inquiry balance by calling crypto-engine balance API
             ApiResponse<CryptoBalance> response = Unirest.get(
                     httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
@@ -240,10 +244,9 @@ public class CryptoTransactionProcessService {
             }
             if (response != null && response.resultList != null && response.resultList.size() > 0) {
                 Config walletConfig = configService.getById(1L);
-                List<CryptoBalance> resultList = response.resultList;
-                autoSweep(senderAddress, walletConfig, resultList);
+                List<CryptoBalance> balanceList = response.resultList;
+                autoSweep(senderAddress, walletConfig, balanceList);
             }
-
         });
 
     }
@@ -254,30 +257,27 @@ public class CryptoTransactionProcessService {
                 case "USDT":
                     if (balance.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
                         // If cryptoBalance amount bigger than sweep threshold then do sweep
-                        KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
-                                senderAddress.currency, senderAddress.mainNet);
+                        KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
-                            sweep(balance.amount, senderAddress, recipientAddress);
+                            sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);
                         }
                         log.error("DTC_OPS wallet address not added yet");
                     }
                     break;
                 case "ETH":
                     if (balance.amount.compareTo(walletConfig.thresholdSweepEth) > 0) {
-                        KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
-                                senderAddress.currency, senderAddress.mainNet);
+                        KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
-                            sweep(balance.amount, senderAddress, recipientAddress);
+                            sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);
                         }
                         log.error("DTC_OPS wallet address not added yet");
                     }
                     break;
                 case "BTC":
                     if (balance.amount.compareTo(walletConfig.thresholdSweepBtc) > 0) {
-                        KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS,
-                                senderAddress.currency, senderAddress.mainNet);
+                        KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
-                            sweep(balance.amount, senderAddress, recipientAddress);
+                            sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);
                         }
                         log.error("DTC_OPS wallet address not added yet");
                     }
@@ -286,15 +286,15 @@ public class CryptoTransactionProcessService {
         }
     }
 
-    private void sweep(BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
+    private void sweep(String currency, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
         CryptoTransactionSend cryptoTransactionSend = new CryptoTransactionSend();
         cryptoTransactionSend.contracts = new ArrayList<>();
         CryptoContractSend contract = new CryptoContractSend();
         contract.amount = amount;
         contract.to = recipientAddress.address;
-        contract.coinName = recipientAddress.currency;
+        contract.coinName = currency;
         contract.type = (recipientAddress.mainNet == MainNet.ERC20
-                && !recipientAddress.currency.equalsIgnoreCase("ETH")) ? "smart" : "transfer";
+                && !currency.equalsIgnoreCase("ETH")) ? "smart" : "transfer";
         cryptoTransactionSend.contracts.add(contract);
         RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.cryptoEngineUrlPrefix
                 + "/crypto/{netName}/txn/send/{account}/{addressIndex}")
@@ -311,8 +311,9 @@ public class CryptoTransactionProcessService {
             log.error("Error when connecting crypto-engine");
         } else if (!sendTxnResp.header.success) {
             log.error(sendTxnResp.header.errMsg);
+        } else {
+            log.debug("Sweep Success txnHash: {}", sendTxnResp.result);
         }
-        log.debug("Sweep txnHash: {}", sendTxnResp.result);
     }
 
 }
