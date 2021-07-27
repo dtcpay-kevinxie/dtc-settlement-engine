@@ -1,6 +1,13 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.29.0] - 07 Jun 2021
+[0.30.0] - 10 Jul 2021
+
+* Add the scheduler for auto-sweep logic 
+* Add the sweep logic when deposit amount exceeds sweepThreshold
+* Update dtc-parent dep version
+* Rename dtc_config table; Rename dtc_otc columns
+
+[0.29.0] - 07 Jul 2021
 
 * Add cryptoTransaction withdraw logic reference
 * Add a scheduler for Satoshi_Test status check

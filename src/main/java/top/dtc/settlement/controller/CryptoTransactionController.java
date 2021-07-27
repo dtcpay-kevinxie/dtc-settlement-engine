@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import top.dtc.common.model.crypto.CryptoTransactionResult;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.CryptoTransactionProcessService;
@@ -34,8 +35,20 @@ public class CryptoTransactionController {
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
     }
 
+    @PostMapping("/scheduled/auto-sweep")
+    public ApiResponse<?> scheduledSweep() {
+        try {
+            log.debug("/scheduled/auto-sweep");
+            cryptoTransactionProcessService.scheduledAutoSweep();
+        } catch (Exception e) {
+            log.error("Cannot process scheduled SWEEP walletAddress, {}", e.getMessage());
+            return new ApiResponse<>(ApiHeaderConstant.CRYPTO_TRANSACTION.OTHER_ERROR(e.getMessage()));
+        }
+        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+    }
+
     @PostMapping("/notify")
-    public void notify(@RequestBody TransactionResult transactionResult) {
+    public void notify(@RequestBody CryptoTransactionResult transactionResult) {
         log.debug("crypto-transaction/notify {}", transactionResult);
         cryptoTransactionProcessService.notify(transactionResult);
     }

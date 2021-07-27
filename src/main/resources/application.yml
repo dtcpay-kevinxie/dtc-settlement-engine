@@ -10,8 +10,8 @@ aleta:
   localPath: ${ALETA_LOCAL_PATH}
 
 http:
-  schedulerUrl: ${HTTP_SCHEDULER_URL}
-  riskEngineUrl: ${RISK_ENGINE_URL}
+  risk-engine-url-prefix: ${RISK_ENGINE_URL_PREFIX}
+  crypto-engine-url-prefix: ${CRYPTO_ENGINE_URL_PREFIX}
 
 notification:
   otc-agreed-recipient: ${NOTIFICATION_OTC_AGREED_RECIPIENT}

@@ -35,4 +35,9 @@ public class ApiHeaderConstant {
         public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("13999", errMsg); }
     }
 
+    // STARTS WITH "19"
+    public static class CRYPTO_TRANSACTION {
+        public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("19999", errMsg); }
+    }
+
 }
