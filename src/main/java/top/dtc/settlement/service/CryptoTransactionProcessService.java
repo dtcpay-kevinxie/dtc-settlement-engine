@@ -303,8 +303,8 @@ public class CryptoTransactionProcessService {
                 .routeParam("addressIndex", senderAddress.id + "")
                 .body(cryptoTransactionSend);
         log.debug("Request url: {}", requestBodyEntity.getUrl());
-        ApiResponse<String> sendTxnResp = requestBodyEntity.asObject(
-                new GenericType<ApiResponse<String>>() {})
+        ApiResponse<String> sendTxnResp = requestBodyEntity
+                .asObject(new GenericType<ApiResponse<String>>() {})
                 .getBody();
         log.debug("Request Body: {}", JSON.toJSONString(cryptoTransactionSend));
         if (sendTxnResp == null || sendTxnResp.header == null) {
