@@ -11,10 +11,10 @@ import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.MainNet;
 import top.dtc.common.model.crypto.*;
-import top.dtc.data.core.model.Config;
 import top.dtc.data.core.model.CryptoTransaction;
-import top.dtc.data.core.service.ConfigService;
+import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.service.CryptoTransactionService;
+import top.dtc.data.core.service.DefaultConfigService;
 import top.dtc.data.risk.enums.WalletAddressType;
 import top.dtc.data.risk.model.KycWalletAddress;
 import top.dtc.data.risk.service.KycWalletAddressService;
@@ -49,7 +49,7 @@ public class CryptoTransactionProcessService {
     HttpProperties httpProperties;
 
     @Autowired
-    ConfigService configService;
+    DefaultConfigService defaultConfigService;
 
 
     public void scheduledStatusChecker() {
@@ -189,18 +189,18 @@ public class CryptoTransactionProcessService {
     private void handleSweep(KycWalletAddress recipientAddress, CryptoTransaction cryptoTransaction) {
         // sweep if amount exceeds the specific currency threshold
         KycWalletAddress dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, cryptoTransaction.mainNet);
-        Config walletConfig = configService.getById(1L);
+        DefaultConfig defaultConfig = defaultConfigService.getById(1L);
         BigDecimal threshold;
         if (dtcOpsAddress != null) {
             switch (cryptoTransaction.currency) {
                 case "USDT":
-                    threshold = walletConfig.thresholdSweepUsdt;
+                    threshold = defaultConfig.thresholdSweepUsdt;
                     break;
                 case "ETH":
-                    threshold = walletConfig.thresholdSweepEth;
+                    threshold = defaultConfig.thresholdSweepEth;
                     break;
                 case "BTC":
-                    threshold = walletConfig.thresholdSweepBtc;
+                    threshold = defaultConfig.thresholdSweepBtc;
                     break;
                 default:
                     log.error("Unsupported Currency, {}", cryptoTransaction.currency);
@@ -243,19 +243,19 @@ public class CryptoTransactionProcessService {
                 log.error("Call Crypto-engine Balance Query API Failed.");
             }
             if (response != null && response.resultList != null && response.resultList.size() > 0) {
-                Config walletConfig = configService.getById(1L);
+                DefaultConfig defaultConfig = defaultConfigService.getById(1L);
                 List<CryptoBalance> balanceList = response.resultList;
-                autoSweep(senderAddress, walletConfig, balanceList);
+                autoSweep(senderAddress, defaultConfig, balanceList);
             }
         });
 
     }
 
-    private void autoSweep(KycWalletAddress senderAddress, Config walletConfig, List<CryptoBalance> balanceList) {
+    private void autoSweep(KycWalletAddress senderAddress, DefaultConfig defaultConfig, List<CryptoBalance> balanceList) {
         for (CryptoBalance balance : balanceList) {
             switch(balance.coinName) {
                 case "USDT":
-                    if (balance.amount.compareTo(walletConfig.thresholdSweepUsdt) > 0) {
+                    if (balance.amount.compareTo(defaultConfig.thresholdSweepUsdt) > 0) {
                         // If cryptoBalance amount bigger than sweep threshold then do sweep
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
@@ -265,7 +265,7 @@ public class CryptoTransactionProcessService {
                     }
                     break;
                 case "ETH":
-                    if (balance.amount.compareTo(walletConfig.thresholdSweepEth) > 0) {
+                    if (balance.amount.compareTo(defaultConfig.thresholdSweepEth) > 0) {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
                             sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);
@@ -274,7 +274,7 @@ public class CryptoTransactionProcessService {
                     }
                     break;
                 case "BTC":
-                    if (balance.amount.compareTo(walletConfig.thresholdSweepBtc) > 0) {
+                    if (balance.amount.compareTo(defaultConfig.thresholdSweepBtc) > 0) {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
                             sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);

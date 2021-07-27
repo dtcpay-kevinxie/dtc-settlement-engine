@@ -281,9 +281,9 @@ public class OtcProcessService {
                     .to(kycNonIndividual.email)
                     .dataMap(Map.of("client_name", payable.beneficiary,
                             "id", otc.id.toString(),
-                            "order_detail", String.format("%s %s %s", otc.type.desc, otc.quantity, otc.item),
-                            "price", otc.price.toString(),
-                            "total_amount", otc.totalPrice.setScale(2, RoundingMode.HALF_UP).toString(),
+                            "order_detail", String.format("%s %s %s", otc.type.desc, otc.cryptoAmount, otc.cryptoCurrency),
+                            "price", otc.rate.toString(),
+                            "total_amount", otc.fiatAmount.setScale(2, RoundingMode.HALF_UP).toString(),
                             "reference_no", payable.referenceNo
                     ))
                     .send();
@@ -342,7 +342,7 @@ public class OtcProcessService {
                     for (OtcKey otcKey : otcKeys) {
                         if (otcKey.recipientAddress.equalsIgnoreCase(etherTxn.to)
                                 && otcKey.senderAddress.equalsIgnoreCase(etherTxn.from)
-                                && otcKey.otc.item.equalsIgnoreCase(etherTxn.tokenSymbol)
+                                && otcKey.otc.cryptoCurrency.equalsIgnoreCase(etherTxn.tokenSymbol)
                                 && otcKey.amount.compareTo(amount) == 0
                         ) {
                             processDetectedOtc(otcKey.otc, etherTxn.hash);
@@ -374,7 +374,7 @@ public class OtcProcessService {
                 return;
             }
             Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(otc.id, InvoiceType.OTC);
-            Receivable receivable = receivableProcessService.writeOff(receivableId, otc.quantity, "System Auto Write-off", txnReferenceNo);
+            Receivable receivable = receivableProcessService.writeOff(receivableId, otc.cryptoAmount, "System Auto Write-off", txnReferenceNo);
             updateOtcStatus(receivable, otc);
         } else {
             registerTxn(otc.recipientAddressId, txnReferenceNo, false);
@@ -417,24 +417,24 @@ public class OtcProcessService {
             }
             receivable.bankName = remitInfo.beneficiaryBankName;
             receivable.bankAccount = remitInfo.beneficiaryAccount;
-            receivable.currency = otc.priceInCurrency;
-            receivable.amount = otc.totalPrice;
+            receivable.currency = otc.fiatCurrency;
+            receivable.amount = otc.fiatAmount;
             receivable.receivableDate = LocalDate.now().plusDays(1);
             // Pay crypto to client
-            payable.currency = otc.item;
-            payable.amount = otc.quantity;
+            payable.currency = otc.cryptoCurrency;
+            payable.amount = otc.cryptoAmount;
             payable.recipientAddressId = otc.recipientAddressId;
         } else if (otc.type == OtcType.SELLING) {
             // Receive crypto from client
             KycWalletAddress recipientAddress = kycWalletAddressService.getById(otc.recipientAddressId);
             receivable.bankName = recipientAddress.mainNet.desc;
             receivable.bankAccount = recipientAddress.address;
-            receivable.currency = otc.item;
-            receivable.amount = otc.quantity;
+            receivable.currency = otc.cryptoCurrency;
+            receivable.amount = otc.cryptoAmount;
             receivable.receivableDate = LocalDate.now();
             // Pay fiat to client, otc.remitInfoId is client remit info id
-            payable.currency = otc.priceInCurrency;
-            payable.amount = otc.totalPrice;
+            payable.currency = otc.fiatCurrency;
+            payable.amount = otc.fiatAmount;
             payable.remitInfoId = otc.remitInfoId;
         } else {
             log.error("Invalid OtcType {}", otc.type);
@@ -479,7 +479,7 @@ public class OtcProcessService {
         public OtcKey(Otc otc, KycWalletAddress recipient, KycWalletAddress sender) {
             this.recipientAddress = recipient.address;
             this.senderAddress = sender.address;
-            this.amount = otc.quantity;
+            this.amount = otc.cryptoAmount;
             this.otc = otc;
             if (otc.type == OtcType.SELLING) {
                 this.dtcOpsAddress = recipient;
