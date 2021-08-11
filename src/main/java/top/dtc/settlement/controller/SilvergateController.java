@@ -1,5 +1,7 @@
 package top.dtc.settlement.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -30,21 +32,21 @@ public class SilvergateController {
 
     @PostMapping("/notify")
     public void notify(@RequestBody NotificationPost notificationPost) {
-        log.info("Notify {}", notificationPost);
+        log.debug("[POST] /notify {}", JSON.toJSONString(notificationPost, SerializerFeature.PrettyFormat));
         apiService.notify(notificationPost);
     }
 
     @GetMapping("/account/get-account-balance/{accountNumber}")
     public ApiResponse<?> getAccountBalance(@PathVariable("accountNumber") String accountNumber) {
-        log.info("/account/balance request: {}", accountNumber);
+        log.debug("[GET] /account/get-account-balance/{}", accountNumber);
         AccountBalanceResp accountBalance = apiService.getAccountBalance(accountNumber);
-        log.info("/account/balance response: {}", accountBalance);
+        log.info("/account/get-account-balance/{} response: {}", accountNumber, accountBalance);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountBalance);
     }
 
     @PostMapping("/account/get-account-history")
     public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) {
-        log.info("/account/history request: {}", accountHistoryReq);
+        log.debug("[POST] /account/get-account-history {}", JSON.toJSONString(accountHistoryReq, SerializerFeature.PrettyFormat));
         AccountHistoryResp accountHistory = apiService.getAccountHistory(accountHistoryReq);
         log.info("/account/history response: {}", accountHistory);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountHistory);
@@ -52,15 +54,15 @@ public class SilvergateController {
 
     @GetMapping("/account/get-account-list/{accountType}")
     public ApiResponse<?> getAccountList(@PathVariable("accountType") String accountType) {
-        log.info("/account/get-account-list request: {}", accountType);
+        log.debug("[GET] /account/get-account-list/{}", accountType);
         AccountListResp accountList = apiService.getAccountList(accountType);
-        log.info("/account/get-account-list response: {}", accountList);
+        log.info("/account/get-account-list/{} response: {}", accountType, accountList);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountList);
     }
 
     @GetMapping("/payment/init/{payableId}")
     public ApiResponse<?> initPayment(@PathVariable("payableId") Long payableId) {
-        log.info("initPayment for Payable {}", payableId);
+        log.debug("[GET] /payment/init/{}", payableId);
         try {
             Payable payable = apiService.initialPaymentPost(payableId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, payable);
@@ -71,7 +73,7 @@ public class SilvergateController {
 
     @PutMapping("/payment/cancel/{payableId}")
     public ApiResponse<?> cancelPayment(@PathVariable("payableId") Long payableId) {
-        log.info("cancelPayment for Payable {}", payableId);
+        log.debug("[PUT] /payment/cancel/{}", payableId);
         try {
             Payable payable = apiService.cancelPayment(payableId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, payable);
@@ -82,7 +84,7 @@ public class SilvergateController {
 
     @GetMapping("/payment/status/{payableId}")
     public ApiResponse<?> getPaymentStatus(@PathVariable("payableId") Long payableId) {
-        log.info("[GET] /payment/status Payable: {}", payableId);
+        log.debug("[GET] /payment/status/{}", payableId);
         try {
             PaymentGetResp paymentGetResp = apiService.getPaymentDetails(payableId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentGetResp);
@@ -92,35 +94,38 @@ public class SilvergateController {
     }
 
     @DeleteMapping("/webhooks/delete/{accountNumber}/{webHookId}")
-    public ApiResponse<?> webHooksDelete(@PathVariable(value = "accountNumber") String accountNumber, @PathVariable(value = "webHookId") String webHookId) {
-        log.info("[GET] webhooks/delete request: {}", webHookId);
+    public ApiResponse<?> webHooksDelete(
+            @PathVariable(value = "accountNumber") String accountNumber,
+            @PathVariable(value = "webHookId") String webHookId
+    ) {
+        log.debug("[DELETE] /webhooks/delete/{}/{}", accountNumber, webHookId);
         String result = apiService.webhooksDelete(webHookId, accountNumber);
-        log.info("[GET] webhooks/delete response: {}", result);
+        log.info("[DELETE] /webhooks/delete/{}/{} response: {}", accountNumber, webHookId, result);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
     }
 
     @PostMapping("/webhooks/get")
     public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) {
-        log.info("webhooks/get request: {}", webHooksGetReq);
+        log.debug("[POST] /webhooks/get {}", JSON.toJSONString(webHooksGetReq, SerializerFeature.PrettyFormat));
         List<WebHooksGetRegisterResp> webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
-        log.info("webhooks/get response: {}", webHooksGetRegisterResp);
+        log.info("[POST] /webhooks/get response: {}", JSON.toJSONString(webHooksGetRegisterResp, SerializerFeature.PrettyFormat));
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksGetRegisterResp);
     }
 
     @PostMapping("/webhooks/register")
     public ApiResponse<?> webHooksRegister(@RequestBody WebHooksRegisterReq webHooksRegisterReq) {
-        log.info("webhooks/register request: {}", webHooksRegisterReq);
+        log.debug("[POST] /webhooks/register {}", JSON.toJSONString(webHooksRegisterReq, SerializerFeature.PrettyFormat));
         WebHooksGetRegisterResp webHooksRegisterResp = apiService.webHooksRegister(webHooksRegisterReq);
-        log.info("webhooks/register response: {}", webHooksRegisterResp);
+        log.info("[POST] /webhooks/register response: {}", JSON.toJSONString(webHooksRegisterResp, SerializerFeature.PrettyFormat));
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksRegisterResp);
     }
 
     @GetMapping("/account/transfer-sen/{payableId}")
     public ApiResponse<?> getAccountTransferSen(@PathVariable("payableId") Long payableId) {
-        log.info("account/transfer-sen request: {}", payableId);
+        log.debug("[POST] /account/transfer-sen/{}", payableId);
         try {
             AccountTransferSenResp accountTransferSenResp = apiService.getAccountTransferSen(payableId);
-            log.info("account/transfer-sen response: {}", accountTransferSenResp);
+            log.info("[POST] /account/transfer-sen/{} response: {}", payableId, accountTransferSenResp);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountTransferSenResp);
         } catch (Exception e) {
             return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));

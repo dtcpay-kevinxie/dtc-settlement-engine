@@ -23,7 +23,6 @@ import top.dtc.data.finance.model.Receivable;
 import top.dtc.data.finance.service.PayoutReconcileService;
 import top.dtc.data.finance.service.ReceivableService;
 import top.dtc.data.finance.service.SettlementCalendarService;
-import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.constant.SettlementConstant;
 import top.dtc.settlement.exception.ReceivableException;
 
@@ -79,26 +78,6 @@ public class ReceivableProcessService {
                     log.error("Undefined Settlement Host {}", module.name);
                     break;
             }
-        }
-    }
-
-    public void createReceivable(Receivable receivable) {
-        receivableService.save(receivable);
-    }
-
-    public void removeReceivable(Long reconcileId) {
-        Receivable receivable = receivableService.getById(reconcileId);
-        if (receivable == null) {
-            throw new ReceivableException(ErrorMessage.RECEIVABLE.INVALID_RECEIVABLE_ID(reconcileId));
-        }
-        if (receivable.type == InvoiceType.PAYMENT) {
-            List<Long> transactionIds = payoutReconcileService.getTransactionIdByReceivableId(reconcileId);
-            if (transactionIds != null && transactionIds.size() > 0) {
-                throw new ReceivableException(ErrorMessage.RECEIVABLE.RECEIVABLE_TRANSACTION_ID(reconcileId));
-            }
-            receivableService.removeById(receivable.id);
-        } else if (receivable.type == InvoiceType.OTC) {
-
         }
     }
 

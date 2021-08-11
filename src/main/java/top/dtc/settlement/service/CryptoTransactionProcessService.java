@@ -1,6 +1,7 @@
 package top.dtc.settlement.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import kong.unirest.GenericType;
 import kong.unirest.RequestBodyEntity;
 import kong.unirest.Unirest;
@@ -77,36 +78,25 @@ public class CryptoTransactionProcessService {
         }
         CryptoTransaction existingTxn = cryptoTransactionService.getOneByTxnHash(transactionResult.hash);
         if (existingTxn != null) {
-            log.debug("Transaction is linked to {}", existingTxn);
+            log.debug("Transaction is linked to {}", JSON.toJSONString(existingTxn, SerializerFeature.PrettyFormat));
             return;
         }
         CryptoContractResult result = transactionResult.contracts.get(0);
-        MainNet mainNet;
+        MainNet mainNet = transactionResult.mainNet;
         String currency = result.coinName.toUpperCase(Locale.ROOT);
-        if (result.from.toLowerCase(Locale.ROOT).startsWith("0x")) {
-            mainNet = MainNet.ERC20;
-        } else if (result.from.startsWith("T")) {
-            mainNet = MainNet.TRC20;
-        } else {
-            log.error("Undefined address {}", result.from);
-            return;
-        }
         // Validate recipient
         KycWalletAddress recipientAddress = kycWalletAddressService.getEnabledAddress(result.to);
         if (recipientAddress == null) {
             //TODO: Alert to IT Security, fund was sent out from DTC_CLIENT_WALLET to an undefined address.
-            log.error("Recipient address not found {}, txnHash {}", result.to, transactionResult.hash);
-            return;
-        } else if (!recipientAddress.enabled) {
-            //TODO: Alert to Ops Team, fund was sent to a disabled address.
-            log.error("Recipient address is disabled {}", recipientAddress);
+            log.error("Recipient address [{}] not found, txnHash [{}]", result.to, transactionResult.hash);
             return;
         }
         // Validate sender
+        //TODO: there is a logic bug, For Satoshi Transaction, senderAddress is always disabled (only be activated after Satoshi)
         KycWalletAddress senderAddress = kycWalletAddressService.getEnabledAddress(result.from);
         if (senderAddress == null) {
             //TODO: Alert to Ops Team and Compliance Team, received fund from undefined address.
-            log.error("Transaction sent from undefined address.");
+            log.error("Transaction [{}] sent from undefined address [{}].", transactionResult.hash, result.from);
             return;
         }
         Long clientId = senderAddress.ownerId;
@@ -115,7 +105,7 @@ public class CryptoTransactionProcessService {
             kycCommonService.validateClientStatus(clientId);
         } catch (Exception e) {
             //TODO: Alert to Ops Team and Compliance Team, received fund from inactivated client.
-            log.error("Invalid client status", e);
+            log.error("Invalid client [{}] status, txnHash [{}], senderAddressId [{}]", clientId, transactionResult.hash, senderAddress.id);
             return;
         }
         // Validate wallet account
@@ -159,13 +149,18 @@ public class CryptoTransactionProcessService {
         } else if (senderAddress.type == WalletAddressType.DTC_CLIENT_WALLET
                 && recipientAddress.type == WalletAddressType.DTC_OPS
         ) { // Sweep
-            log.debug("Sweep detected and completed");
+            log.info("Sweep from [{}] to [{}] completed", senderAddress.address, recipientAddress.address);
+            //TODO: Inform Ops Team / Trader, fund has been collected to DTC_OPS address
+        } else if (senderAddress.type == WalletAddressType.DTC_GAS && recipientAddress.type == WalletAddressType.DTC_OPS
+                || senderAddress.type == WalletAddressType.DTC_GAS && recipientAddress.type == WalletAddressType.DTC_CLIENT_WALLET
+        ) { // Gas filling
+            log.info("Gas filled to address [{}]", recipientAddress.address);
             //TODO: Inform Ops Team / Trader, fund has been collected to DTC_OPS address
         }
     }
 
     private void handleDeposit(CryptoTransactionResult transactionResult, CryptoContractResult result, MainNet mainNet, String currency, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, Long clientId, WalletAccount walletAccount) {
-        log.debug("Deposit detected and completed");
+        log.info("Deposit detected and completed");
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
@@ -186,7 +181,7 @@ public class CryptoTransactionProcessService {
         handleSweep(recipientAddress, cryptoTransaction);
     }
 
-    private void handleSweep(KycWalletAddress recipientAddress, CryptoTransaction cryptoTransaction) {
+    private void handleSweep(KycWalletAddress dtcAssignedAddress, CryptoTransaction cryptoTransaction) {
         // sweep if amount exceeds the specific currency threshold
         KycWalletAddress dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, cryptoTransaction.mainNet);
         DefaultConfig defaultConfig = defaultConfigService.getById(1L);
@@ -207,7 +202,7 @@ public class CryptoTransactionProcessService {
                     return;
             }
             if (cryptoTransaction.amount.compareTo(threshold) > 0) {
-                sweep(cryptoTransaction.currency, cryptoTransaction.amount, recipientAddress, dtcOpsAddress);
+                sweep(cryptoTransaction.currency, cryptoTransaction.amount, dtcAssignedAddress, dtcOpsAddress);
             }
         }
     }
@@ -240,7 +235,7 @@ public class CryptoTransactionProcessService {
                     !response.header.success
                     || response.resultList == null
                     || response.resultList.size() < 1) {
-                log.error("Call Crypto-engine Balance Query API Failed.");
+                log.error("Call Crypto-engine Balance Query API Failed {}", JSON.toJSONString(response, SerializerFeature.PrettyFormat));
             }
             if (response != null && response.resultList != null && response.resultList.size() > 0) {
                 DefaultConfig defaultConfig = defaultConfigService.getById(1L);
@@ -265,10 +260,11 @@ public class CryptoTransactionProcessService {
                     }
                     break;
                 case "ETH":
-                    if (balance.amount.compareTo(defaultConfig.thresholdSweepEth) > 0) {
+                    // deduct MAX gas amount from ETH balance
+                    if (balance.amount.subtract(defaultConfig.maxEthGas).compareTo(defaultConfig.thresholdSweepEth) > 0) {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
-                            sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);
+                            sweep(balance.coinName, balance.amount.subtract(defaultConfig.maxEthGas), senderAddress, recipientAddress);
                         }
                         log.error("DTC_OPS wallet address not added yet");
                     }
@@ -312,7 +308,7 @@ public class CryptoTransactionProcessService {
         } else if (!sendTxnResp.header.success) {
             log.error(sendTxnResp.header.errMsg);
         } else {
-            log.debug("Sweep Success txnHash: {}", sendTxnResp.result);
+            log.info("Sweep Success txnHash: {}", sendTxnResp.result);
         }
     }
 
