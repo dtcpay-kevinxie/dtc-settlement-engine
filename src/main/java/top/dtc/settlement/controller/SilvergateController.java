@@ -11,6 +11,7 @@ import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.model.*;
 import top.dtc.settlement.module.silvergate.service.SilvergateApiService;
+import top.dtc.settlement.module.silvergate.service.SilvergateProcessService;
 
 import java.util.List;
 
@@ -28,34 +29,37 @@ public class SilvergateController {
     SilvergateApiService apiService;
 
     @Autowired
+    SilvergateProcessService silvergateProcessService;
+
+    @Autowired
     SilvergateProperties silvergateProperties;
 
     @PostMapping("/notify")
     public void notify(@RequestBody NotificationPost notificationPost) {
         log.debug("[POST] /notify {}", JSON.toJSONString(notificationPost, SerializerFeature.PrettyFormat));
-        apiService.notify(notificationPost);
+        silvergateProcessService.notify(notificationPost);
     }
 
     @GetMapping("/account/get-account-balance/{accountNumber}")
     public ApiResponse<?> getAccountBalance(@PathVariable("accountNumber") String accountNumber) {
         log.debug("[GET] /account/get-account-balance/{}", accountNumber);
-        AccountBalanceResp accountBalance = apiService.getAccountBalance(accountNumber);
-        log.info("/account/get-account-balance/{} response: {}", accountNumber, accountBalance);
+        AccountBalanceResp accountBalance = silvergateProcessService.getAccountBalance(accountNumber);
+        log.info("/account/get-account-balance/{} response: {}", accountNumber, JSON.toJSONString(accountBalance, SerializerFeature.PrettyFormat));
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountBalance);
     }
 
     @PostMapping("/account/get-account-history")
     public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) {
         log.debug("[POST] /account/get-account-history {}", JSON.toJSONString(accountHistoryReq, SerializerFeature.PrettyFormat));
-        AccountHistoryResp accountHistory = apiService.getAccountHistory(accountHistoryReq);
-        log.info("/account/history response: {}", accountHistory);
+        AccountHistoryResp accountHistory = silvergateProcessService.getAccountHistory(accountHistoryReq);
+        log.info("/account/history response: {}", JSON.toJSONString(accountHistory, SerializerFeature.PrettyFormat));
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountHistory);
     }
 
     @GetMapping("/account/get-account-list/{accountType}")
     public ApiResponse<?> getAccountList(@PathVariable("accountType") String accountType) {
         log.debug("[GET] /account/get-account-list/{}", accountType);
-        AccountListResp accountList = apiService.getAccountList(accountType);
+        AccountListResp accountList = silvergateProcessService.getAccountList(accountType);
         log.info("/account/get-account-list/{} response: {}", accountType, accountList);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountList);
     }
@@ -64,7 +68,7 @@ public class SilvergateController {
     public ApiResponse<?> initPayment(@PathVariable("payableId") Long payableId) {
         log.debug("[GET] /payment/init/{}", payableId);
         try {
-            Payable payable = apiService.initialPaymentPost(payableId);
+            Payable payable = silvergateProcessService.initialPaymentPost(payableId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, payable);
         } catch (Exception e) {
             return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
@@ -75,7 +79,7 @@ public class SilvergateController {
     public ApiResponse<?> cancelPayment(@PathVariable("payableId") Long payableId) {
         log.debug("[PUT] /payment/cancel/{}", payableId);
         try {
-            Payable payable = apiService.cancelPayment(payableId);
+            Payable payable = silvergateProcessService.cancelPayment(payableId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, payable);
         } catch (Exception e) {
             return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
@@ -86,7 +90,7 @@ public class SilvergateController {
     public ApiResponse<?> getPaymentStatus(@PathVariable("payableId") Long payableId) {
         log.debug("[GET] /payment/status/{}", payableId);
         try {
-            PaymentGetResp paymentGetResp = apiService.getPaymentDetails(payableId);
+            PaymentGetResp paymentGetResp = silvergateProcessService.getPaymentDetails(payableId);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentGetResp);
         } catch (Exception e) {
             return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
@@ -124,7 +128,7 @@ public class SilvergateController {
     public ApiResponse<?> getAccountTransferSen(@PathVariable("payableId") Long payableId) {
         log.debug("[POST] /account/transfer-sen/{}", payableId);
         try {
-            AccountTransferSenResp accountTransferSenResp = apiService.getAccountTransferSen(payableId);
+            AccountTransferSenResp accountTransferSenResp = silvergateProcessService.getAccountTransferSen(payableId);
             log.info("[POST] /account/transfer-sen/{} response: {}", payableId, accountTransferSenResp);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountTransferSenResp);
         } catch (Exception e) {
