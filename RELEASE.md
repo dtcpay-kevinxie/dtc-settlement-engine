@@ -2,7 +2,7 @@
 
 [0.31.0] - 11 Aug 2021
 
-* Update dtc-parent version
+* Update dtc-parent and data-* version
 * Remove unused classes
 * Standardize Silvergate integration service
 
