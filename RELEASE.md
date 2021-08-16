@@ -1,5 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.31.0] - 16 Aug 2021
+
+* Update dtc-parent and data-* version
+* Remove unused classes
+* Standardize Silvergate integration service
+
 [0.30.0] - 10 Jul 2021
 
 * Add the scheduler for auto-sweep logic 

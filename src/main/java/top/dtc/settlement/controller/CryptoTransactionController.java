@@ -1,5 +1,7 @@
 package top.dtc.settlement.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,7 +29,7 @@ public class CryptoTransactionController {
     @PostMapping("/scheduled/satoshi-pending-checker")
     public ApiResponse<?> scheduledPendingChecker() {
         try {
-            log.debug("/scheduled/satoshi-pending-checker");
+            log.debug("[POST] /scheduled/satoshi-pending-checker");
             cryptoTransactionProcessService.scheduledStatusChecker();
         } catch (Exception e) {
             log.error("Cannot process scheduled satoshi pending checker, {}", e.getMessage());
@@ -38,7 +40,7 @@ public class CryptoTransactionController {
     @PostMapping("/scheduled/auto-sweep")
     public ApiResponse<?> scheduledSweep() {
         try {
-            log.debug("/scheduled/auto-sweep");
+            log.debug("[POST] /scheduled/auto-sweep");
             cryptoTransactionProcessService.scheduledAutoSweep();
         } catch (Exception e) {
             log.error("Cannot process scheduled SWEEP walletAddress, {}", e.getMessage());
@@ -49,7 +51,7 @@ public class CryptoTransactionController {
 
     @PostMapping("/notify")
     public void notify(@RequestBody CryptoTransactionResult transactionResult) {
-        log.debug("crypto-transaction/notify {}", transactionResult);
+        log.debug("[POST] /notify {}", JSON.toJSONString(transactionResult, SerializerFeature.PrettyFormat));
         cryptoTransactionProcessService.notify(transactionResult);
     }
 
