@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.31.0] - 11 Aug 2021
+[0.31.0] - 16 Aug 2021
 
 * Update dtc-parent and data-* version
 * Remove unused classes
