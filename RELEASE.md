@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.33.0] - 
+
+* Update data-* version
+* Merge IndividualStatus and NonIndividualStatus to ClientStatus
+
 [0.32.0] - 23 Aug 2021
 
 * Fix satoshi test logic bug in notify API

@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.SettlementStatus;
 import top.dtc.common.util.StringUtils;
-import top.dtc.data.core.enums.NonIndividualStatus;
+import top.dtc.data.core.enums.ClientStatus;
 import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.NonIndividualService;
@@ -120,7 +120,7 @@ public class PaymentSettlementService {
             throw new SettlementException(ErrorMessage.SETTLEMENT.APPROVAL_FAILED + settlementId);
         }
         NonIndividual nonIndividual = nonIndividualService.getById(settlement.merchantId);
-        if (nonIndividual.status.id <= NonIndividualStatus.ACTIVATED.id) {
+        if (nonIndividual.status.id <= ClientStatus.ACTIVATED.id) {
             throw new SettlementException(ErrorMessage.SETTLEMENT.STATUS_FAILED(nonIndividual.id, nonIndividual.status.desc));
         }
         settlement.status = SettlementStatus.APPROVED;
