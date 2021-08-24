@@ -14,9 +14,10 @@ http:
   crypto-engine-url-prefix: ${CRYPTO_ENGINE_URL_PREFIX}
 
 notification:
-  otc-agreed-recipient: ${NOTIFICATION_OTC_AGREED_RECIPIENT}
-  otc-high-risk-recipient: ${NOTIFICATION_OTC_HIGH_RISK_RECIPIENT}
+  ops-recipient: ${NOTIFICATION_OPS_RECIPIENT}
+  compliance-recipient: ${NOTIFICATION_COMPLIANCE_RECIPIENT}
   finance-recipient: ${NOTIFICATION_FINANCE_RECIPIENT}
+  it-recipient: ${NOTIFICATION_IT_RECIPIENT}
   portal-url-prefix: ${PORTAL_URL_PREFIX}
 
 etherscan:

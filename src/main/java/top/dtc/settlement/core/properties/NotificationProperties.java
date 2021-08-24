@@ -11,14 +11,13 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "notification")
 public class NotificationProperties {
 
-    // Notification when there is new OTC agreed
-    public String otcAgreedRecipient;
+    public String opsRecipient;
 
-    // Notification when high risk OTC found
-    public String otcHighRiskRecipient;
+    public String complianceRecipient;
 
-    // Notification when unexpected transactions found
     public String financeRecipient;
+
+    public String itRecipient;
 
     // Portal url prefix in Notification
     public String portalUrlPrefix;

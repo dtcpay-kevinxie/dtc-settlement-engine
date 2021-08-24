@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.32.0] - 23 Aug 2021
+
+* Fix satoshi test logic bug in notify API
+
 [0.31.0] - 16 Aug 2021
 
 * Update dtc-parent and data-* version
