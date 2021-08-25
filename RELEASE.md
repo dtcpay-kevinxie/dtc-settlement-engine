@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.33.0] - 
+[0.33.0] - 25 Aug 2021
 
 * Update data-* version
 * Merge IndividualStatus and NonIndividualStatus to ClientStatus
