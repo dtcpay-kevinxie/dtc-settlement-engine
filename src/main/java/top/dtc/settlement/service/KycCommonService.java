@@ -5,8 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.exception.ValidationException;
 import top.dtc.common.util.ClientTypeUtils;
-import top.dtc.data.core.enums.IndividualStatus;
-import top.dtc.data.core.enums.NonIndividualStatus;
+import top.dtc.data.core.enums.ClientStatus;
 import top.dtc.data.core.model.Individual;
 import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.service.IndividualService;
@@ -50,7 +49,7 @@ public class KycCommonService {
             if (individual == null) {
                 throw new ValidationException("Invalid Client ID");
             }
-            if (individual.status != IndividualStatus.ACTIVATED) {
+            if (individual.status != ClientStatus.ACTIVATED) {
                 throw new ValidationException(String.format("Invalid Client Status [%s]", individual.status.desc));
             }
         } else {
@@ -58,7 +57,7 @@ public class KycCommonService {
             if (nonIndividual == null) {
                 throw new ValidationException("Invalid Client ID");
             }
-            if (nonIndividual.status != NonIndividualStatus.ACTIVATED) {
+            if (nonIndividual.status != ClientStatus.ACTIVATED) {
                 throw new ValidationException(String.format("Invalid Client Status [%s]", nonIndividual.status.desc));
             }
         }
