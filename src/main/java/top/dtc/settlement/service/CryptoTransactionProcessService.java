@@ -311,8 +311,9 @@ public class CryptoTransactionProcessService {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
                             sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);
+                        } else {
+                            log.error("{} DTC_OPS wallet address not added yet", senderAddress.mainNet.desc);
                         }
-                        log.error("DTC_OPS wallet address not added yet");
                     }
                     break;
                 case "ETH":
@@ -321,8 +322,9 @@ public class CryptoTransactionProcessService {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
                             sweep(balance.coinName, balance.amount.subtract(defaultConfig.maxEthGas), senderAddress, recipientAddress);
+                        } else {
+                            log.error("{} DTC_OPS wallet address not added yet", senderAddress.mainNet.desc);
                         }
-                        log.error("DTC_OPS wallet address not added yet");
                     }
                     break;
                 case "BTC":
@@ -330,8 +332,9 @@ public class CryptoTransactionProcessService {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null) {
                             sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);
+                        } else {
+                            log.error("{} DTC_OPS wallet address not added yet", senderAddress.mainNet.desc);
                         }
-                        log.error("DTC_OPS wallet address not added yet");
                     }
                     break;
             }
