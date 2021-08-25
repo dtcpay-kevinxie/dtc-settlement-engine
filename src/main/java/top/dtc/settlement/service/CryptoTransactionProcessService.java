@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static top.dtc.settlement.constant.NotificationConstant.NAMES.AUTO_SWEEP_RESULT;
 import static top.dtc.settlement.constant.NotificationConstant.NAMES.UNEXPECTED_TXN_FOUND;
 
 @Service
@@ -303,14 +304,27 @@ public class CryptoTransactionProcessService {
     }
 
     private void autoSweep(KycWalletAddress senderAddress, DefaultConfig defaultConfig, List<CryptoBalance> balanceList) {
+        log.info("Auto Sweep Start");
+        BigDecimal usdtTotal = BigDecimal.ZERO;
+        BigDecimal ethTotal = BigDecimal.ZERO;
+        BigDecimal btcTotal = BigDecimal.ZERO;
+        StringBuilder usdtDetails = new StringBuilder("USDT Sweeping\n");
+        StringBuilder ethDetails = new StringBuilder("ETH Sweeping\n");
+        StringBuilder btcDetails = new StringBuilder("BTC Sweeping\n");
         for (CryptoBalance balance : balanceList) {
             switch(balance.coinName) {
                 case "USDT":
                     if (balance.amount.compareTo(defaultConfig.thresholdSweepUsdt) > 0) {
                         // If cryptoBalance amount bigger than sweep threshold then do sweep
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
-                        if (recipientAddress != null) {
-                            sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);
+                        if (recipientAddress != null
+                                && sweep(balance.coinName, balance.amount, senderAddress, recipientAddress)
+                        ) {
+                            usdtTotal = usdtTotal.add(balance.amount);
+                            usdtDetails.append(
+                                    String.format("Client[%s] Address[%s] %s \n",
+                                    senderAddress.subId, senderAddress.address, balance.amount)
+                            );
                         } else {
                             log.error("{} DTC_OPS wallet address not added yet", senderAddress.mainNet.desc);
                         }
@@ -320,8 +334,14 @@ public class CryptoTransactionProcessService {
                     // deduct MAX gas amount from ETH balance
                     if (balance.amount.subtract(defaultConfig.maxEthGas).compareTo(defaultConfig.thresholdSweepEth) > 0) {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
-                        if (recipientAddress != null) {
-                            sweep(balance.coinName, balance.amount.subtract(defaultConfig.maxEthGas), senderAddress, recipientAddress);
+                        if (recipientAddress != null
+                                && sweep(balance.coinName, balance.amount.subtract(defaultConfig.maxEthGas), senderAddress, recipientAddress)
+                        ) {
+                            ethTotal = ethTotal.add(balance.amount.subtract(defaultConfig.maxEthGas));
+                            ethDetails.append(
+                                    String.format("Client[%s] Address[%s] %s \n",
+                                            senderAddress.subId, senderAddress.address, balance.amount.subtract(defaultConfig.maxEthGas))
+                            );
                         } else {
                             log.error("{} DTC_OPS wallet address not added yet", senderAddress.mainNet.desc);
                         }
@@ -330,8 +350,14 @@ public class CryptoTransactionProcessService {
                 case "BTC":
                     if (balance.amount.compareTo(defaultConfig.thresholdSweepBtc) > 0) {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
-                        if (recipientAddress != null) {
-                            sweep(balance.coinName, balance.amount, senderAddress, recipientAddress);
+                        if (recipientAddress != null
+                                && sweep(balance.coinName, balance.amount, senderAddress, recipientAddress)
+                        ) {
+                            btcTotal = btcTotal.add(balance.amount);
+                            btcDetails.append(
+                                    String.format("Client[%s] Address[%s] %s \n",
+                                            senderAddress.subId, senderAddress.address, balance.amount)
+                            );
                         } else {
                             log.error("{} DTC_OPS wallet address not added yet", senderAddress.mainNet.desc);
                         }
@@ -339,9 +365,19 @@ public class CryptoTransactionProcessService {
                     break;
             }
         }
+        log.info("Auto Sweep End");
+        NotificationSender
+                .by(AUTO_SWEEP_RESULT)
+                .to(notificationProperties.opsRecipient)
+                .dataMap(Map.of(
+                        "sweep_count", balanceList.size() + "",
+                        "total_amount", "",
+                        "details", usdtDetails + "\n" + ethDetails + "\n" + btcDetails + "\n"
+                ))
+                .send();
     }
 
-    private void sweep(String currency, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
+    private boolean sweep(String currency, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
         CryptoTransactionSend cryptoTransactionSend = new CryptoTransactionSend();
         cryptoTransactionSend.contracts = new ArrayList<>();
         CryptoContractSend contract = new CryptoContractSend();
@@ -364,11 +400,13 @@ public class CryptoTransactionProcessService {
         log.debug("Request Body: {}", JSON.toJSONString(cryptoTransactionSend));
         if (sendTxnResp == null || sendTxnResp.header == null) {
             log.error("Error when connecting crypto-engine");
+            return false;
         } else if (!sendTxnResp.header.success) {
             log.error(sendTxnResp.header.errMsg);
-        } else {
-            log.info("Sweep Success txnHash: {}", sendTxnResp.result);
+            return false;
         }
+        log.info("Sweep Success txnHash: {}", sendTxnResp.result);
+        return true;
     }
 
     private void sendAlert(String recipient, String alertMsg) {
