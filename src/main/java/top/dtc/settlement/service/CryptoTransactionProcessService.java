@@ -305,6 +305,7 @@ public class CryptoTransactionProcessService {
 
     private void autoSweep(KycWalletAddress senderAddress, DefaultConfig defaultConfig, List<CryptoBalance> balanceList) {
         log.info("Auto Sweep Start");
+        Integer count = 0;
         BigDecimal usdtTotal = BigDecimal.ZERO;
         BigDecimal ethTotal = BigDecimal.ZERO;
         BigDecimal btcTotal = BigDecimal.ZERO;
@@ -320,6 +321,7 @@ public class CryptoTransactionProcessService {
                         if (recipientAddress != null
                                 && sweep(balance.coinName, balance.amount, senderAddress, recipientAddress)
                         ) {
+                            count ++;
                             usdtTotal = usdtTotal.add(balance.amount);
                             usdtDetails.append(
                                     String.format("Client[%s] Address[%s] %s \n",
@@ -337,6 +339,7 @@ public class CryptoTransactionProcessService {
                         if (recipientAddress != null
                                 && sweep(balance.coinName, balance.amount.subtract(defaultConfig.maxEthGas), senderAddress, recipientAddress)
                         ) {
+                            count++;
                             ethTotal = ethTotal.add(balance.amount.subtract(defaultConfig.maxEthGas));
                             ethDetails.append(
                                     String.format("Client[%s] Address[%s] %s \n",
@@ -353,6 +356,7 @@ public class CryptoTransactionProcessService {
                         if (recipientAddress != null
                                 && sweep(balance.coinName, balance.amount, senderAddress, recipientAddress)
                         ) {
+                            count++;
                             btcTotal = btcTotal.add(balance.amount);
                             btcDetails.append(
                                     String.format("Client[%s] Address[%s] %s \n",
@@ -370,7 +374,7 @@ public class CryptoTransactionProcessService {
                 .by(AUTO_SWEEP_RESULT)
                 .to(notificationProperties.opsRecipient)
                 .dataMap(Map.of(
-                        "sweep_count", balanceList.size() + "",
+                        "sweep_count", count + "",
                         "total_amount", "",
                         "details", usdtDetails + "\n" + ethDetails + "\n" + btcDetails + "\n"
                 ))
