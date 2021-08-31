@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.34.0] - 31 Aug 2021
+
+* Fix auto-sweep bug
+
 [0.33.0] - 25 Aug 2021
 
 * Update data-* version
