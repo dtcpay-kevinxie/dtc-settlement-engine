@@ -274,6 +274,7 @@ public class CryptoTransactionProcessService {
         // Credit deposit amount to crypto account
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(cryptoAccount);
+        //TODO: Standardize Receivable and Payable for both internal and external transfer
         handleSweep(recipientAddress, cryptoTransaction);
     }
 
@@ -298,13 +299,14 @@ public class CryptoTransactionProcessService {
                     return;
             }
             if (cryptoTransaction.amount.compareTo(threshold) > 0) {
-                sweep(cryptoTransaction.currency, cryptoTransaction.amount, dtcAssignedAddress, dtcOpsAddress);
+                transfer(cryptoTransaction.currency, cryptoTransaction.amount, dtcAssignedAddress, dtcOpsAddress);
             }
         }
     }
 
     private void autoSweep(KycWalletAddress senderAddress, DefaultConfig defaultConfig, List<CryptoBalance> balanceList) {
         log.info("Auto Sweep Start");
+        Integer count = 0;
         BigDecimal usdtTotal = BigDecimal.ZERO;
         BigDecimal ethTotal = BigDecimal.ZERO;
         BigDecimal btcTotal = BigDecimal.ZERO;
@@ -318,8 +320,9 @@ public class CryptoTransactionProcessService {
                         // If cryptoBalance amount bigger than sweep threshold then do sweep
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null
-                                && sweep(balance.coinName, balance.amount, senderAddress, recipientAddress)
+                                && transfer(balance.coinName, balance.amount, senderAddress, recipientAddress)
                         ) {
+                            count ++;
                             usdtTotal = usdtTotal.add(balance.amount);
                             usdtDetails.append(
                                     String.format("Client[%s] Address[%s] %s \n",
@@ -335,8 +338,9 @@ public class CryptoTransactionProcessService {
                     if (balance.amount.subtract(defaultConfig.maxEthGas).compareTo(defaultConfig.thresholdSweepEth) > 0) {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null
-                                && sweep(balance.coinName, balance.amount.subtract(defaultConfig.maxEthGas), senderAddress, recipientAddress)
+                                && transfer(balance.coinName, balance.amount.subtract(defaultConfig.maxEthGas), senderAddress, recipientAddress)
                         ) {
+                            count++;
                             ethTotal = ethTotal.add(balance.amount.subtract(defaultConfig.maxEthGas));
                             ethDetails.append(
                                     String.format("Client[%s] Address[%s] %s \n",
@@ -351,8 +355,9 @@ public class CryptoTransactionProcessService {
                     if (balance.amount.compareTo(defaultConfig.thresholdSweepBtc) > 0) {
                         KycWalletAddress recipientAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, senderAddress.mainNet);
                         if (recipientAddress != null
-                                && sweep(balance.coinName, balance.amount, senderAddress, recipientAddress)
+                                && transfer(balance.coinName, balance.amount, senderAddress, recipientAddress)
                         ) {
+                            count++;
                             btcTotal = btcTotal.add(balance.amount);
                             btcDetails.append(
                                     String.format("Client[%s] Address[%s] %s \n",
@@ -370,14 +375,14 @@ public class CryptoTransactionProcessService {
                 .by(AUTO_SWEEP_RESULT)
                 .to(notificationProperties.opsRecipient)
                 .dataMap(Map.of(
-                        "sweep_count", balanceList.size() + "",
-                        "total_amount", "",
+                        "sweep_count", count + "",
+                        "total_amount", String.format("BTC %s, ETH %s, USDT %s", btcTotal, ethTotal, usdtTotal),
                         "details", usdtDetails + "\n" + ethDetails + "\n" + btcDetails + "\n"
                 ))
                 .send();
     }
 
-    private boolean sweep(String currency, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
+    private boolean transfer(String currency, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
         CryptoTransactionSend cryptoTransactionSend = new CryptoTransactionSend();
         cryptoTransactionSend.contracts = new ArrayList<>();
         CryptoContractSend contract = new CryptoContractSend();
