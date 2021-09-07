@@ -7,8 +7,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.SettlementStatus;
-import top.dtc.common.exception.ValidationException;
-import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.model.AcqRoute;
 import top.dtc.data.core.model.Module;
 import top.dtc.data.core.model.PaymentTransaction;
@@ -27,7 +25,6 @@ import top.dtc.settlement.constant.SettlementConstant;
 import top.dtc.settlement.exception.ReceivableException;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,8 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static top.dtc.settlement.constant.ErrorMessage.RECEIVABLE.*;
 
 @Log4j2
 @Service
@@ -79,38 +74,6 @@ public class ReceivableProcessService {
                     break;
             }
         }
-    }
-
-    public Receivable writeOff(Long receivableId, BigDecimal receivedAmount, String desc, String referenceNo) {
-        if (receivableId == null || receivedAmount == null || StringUtils.isBlank(referenceNo)) {
-            throw new ReceivableException(INVALID_RECEIVABLE_PARA);
-        }
-        Receivable receivable = receivableService.getById(receivableId);
-        if (receivable == null) {
-            throw new ReceivableException(INVALID_RECEIVABLE);
-        }
-        receivable.description = desc;
-        switch (receivable.status) {
-            case NOT_RECEIVED:
-                receivable.referenceNo = referenceNo;
-                receivable.receivedCurrency = receivable.currency;
-                receivable.receivedAmount = receivedAmount;
-                break;
-            case PARTIAL:
-                receivable.referenceNo += ";" + referenceNo;
-                receivable.receivedAmount = receivable.receivedAmount.add(receivedAmount);
-                break;
-            default:
-                throw new ValidationException(INVALID_RECEIVABLE_STATUS);
-        }
-        if (receivable.receivedAmount.setScale(2, RoundingMode.HALF_UP).compareTo(receivable.amount.setScale(2, RoundingMode.HALF_UP)) >= 0) {
-            receivable.status = ReceivableStatus.RECEIVED;
-            receivable.writeOffDate = LocalDate.now();
-        } else {
-            receivable.status = ReceivableStatus.PARTIAL;
-        }
-        receivableService.updateById(receivable);
-        return receivable;
     }
 
     private Map<ReceivableKey, List<PaymentTransaction>> processReceivable(Long moduleId, LocalDateTime startDateTime, LocalDateTime endDateTime) {

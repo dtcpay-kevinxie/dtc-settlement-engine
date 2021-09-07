@@ -5,6 +5,7 @@
 * Optimize auto-sweep logic, fix log and notification bug
 * Handle blockchain REJECTED case
 * Fix gas refill notify bug
+* Remove Payable and Receivable write-off logic
 
 [0.34.0] - 31 Aug 2021
 
