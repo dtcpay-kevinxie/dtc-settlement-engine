@@ -60,12 +60,6 @@ public class PaymentSettlementService {
     @Autowired
     private NonIndividualService nonIndividualService;
 
-    @Autowired
-    private PayableProcessService payableProcessService;
-
-    @Autowired
-    private ReceivableProcessService receivableProcessService;
-
     // Process All types of auto-settlement
     public void processSettlement(LocalDate today) {
         log.info("Start process Daily settlement");
@@ -153,20 +147,6 @@ public class PaymentSettlementService {
         settlementService.updateById(settlement);
         List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
         transactionService.updateSettlementStatusByIdIn(SettlementStatus.REJECTED, transactionIds);
-    }
-
-//    @Transactional
-    public Payable writeOffPayable(Long payableId, String remark, String referenceNo) {
-        Payable payable = payableProcessService.writeOff(payableId, remark, referenceNo);
-        Settlement settlement = settlementService.getSettlementByPayableId(payable.id);
-        settlement.status = SettlementStatus.PAID;
-        List<Long> ids = payoutReconcileService.getTransactionIdBySettlementId(settlement.id);
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.PAID, ids);
-        return payable;
-    }
-
-    public Receivable writeOffReceivable(Long receivalbeId, BigDecimal amount, String desc, String referenceNo) {
-        return receivableProcessService.writeOff(receivalbeId, amount, desc, referenceNo);
     }
 
     private void packTransactionByDate(SettlementConfig settlementConfig, LocalDate cycleStart, LocalDate cycleEnd) {

@@ -4,8 +4,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.common.constant.DateTime;
-import top.dtc.data.finance.model.Payable;
-import top.dtc.data.finance.model.Receivable;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.PaymentSettlementService;
@@ -89,30 +87,6 @@ public class SettlementController {
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot reject settlement", e);
-            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
-        }
-    }
-
-    @PostMapping(value = "/write-off/receivable")
-    public ApiResponse<?> writeOffSettlementReceivable(@RequestBody Receivable paymentReceivable) {
-        try {
-            log.debug("/settlement/write-off/receivable {}", paymentReceivable);
-            paymentReceivable = paymentSettlementService.writeOffReceivable(paymentReceivable.id, paymentReceivable.receivedAmount, paymentReceivable.description, paymentReceivable.referenceNo);
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentReceivable);
-        } catch (Exception e) {
-            log.error("Cannot process writeOffOtcReceivable", e);
-            return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
-        }
-    }
-
-    @PostMapping(value = "/write-off/payable")
-    public ApiResponse<?> writeOffSettlementPayable(@RequestBody Payable settlementPayable) {
-        try {
-            log.debug("/settlement/write-off/payable {}", settlementPayable);
-            settlementPayable = paymentSettlementService.writeOffPayable(settlementPayable.id, settlementPayable.remark, settlementPayable.referenceNo);
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, settlementPayable);
-        } catch (Exception e) {
-            log.error("Cannot process writeOffOtcReceivable", e);
             return new ApiResponse<>(ApiHeaderConstant.SETTLEMENT.OTHER_ERROR(e.getMessage()));
         }
     }
