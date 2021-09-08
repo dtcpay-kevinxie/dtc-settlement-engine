@@ -1,5 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.36.0] - 08 Sep 2021
+
+* Update *-data dep version
+* Complete notify withdrawal logic
+* Apply txnFee and gasFee logic
+
 [0.35.0] - 07 Sep 2021
 
 * Optimize auto-sweep logic, fix log and notification bug
