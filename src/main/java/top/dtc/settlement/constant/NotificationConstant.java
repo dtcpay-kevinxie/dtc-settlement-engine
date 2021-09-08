@@ -7,6 +7,7 @@ public class NotificationConstant {
         public static final String AUTO_SWEEP_RESULT = "AUTO_SWEEP_RESULT";
         public static final String BLOCKCHAIN_REJECTED = "BLOCKCHAIN_REJECTED";
         public static final String WITHDRAWAL_COMPLETED = "WITHDRAWAL_COMPLETED";
+        public static final String DEPOSIT_CONFIRMED = "DEPOSIT_CONFIRMED";
         public static final String PAYABLE_WRITE_OFF = "PAYABLE_WRITE_OFF";
         public static final String SILVERGATE_PAY_CANCELLED = "SILVERGATE_PAY_CANCELLED";
         public static final String SILVERGATE_PAY_INITIAL = "SILVERGATE_PAY_INITIAL";

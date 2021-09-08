@@ -26,8 +26,11 @@ import top.dtc.data.risk.enums.SecurityType;
 import top.dtc.data.risk.enums.WalletAddressType;
 import top.dtc.data.risk.model.KycWalletAddress;
 import top.dtc.data.risk.service.KycWalletAddressService;
+import top.dtc.data.wallet.enums.UserStatus;
 import top.dtc.data.wallet.model.WalletAccount;
+import top.dtc.data.wallet.model.WalletUser;
 import top.dtc.data.wallet.service.WalletAccountService;
+import top.dtc.data.wallet.service.WalletUserService;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.model.api.ApiResponse;
@@ -38,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static top.dtc.settlement.constant.NotificationConstant.NAMES.*;
 
@@ -71,6 +75,9 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     PayableService payableService;
+
+    @Autowired
+    WalletUserService walletUserService;
 
     public void scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
@@ -450,6 +457,7 @@ public class CryptoTransactionProcessService {
         // Credit deposit amount to crypto account
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(cryptoAccount);
+        notifyDepositCompleted(cryptoTransaction);
         //TODO: Standardize Receivable and Payable for both internal and external transfer
         handleSweep(recipientAddress, cryptoTransaction);
     }
@@ -599,10 +607,16 @@ public class CryptoTransactionProcessService {
     }
 
     private void notifyCompleteWithdrawal(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress, WalletAccount walletAccount) {
+        String recipients = getClientUserEmails(cryptoTransaction.clientId);
+        if (recipients == null) {
+            recipients = notificationProperties.opsRecipient;
+        } else {
+            recipients = notificationProperties.opsRecipient + "," + recipients;
+        }
         try {
             NotificationSender.
                     by(WITHDRAWAL_COMPLETED)
-                    .to(cryptoTransaction.operator)
+                    .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount + "",
                             "currency", cryptoTransaction.currency,
                             "recipient_address", kycWalletAddress.address,
@@ -612,6 +626,35 @@ public class CryptoTransactionProcessService {
                     .send();
         } catch (Exception e) {
             log.error("Notification Error", e);
+        }
+    }
+
+    private void notifyDepositCompleted(CryptoTransaction cryptoTransaction) {
+        String recipients = getClientUserEmails(cryptoTransaction.clientId);
+        if (recipients == null) {
+            recipients = notificationProperties.opsRecipient;
+        } else {
+            recipients = notificationProperties.opsRecipient + "," + recipients;
+        }
+        try {
+            NotificationSender.by(DEPOSIT_CONFIRMED)
+                    .to(recipients)
+                    .dataMap(Map.of("amount", cryptoTransaction.amount.toString(),
+                            "currency", cryptoTransaction.currency,
+                            "transaction_url", notificationProperties.walletUrlPrefix + "/crypto-transaction-info/" + cryptoTransaction.id))
+                    .send();
+        } catch (Exception e) {
+            log.error("Notification Error", e);
+        }
+    }
+
+    private String getClientUserEmails(Long clientId) {
+        List<WalletUser> walletUserList = walletUserService.getByClientIdAndStatus(clientId, UserStatus.ENABLED);
+        if (ObjectUtils.isEmpty(walletUserList)) {
+            log.info("Not Wallet user for client");
+            return null;
+        } else {
+            return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.joining(","));
         }
     }
 
