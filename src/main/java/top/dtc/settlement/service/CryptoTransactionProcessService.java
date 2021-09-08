@@ -165,15 +165,15 @@ public class CryptoTransactionProcessService {
      * https://docs.google.com/presentation/d/1eWtfVLDEGY8uK2IELga1F_8NHBx_6969H1FRjCspCWE/edit#slide=id.p5
      */
     public void notify(CryptoTransactionResult transactionResult) {
+        //TODO: Contracts will be migrated to Outputs and Inputs
         if (ObjectUtils.isEmpty(transactionResult)
                 || ObjectUtils.isEmpty(transactionResult.contracts)
                 || ObjectUtils.isEmpty(transactionResult.contracts.get(0))
         ) {
             log.error("Notify txn result invalid {}", JSON.toJSONString(transactionResult, SerializerFeature.PrettyFormat));
         }
-
-        // Transaction REJECTED by blockchain case
         if (!transactionResult.success){
+            // Transaction REJECTED by blockchain case
             handleRejectTxn(transactionResult);
         } else {
             handleSuccessTxn(transactionResult);
@@ -407,6 +407,15 @@ public class CryptoTransactionProcessService {
                     alertMsg = String.format("Transaction [%s] sent from undefined address [%s] to DTC_OPS address [%s].", transactionResult.hash, result.from, result.to);
                     log.error(alertMsg);
                     sendAlert(notificationProperties.complianceRecipient, alertMsg);
+                }
+                return;
+            case DTC_FINANCE:
+                if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_OPS) {
+                    log.info("Sweep from [{}] to [{}] completed", senderAddress.address, recipientAddress.address);
+                } else {
+                    alertMsg = String.format("DTC_FINANCE Address(%s) receive unexpected address[%s]", recipientAddress.id, result.to);
+                    log.error(alertMsg);
+                    sendAlert(notificationProperties.itRecipient, alertMsg);
                 }
                 return;
             default:
