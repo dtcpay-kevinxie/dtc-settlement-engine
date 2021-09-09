@@ -452,7 +452,7 @@ public class CryptoTransactionProcessService {
         cryptoTransaction.recipientAddressId = recipientAddress.id;
         cryptoTransaction.txnHash = transactionResult.hash;
         cryptoTransaction.gasFee = transactionResult.fee;
-        cryptoTransaction.requestTimestamp = transactionResult.block.datetime;
+        cryptoTransaction.requestTimestamp = LocalDateTime.now();
         cryptoTransactionService.save(cryptoTransaction);
         // Credit deposit amount to crypto account
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
