@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.37.0] - 
+
+* Update dtc-parent dep version
+
 [0.36.0] - 09 Sep 2021
 
 * Update *-data dep version
