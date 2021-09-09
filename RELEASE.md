@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.36.0] - 08 Sep 2021
+[0.36.0] - 09 Sep 2021
 
 * Update *-data dep version
 * Complete notify withdrawal logic
