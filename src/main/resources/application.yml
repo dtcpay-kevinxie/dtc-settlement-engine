@@ -19,6 +19,7 @@ notification:
   finance-recipient: ${NOTIFICATION_FINANCE_RECIPIENT}
   it-recipient: ${NOTIFICATION_IT_RECIPIENT}
   portal-url-prefix: ${PORTAL_URL_PREFIX}
+  wallet-url-prefix: ${WALLET_URL_PREFIX}
 
 etherscan:
   api-url-prefix: ${ETHERSCAN_API_URL_PREFIX}

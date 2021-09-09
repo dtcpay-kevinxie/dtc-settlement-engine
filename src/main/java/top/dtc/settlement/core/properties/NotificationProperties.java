@@ -22,4 +22,7 @@ public class NotificationProperties {
     // Portal url prefix in Notification
     public String portalUrlPrefix;
 
+    // Wallet url prefix in Notification
+    public String walletUrlPrefix;
+
 }
