@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.37.0] - 10 Sep 2021
+
+* Update dtc-parent dep version
+* Update cryptoTransactionProcessService
+
 [0.36.0] - 09 Sep 2021
 
 * Update *-data dep version
