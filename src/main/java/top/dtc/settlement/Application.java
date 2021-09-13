@@ -10,10 +10,12 @@ import top.dtc.data.core.core.config.EnableDataCore;
 import top.dtc.data.finance.core.config.EnableDataFinance;
 import top.dtc.data.risk.core.config.EnableDataRisk;
 import top.dtc.data.wallet.core.config.EnableDataWallet;
+import top.dtc.data.wallet.core.config.EnableDataWalletAws;
 
 @DtcApplication
 @EnableWeb
 @EnableDataWallet
+@EnableDataWalletAws
 @EnableDataCore
 @EnableDataRisk
 @EnableDataFinance
