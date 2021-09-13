@@ -579,7 +579,7 @@ public class CryptoTransactionProcessService {
             log.error(sendTxnResp.header.errMsg);
             return false;
         }
-        log.info("Sweep Success txnHash: {}", sendTxnResp.result);
+        log.info("transfer sent txnHash: {}", sendTxnResp.result);
         return true;
     }
 

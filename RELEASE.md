@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.38.0] - 13 Sep 2021
+
+* Enable EnableDataWalletAws
+
 [0.37.0] - 10 Sep 2021
 
 * Update dtc-parent dep version
