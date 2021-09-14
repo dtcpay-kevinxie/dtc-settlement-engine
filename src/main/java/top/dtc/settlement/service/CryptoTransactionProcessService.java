@@ -609,12 +609,7 @@ public class CryptoTransactionProcessService {
 
     private void notifyCompleteWithdrawal(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress, WalletAccount walletAccount) {
         List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
-        if (recipients == null) {
-            recipients = new ArrayList<>();
-            recipients.add(notificationProperties.opsRecipient);
-        } else {
-            recipients.add(notificationProperties.opsRecipient);
-        }
+        recipients.add(notificationProperties.opsRecipient);
         try {
             NotificationSender.
                     by(WITHDRAWAL_COMPLETED)
@@ -633,12 +628,7 @@ public class CryptoTransactionProcessService {
 
     private void notifyDepositCompleted(CryptoTransaction cryptoTransaction) {
         List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
-        if (recipients == null) {
-            recipients = new ArrayList<>();
-            recipients.add(notificationProperties.opsRecipient);
-        } else {
-            recipients.add(notificationProperties.opsRecipient);
-        }
+        recipients.add(notificationProperties.opsRecipient);
         try {
             NotificationSender.by(DEPOSIT_CONFIRMED)
                     .to(recipients)
@@ -655,7 +645,7 @@ public class CryptoTransactionProcessService {
         List<WalletUser> walletUserList = walletUserService.getByClientIdAndStatus(clientId, UserStatus.ENABLED);
         if (ObjectUtils.isEmpty(walletUserList)) {
             log.info("Not Wallet user for client");
-            return null;
+            return new ArrayList<>();
         } else {
             return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.toList());
         }
