@@ -283,6 +283,7 @@ public class CryptoTransactionProcessService {
                         log.debug("Handling PENDING Transaction.");
                         existingTxn.state = CryptoTransactionState.COMPLETED;
                         existingTxn.gasFee = transactionResult.fee;
+                        cryptoTransactionService.updateById(existingTxn);
                         Payable originalPayable = payableService.getPayableByTransactionId(existingTxn.id);
                         if (originalPayable == null) {
                             alertMsg = String.format("No Payable found to link Crypto Withdrawal Transaction(%s)", existingTxn.id);
@@ -607,21 +608,18 @@ public class CryptoTransactionProcessService {
     }
 
     private void notifyCompleteWithdrawal(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress, WalletAccount walletAccount) {
-        String recipients = getClientUserEmails(cryptoTransaction.clientId);
-        if (recipients == null) {
-            recipients = notificationProperties.opsRecipient;
-        } else {
-            recipients = notificationProperties.opsRecipient + "," + recipients;
-        }
+        List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
+        recipients.add(notificationProperties.opsRecipient);
         try {
             NotificationSender.
-                    by(WITHDRAWAL_COMPLETED)
+                    by(WITHDRAWAL_CRYPTO_COMPLETED)
                     .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount + "",
                             "currency", cryptoTransaction.currency,
                             "recipient_address", kycWalletAddress.address,
                             "txn_hash", cryptoTransaction.txnHash,
-                            "balance", walletAccount.balance + ""
+                            "balance", walletAccount.balance + "",
+                            "transaction_url", notificationProperties.walletUrlPrefix + "/crypto-transaction-info/" + cryptoTransaction.id
                     ))
                     .send();
         } catch (Exception e) {
@@ -630,12 +628,8 @@ public class CryptoTransactionProcessService {
     }
 
     private void notifyDepositCompleted(CryptoTransaction cryptoTransaction) {
-        String recipients = getClientUserEmails(cryptoTransaction.clientId);
-        if (recipients == null) {
-            recipients = notificationProperties.opsRecipient;
-        } else {
-            recipients = notificationProperties.opsRecipient + "," + recipients;
-        }
+        List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
+        recipients.add(notificationProperties.opsRecipient);
         try {
             NotificationSender.by(DEPOSIT_CONFIRMED)
                     .to(recipients)
@@ -648,13 +642,13 @@ public class CryptoTransactionProcessService {
         }
     }
 
-    private String getClientUserEmails(Long clientId) {
+    public List<String> getClientUserEmails(Long clientId) {
         List<WalletUser> walletUserList = walletUserService.getByClientIdAndStatus(clientId, UserStatus.ENABLED);
         if (ObjectUtils.isEmpty(walletUserList)) {
             log.info("Not Wallet user for client");
-            return null;
+            return new ArrayList<>();
         } else {
-            return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.joining(","));
+            return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.toList());
         }
     }
 
