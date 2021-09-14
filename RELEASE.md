@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.39.0] - 14 Sep 2021
+
+* Update data-wallet version
+
 [0.38.0] - 13 Sep 2021
 
 * Enable EnableDataWalletAws
