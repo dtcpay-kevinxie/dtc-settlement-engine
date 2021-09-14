@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.40.0] - 15 Sep 2021
+
+* Fix deposit crypto_transaction state not updated bug
+
 [0.39.0] - 14 Sep 2021
 
 * Update data-wallet version

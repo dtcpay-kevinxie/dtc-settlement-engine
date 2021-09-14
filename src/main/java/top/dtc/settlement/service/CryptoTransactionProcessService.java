@@ -283,6 +283,7 @@ public class CryptoTransactionProcessService {
                         log.debug("Handling PENDING Transaction.");
                         existingTxn.state = CryptoTransactionState.COMPLETED;
                         existingTxn.gasFee = transactionResult.fee;
+                        cryptoTransactionService.updateById(existingTxn);
                         Payable originalPayable = payableService.getPayableByTransactionId(existingTxn.id);
                         if (originalPayable == null) {
                             alertMsg = String.format("No Payable found to link Crypto Withdrawal Transaction(%s)", existingTxn.id);
