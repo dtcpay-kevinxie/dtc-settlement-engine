@@ -3,6 +3,7 @@
 [0.40.0] - 15 Sep 2021
 
 * Fix deposit crypto_transaction state not updated bug
+* Fix multiple email recipients bug 
 
 [0.39.0] - 14 Sep 2021
 

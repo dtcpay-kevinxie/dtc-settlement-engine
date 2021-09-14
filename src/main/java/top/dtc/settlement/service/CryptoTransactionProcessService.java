@@ -608,11 +608,12 @@ public class CryptoTransactionProcessService {
     }
 
     private void notifyCompleteWithdrawal(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress, WalletAccount walletAccount) {
-        String recipients = getClientUserEmails(cryptoTransaction.clientId);
+        List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
         if (recipients == null) {
-            recipients = notificationProperties.opsRecipient;
+            recipients = new ArrayList<>();
+            recipients.add(notificationProperties.opsRecipient);
         } else {
-            recipients = notificationProperties.opsRecipient + "," + recipients;
+            recipients.add(notificationProperties.opsRecipient);
         }
         try {
             NotificationSender.
@@ -631,11 +632,12 @@ public class CryptoTransactionProcessService {
     }
 
     private void notifyDepositCompleted(CryptoTransaction cryptoTransaction) {
-        String recipients = getClientUserEmails(cryptoTransaction.clientId);
+        List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
         if (recipients == null) {
-            recipients = notificationProperties.opsRecipient;
+            recipients = new ArrayList<>();
+            recipients.add(notificationProperties.opsRecipient);
         } else {
-            recipients = notificationProperties.opsRecipient + "," + recipients;
+            recipients.add(notificationProperties.opsRecipient);
         }
         try {
             NotificationSender.by(DEPOSIT_CONFIRMED)
@@ -649,13 +651,13 @@ public class CryptoTransactionProcessService {
         }
     }
 
-    private String getClientUserEmails(Long clientId) {
+    public List<String> getClientUserEmails(Long clientId) {
         List<WalletUser> walletUserList = walletUserService.getByClientIdAndStatus(clientId, UserStatus.ENABLED);
         if (ObjectUtils.isEmpty(walletUserList)) {
             log.info("Not Wallet user for client");
             return null;
         } else {
-            return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.joining(","));
+            return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.toList());
         }
     }
 
