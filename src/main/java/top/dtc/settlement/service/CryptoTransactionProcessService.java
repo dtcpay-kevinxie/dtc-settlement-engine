@@ -612,13 +612,14 @@ public class CryptoTransactionProcessService {
         recipients.add(notificationProperties.opsRecipient);
         try {
             NotificationSender.
-                    by(WITHDRAWAL_COMPLETED)
+                    by(WITHDRAWAL_CRYPTO_COMPLETED)
                     .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount + "",
                             "currency", cryptoTransaction.currency,
                             "recipient_address", kycWalletAddress.address,
                             "txn_hash", cryptoTransaction.txnHash,
-                            "balance", walletAccount.balance + ""
+                            "balance", walletAccount.balance + "",
+                            "transaction_url", notificationProperties.walletUrlPrefix + "/crypto-transaction-info/" + cryptoTransaction.id
                     ))
                     .send();
         } catch (Exception e) {
