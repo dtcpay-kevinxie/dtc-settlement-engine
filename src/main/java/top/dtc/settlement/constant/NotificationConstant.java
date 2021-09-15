@@ -9,6 +9,7 @@ public class NotificationConstant {
         public static final String WITHDRAWAL_CRYPTO_COMPLETED = "WITHDRAWAL_CRYPTO_COMPLETED";
         public static final String DEPOSIT_CONFIRMED = "DEPOSIT_CONFIRMED";
         public static final String PAYABLE_WRITE_OFF = "PAYABLE_WRITE_OFF";
+        public static final String RECEIVABLE_WRITE_OFF = "RECEIVABLE_WRITE_OFF";
         public static final String SILVERGATE_PAY_CANCELLED = "SILVERGATE_PAY_CANCELLED";
         public static final String SILVERGATE_PAY_INITIAL = "SILVERGATE_PAY_INITIAL";
         public static final String SILVERGATE_BALANCE_CHANGED = "SILVERGATE_BALANCE_CHANGED";

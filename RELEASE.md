@@ -5,6 +5,7 @@
 * Fix deposit crypto_transaction state not updated bug
 * Fix multiple email recipients bug 
 * Update withdrawalCompleted Notification
+* Add Receivable when after crypto deposit completed
 
 [0.39.0] - 14 Sep 2021
 
