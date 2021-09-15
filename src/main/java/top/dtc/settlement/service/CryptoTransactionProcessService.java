@@ -19,9 +19,15 @@ import top.dtc.data.core.model.CryptoTransaction;
 import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.service.CryptoTransactionService;
 import top.dtc.data.core.service.DefaultConfigService;
+import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.PayableStatus;
+import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.model.Payable;
+import top.dtc.data.finance.model.Receivable;
+import top.dtc.data.finance.model.ReceivableSub;
 import top.dtc.data.finance.service.PayableService;
+import top.dtc.data.finance.service.ReceivableService;
+import top.dtc.data.finance.service.ReceivableSubService;
 import top.dtc.data.risk.enums.SecurityType;
 import top.dtc.data.risk.enums.WalletAddressType;
 import top.dtc.data.risk.model.KycWalletAddress;
@@ -31,6 +37,7 @@ import top.dtc.data.wallet.model.WalletAccount;
 import top.dtc.data.wallet.model.WalletUser;
 import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.data.wallet.service.WalletUserService;
+import top.dtc.settlement.constant.NotificationConstant;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.model.api.ApiResponse;
@@ -78,6 +85,12 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     WalletUserService walletUserService;
+
+    @Autowired
+    ReceivableService receivableService;
+
+    @Autowired
+    ReceivableSubService receivableSubService;
 
     public void scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
@@ -327,10 +340,11 @@ public class CryptoTransactionProcessService {
         // 3. Check recipient address type: DTC_CLIENT_WALLET, DTC_GAS, DTC_OPS
         switch (recipientAddress.type) {
             case CLIENT_OWN:
-                alertMsg = String.format("Unexpected transaction(%s) to CLIENT_OWN address(%s) under (%s)%s",
-                        transactionResult.hash, recipientAddress.id, recipientAddress.ownerId, kycCommonService.getClientName(recipientAddress.ownerId));
-                log.error(alertMsg);
-                sendAlert(notificationProperties.itRecipient, alertMsg);
+                // No need to monitor CLIENT_OWN address
+//                alertMsg = String.format("Unexpected transaction(%s) to CLIENT_OWN address(%s) under (%s)%s",
+//                        transactionResult.hash, recipientAddress.id, recipientAddress.ownerId, kycCommonService.getClientName(recipientAddress.ownerId));
+//                log.error(alertMsg);
+//                sendAlert(notificationProperties.itRecipient, alertMsg);
                 return;
             case DTC_CLIENT_WALLET:
                 // DTC_CLIENT_WALLET sub_id is clientId
@@ -460,6 +474,27 @@ public class CryptoTransactionProcessService {
         walletAccountService.updateById(cryptoAccount);
         notifyDepositCompleted(cryptoTransaction);
         //TODO: Standardize Receivable and Payable for both internal and external transfer
+
+        Receivable receivable = new Receivable();
+        receivable.status = ReceivableStatus.RECEIVED;
+        receivable.type = InvoiceType.DEPOSIT;
+        receivable.receivedAmount = receivable.amount = cryptoTransaction.amount;
+        receivable.currency = cryptoTransaction.currency;
+        receivable.bankName = cryptoTransaction.mainNet.desc;
+        receivable.bankAccount = recipientAddress.address;
+        receivable.referenceNo = cryptoTransaction.txnHash;
+        receivable.payer = kycCommonService.getClientName(cryptoTransaction.clientId);
+        receivable.writeOffDate = receivable.receivableDate = cryptoTransaction.requestTimestamp.toLocalDate();
+        receivable.description = "System auto write-off";
+        receivableService.save(receivable);
+
+        ReceivableSub receivableSub = new ReceivableSub();
+        receivableSub.receivableId = receivable.id;
+        receivableSub.subId = cryptoTransaction.id;
+        receivableSub.type = InvoiceType.DEPOSIT;
+        receivableSubService.save(receivableSub);
+        notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
+
         handleSweep(recipientAddress, cryptoTransaction);
     }
 
@@ -640,6 +675,26 @@ public class CryptoTransactionProcessService {
         } catch (Exception e) {
             log.error("Notification Error", e);
         }
+    }
+
+    private void notifyReceivableWriteOff(Receivable originalReceivable, BigDecimal receivedAmount) {
+        try {
+            NotificationSender.
+                    by(NotificationConstant.NAMES.RECEIVABLE_WRITE_OFF)
+                    .to(notificationProperties.financeRecipient)
+                    .dataMap(Map.of("id", originalReceivable.id + "",
+                            "amount", originalReceivable.amount + " " + originalReceivable.currency,
+                            "amount_received", receivedAmount.toString(),
+                            "reference_no", originalReceivable.referenceNo,
+                            "desc", originalReceivable.description,
+                            "status", originalReceivable.status.desc,
+                            "receivable_url", notificationProperties.portalUrlPrefix + "/accounting/receivable-info/" + originalReceivable.id
+                    ))
+                    .send();
+        } catch (Exception e) {
+            log.error("Notification Error", e);
+        }
+
     }
 
     public List<String> getClientUserEmails(Long clientId) {
