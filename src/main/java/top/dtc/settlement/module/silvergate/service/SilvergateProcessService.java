@@ -1,6 +1,7 @@
 package top.dtc.settlement.module.silvergate.service;
 
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,7 @@ public class SilvergateProcessService {
         BigDecimal previousAmount = new BigDecimal(notificationPost.previousBalance);
         BigDecimal availableAmount = new BigDecimal(notificationPost.availableBalance);
         BigDecimal changedAmount = availableAmount.subtract(previousAmount);
+        //TODO: Handle Receivable or Payable by account number
         AccountHistoryReq accountHistoryReq = new AccountHistoryReq();
         accountHistoryReq.accountNumber = notificationPost.accountNumber;
         accountHistoryReq.beginDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -66,22 +68,25 @@ public class SilvergateProcessService {
         log.info("AccountHistoryReq {}", accountHistoryReq);
         AccountHistoryResp historyResp = silvergateApiService.getAccountHistory(accountHistoryReq);
         StringBuilder transactionDetails = new StringBuilder();
-        if (historyResp.error != null
-                && historyResp.responseDataList != null
-                && historyResp.responseDataList.size() > 0
-                && historyResp.responseDataList.get(0).recs_returned > 0
-        ) {
+        if (!ObjectUtils.isEmpty(historyResp.responseDataList) && historyResp.responseDataList.get(0).recs_returned > 0) {
             List<AccountHistoryResp.Transaction> newTransactions = historyResp.responseDataList.get(0).transactionList.stream()
                     .takeWhile(silvergateTxn -> new BigDecimal(silvergateTxn.currAvailbal).compareTo(previousAmount) == 0)
                     .collect(Collectors.toList());
             log.debug("New Transactions {}", newTransactions);
             for (AccountHistoryResp.Transaction txn : newTransactions) {
-                transactionDetails
-                        .append("\n")
-                        .append(txn.tranDescS).append(" ")
-                        .append(txn.drcrFlag.equals(DEBIT) ? "Debit" : "Credit").append(" ")
-                        .append("Amount: ").append(new BigDecimal(txn.tranAmt).setScale(2, RoundingMode.UP)).append(" ")
-                ;
+                if (txn.currAvailbal != null) {
+                    BigDecimal amtAfterTxn = new BigDecimal(txn.currAvailbal);
+                    if (amtAfterTxn.compareTo(availableAmount) == 0) {
+                        transactionDetails
+                                .append("\n")
+                                .append(txn.tranDesc).append(" ")
+                                .append(txn.tranDescS).append(" ")
+                                .append(txn.drcrFlag.equals(DEBIT) ? "Debit" : "Credit").append(" ")
+                                .append("Amount: ").append(new BigDecimal(txn.tranAmt).setScale(2, RoundingMode.UP));
+                        //TODO: Locate Receivable or Payable by referenceNo.
+                        break;
+                    }
+                }
             }
             log.debug("Transaction Details {}", transactionDetails);
             NotificationSender

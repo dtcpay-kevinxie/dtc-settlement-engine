@@ -211,7 +211,7 @@ public class CryptoTransactionProcessService {
                         existingTxn.state = CryptoTransactionState.REJECTED;
                         existingTxn.gasFee = transactionResult.fee;
                         cryptoTransactionService.updateById(existingTxn);
-                        String txnInfo = String.format("\nId: %s \nType: %s \n Amount: %s(%s) \n",
+                        String txnInfo = String.format("Crypto Transaction: \nId: %s \nType: %s \n Amount: %s(%s) \n",
                                 existingTxn.id, existingTxn.type, existingTxn.amount, existingTxn.currency);
                         String clientInfo = String.format("(%s)%s", existingTxn.clientId, kycCommonService.getClientName(existingTxn.clientId));
                         rejectAlert(notificationProperties.opsRecipient, existingTxn.mainNet, existingTxn.txnHash, txnInfo, clientInfo);
@@ -236,7 +236,6 @@ public class CryptoTransactionProcessService {
             if (recipientAddress == null && senderAddress == null) {
                 log.error(String.format("Recipient address[%s] and sender address[%s] are not found or disabled. Please unwatch in system", result.to, result.from));
             } else if (recipientAddress != null) { // Recipient address is found
-                //TODO: Handle different type address in different way
                 switch (recipientAddress.type) {
                     case CLIENT_OWN:
                     case DTC_CLIENT_WALLET:
@@ -244,11 +243,11 @@ public class CryptoTransactionProcessService {
                     case DTC_OPS:
                     case DTC_FINANCE:
                 }
+                String txnInfo = String.format("Transaction sent to %s(id=%s) %s", recipientAddress.type.desc, recipientAddress.id, recipientAddress.address);;
                 log.error(String.format("Recipient address (id=%s)[%s] under client %s is REJECTED by blockchain network.", recipientAddress.id, transactionResult.hash, recipientAddress.ownerId));
                 String clientInfo = String.format("(%s)%s", recipientAddress.ownerId, kycCommonService.getClientName(recipientAddress.ownerId));
-                rejectAlert(notificationProperties.opsRecipient, recipientAddress.mainNet, transactionResult.hash, "N/A", clientInfo);
+                rejectAlert(notificationProperties.opsRecipient, recipientAddress.mainNet, transactionResult.hash, txnInfo, clientInfo);
             } else { // Recipient address is not found, and Sender address is found
-                //TODO: Handle different type address in different way
                 switch (senderAddress.type) {
                     case CLIENT_OWN:
                     case DTC_GAS:
@@ -261,7 +260,6 @@ public class CryptoTransactionProcessService {
                 rejectAlert(notificationProperties.opsRecipient, senderAddress.mainNet, transactionResult.hash, "N/A", clientInfo);
             }
         }
-
     }
 
     private void handleSuccessTxn(CryptoTransactionResult transactionResult) {
@@ -288,6 +286,7 @@ public class CryptoTransactionProcessService {
             // 2a. Check Transaction State: PENDING, COMPLETED, REJECTED, CLOSED
             switch (existingTxn.state) {
                 case PENDING:
+                    // Only PENDING transaction from DTC_OPS to CLIENT_OWN has txnHash (Crypto Withdrawal case)
                     if (recipientAddress.type == WalletAddressType.CLIENT_OWN
                             && recipientAddress.id.equals(existingTxn.recipientAddressId)
                             && senderAddress != null
@@ -304,7 +303,7 @@ public class CryptoTransactionProcessService {
                             sendAlert(notificationProperties.itRecipient, alertMsg);
                             return;
                         }
-                        if (originalPayable.status != PayableStatus.UNPAID) {
+                        if (originalPayable.status == PayableStatus.PAID) {
                             alertMsg = String.format("Payable(%s) is written-off, Crypto Withdrawal Transaction(%s) is still PENDING",
                                     originalPayable.id, existingTxn.id);
                             log.error(alertMsg);
@@ -340,11 +339,7 @@ public class CryptoTransactionProcessService {
         // 3. Check recipient address type: DTC_CLIENT_WALLET, DTC_GAS, DTC_OPS
         switch (recipientAddress.type) {
             case CLIENT_OWN:
-                // No need to monitor CLIENT_OWN address
-//                alertMsg = String.format("Unexpected transaction(%s) to CLIENT_OWN address(%s) under (%s)%s",
-//                        transactionResult.hash, recipientAddress.id, recipientAddress.ownerId, kycCommonService.getClientName(recipientAddress.ownerId));
-//                log.error(alertMsg);
-//                sendAlert(notificationProperties.itRecipient, alertMsg);
+                log.error("CLIENT_OWN address shouldn't be in watchlist. Please check.");
                 return;
             case DTC_CLIENT_WALLET:
                 // DTC_CLIENT_WALLET sub_id is clientId
@@ -373,7 +368,7 @@ public class CryptoTransactionProcessService {
                     }
                 } else if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
                     log.info("Gas filled to DTC_CLIENT_WALLET address [{}]", recipientAddress.address);
-                } else {
+                } else if (senderAddress == null) {
                     // Get all PENDING satoshi test transaction under recipient address
                     List<CryptoTransaction> satoshiTestList = cryptoTransactionService.getByParams(
                             clientId,
@@ -409,6 +404,11 @@ public class CryptoTransactionProcessService {
                             transactionResult.hash, result.from, result.to, clientId);
                     log.error(alertMsg);
                     sendAlert(notificationProperties.complianceRecipient, alertMsg);
+                } else {
+                    alertMsg = String.format("Unexpected transaction [%s] sent from %s (id=%s)[%s] to address [%s] which is assigned Client(%s)",
+                            transactionResult.hash, senderAddress.type.desc, senderAddress.id, senderAddress.address, recipientAddress.address, clientId);
+                    log.error(alertMsg);
+                    sendAlert(notificationProperties.opsRecipient, alertMsg);
                 }
                 return;
             case DTC_GAS:
@@ -445,7 +445,6 @@ public class CryptoTransactionProcessService {
                 log.error(alertMsg);
                 sendAlert(notificationProperties.itRecipient, alertMsg);
         }
-
     }
 
     private void handleDeposit(CryptoTransactionResult transactionResult, CryptoContractResult result, MainNet mainNet, String currency, KycWalletAddress recipientAddress, KycWalletAddress senderAddress) {
@@ -473,7 +472,7 @@ public class CryptoTransactionProcessService {
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(cryptoAccount);
         notifyDepositCompleted(cryptoTransaction);
-        //TODO: Standardize Receivable and Payable for both internal and external transfer
+        //TODO: Standardize Receivable and Payable for internal transfer
 
         Receivable receivable = new Receivable();
         receivable.status = ReceivableStatus.RECEIVED;
@@ -694,7 +693,6 @@ public class CryptoTransactionProcessService {
         } catch (Exception e) {
             log.error("Notification Error", e);
         }
-
     }
 
     public List<String> getClientUserEmails(Long clientId) {
