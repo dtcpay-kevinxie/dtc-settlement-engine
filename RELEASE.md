@@ -4,6 +4,7 @@
 
 * Complete crypto notify logic
 * Fix Silvergate notify logic
+* Remove etherscan api integration
 
 [0.40.0] - 15 Sep 2021
 

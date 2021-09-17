@@ -60,7 +60,7 @@ public class SilvergateProcessService {
         BigDecimal previousAmount = new BigDecimal(notificationPost.previousBalance);
         BigDecimal availableAmount = new BigDecimal(notificationPost.availableBalance);
         BigDecimal changedAmount = availableAmount.subtract(previousAmount);
-        //TODO: Handle Receivable or Payable by account number
+        //TODO: Differentiate Receivable and Payable by account number
         AccountHistoryReq accountHistoryReq = new AccountHistoryReq();
         accountHistoryReq.accountNumber = notificationPost.accountNumber;
         accountHistoryReq.beginDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
