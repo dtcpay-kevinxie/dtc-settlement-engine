@@ -16,8 +16,10 @@ import top.dtc.common.exception.ValidationException;
 import top.dtc.common.model.crypto.*;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.data.core.model.CryptoTransaction;
+import top.dtc.data.core.model.Currency;
 import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.service.CryptoTransactionService;
+import top.dtc.data.core.service.CurrencyService;
 import top.dtc.data.core.service.DefaultConfigService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.PayableStatus;
@@ -43,6 +45,7 @@ import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -91,6 +94,9 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     ReceivableSubService receivableSubService;
+
+    @Autowired
+    CurrencyService currencyService;
 
     public void scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
@@ -454,12 +460,13 @@ public class CryptoTransactionProcessService {
             log.error("Wallet account is not activated.");
             return;
         }
+        Currency receivedCurrency = currencyService.getFirstByName(currency);
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
         cryptoTransaction.clientId = senderAddress.ownerId;
         cryptoTransaction.mainNet = mainNet;
-        cryptoTransaction.amount = result.amount;
+        cryptoTransaction.amount = result.amount.setScale(receivedCurrency.exponent, RoundingMode.DOWN);
         cryptoTransaction.operator = "dtc-settlement-engine";
         cryptoTransaction.currency = currency;
         cryptoTransaction.senderAddressId = senderAddress.id;

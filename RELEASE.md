@@ -1,6 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.40.0] - 
+[0.41.0] - 
+
+* Handle decimal when get amount from blockchain
+
+[0.40.0] - 20 Sep 2021
 
 * Complete crypto notify logic
 * Fix Silvergate notify logic
