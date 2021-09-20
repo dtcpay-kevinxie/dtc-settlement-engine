@@ -1,5 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.40.0] - 
+
+* Complete crypto notify logic
+* Fix Silvergate notify logic
+* Remove etherscan api integration
+
 [0.40.0] - 15 Sep 2021
 
 * Fix deposit crypto_transaction state not updated bug
