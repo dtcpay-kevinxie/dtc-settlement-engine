@@ -101,7 +101,7 @@ public class CryptoTransactionProcessService {
     public void scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
         list.forEach(k -> {
-            if (k.state == CryptoTransactionState.PENDING
+            if (k.state == CryptoTransactionState.AUTHORIZED
                     && k.type == CryptoTransactionType.SATOSHI
                     && k.requestTimestamp.isBefore(LocalDateTime.now().minusMinutes(30))
             ) {
@@ -211,8 +211,8 @@ public class CryptoTransactionProcessService {
         CryptoTransaction existingTxn = cryptoTransactionService.getOneByTxnHash(transactionResult.hash);
         if (existingTxn != null) { // txnHash found in Crypto Transaction
             switch (existingTxn.state) {
-                case PENDING:
-                    // Only Withdrawal has txnHash in PENDING state
+                case AUTHORIZED:
+                    // Only Withdrawal has txnHash in AUTHORIZED state
                     if (existingTxn.type == CryptoTransactionType.WITHDRAW) {
                         existingTxn.state = CryptoTransactionState.REJECTED;
                         existingTxn.gasFee = transactionResult.fee;
@@ -225,6 +225,8 @@ public class CryptoTransactionProcessService {
                         log.error(String.format("[%s] Transaction[%s] in PENDING state with txnHash[%s].", existingTxn.type.desc, existingTxn.id, existingTxn.txnHash));
                     }
                     break;
+                case PENDING:
+                case PROCESSING:
                 case COMPLETED:
                 case CLOSED:
                     String alertMsg = String.format("WARNING!! WARNING!! Transaction [%s] is REJECTED by blockchain, but system was handling Transaction[%s] as [%s]",
@@ -376,10 +378,10 @@ public class CryptoTransactionProcessService {
                 } else if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
                     log.info("Gas filled to DTC_CLIENT_WALLET address [{}]", recipientAddress.address);
                 } else if (senderAddress == null) {
-                    // Get all PENDING satoshi test transaction under recipient address
+                    // Get all AUTHORIZED satoshi test transaction under recipient address
                     List<CryptoTransaction> satoshiTestList = cryptoTransactionService.getByParams(
                             clientId,
-                            CryptoTransactionState.PENDING,
+                            CryptoTransactionState.AUTHORIZED,
                             CryptoTransactionType.SATOSHI,
                             null,
                             recipientAddress.id,
