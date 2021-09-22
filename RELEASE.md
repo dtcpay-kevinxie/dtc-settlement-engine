@@ -3,6 +3,8 @@
 [0.41.0] - 
 
 * Handle decimal when get amount from blockchain
+* Update dtc-parent version
+* Fix Silvergate notify balance checking bug
 * Register txn to Chainalysis after notified by blockchain network
 
 [0.40.0] - 20 Sep 2021
