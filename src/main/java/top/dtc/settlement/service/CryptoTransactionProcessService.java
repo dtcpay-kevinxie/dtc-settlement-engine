@@ -302,6 +302,7 @@ public class CryptoTransactionProcessService {
                         existingTxn.state = CryptoTransactionState.COMPLETED;
                         existingTxn.gasFee = transactionResult.fee;
                         cryptoTransactionService.updateById(existingTxn);
+                        registerToChainalysis(existingTxn);
                         Payable originalPayable = payableService.getPayableByTransactionId(existingTxn.id);
                         if (originalPayable == null) {
                             alertMsg = String.format("No Payable found to link Crypto Withdrawal Transaction(%s)", existingTxn.id);
@@ -475,6 +476,7 @@ public class CryptoTransactionProcessService {
         cryptoTransaction.gasFee = transactionResult.fee;
         cryptoTransaction.requestTimestamp = LocalDateTime.now();
         cryptoTransactionService.save(cryptoTransaction);
+        registerToChainalysis(cryptoTransaction);
         // Credit deposit amount to crypto account
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(cryptoAccount);
@@ -623,6 +625,27 @@ public class CryptoTransactionProcessService {
         }
         log.info("transfer sent txnHash: {}", sendTxnResp.result);
         return true;
+    }
+
+    private void registerToChainalysis(CryptoTransaction cryptoTransaction) {
+        try {
+            String path = String.format("/chainalysis/register/%s/{addressId}/{currency}/{transactionHash}",
+                    cryptoTransaction.type == CryptoTransactionType.DEPOSIT ? "received-transaction" : "withdraw-transaction");
+            ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrlPrefix + path)
+                    .routeParam("addressId", cryptoTransaction.recipientAddressId + "")
+                    .routeParam("currency", cryptoTransaction.currency)
+                    .routeParam("transactionHash", cryptoTransaction.txnHash)
+                    .asObject(new GenericType<ApiResponse<String>>() {
+                    })
+                    .getBody();
+            if (resp != null && resp.header.success) {
+                log.debug(String.format("Transaction(id=%s) %s Screen result: %s", cryptoTransaction.id, cryptoTransaction.txnHash, resp.result));
+            } else {
+                log.error(String.format("Transaction(id=%s) %s Screen Failed", cryptoTransaction.id, cryptoTransaction.txnHash));
+            }
+        } catch (Exception e) {
+            log.error("Chainalysis Register Failed", e);
+        }
     }
 
     private void sendAlert(String recipient, String alertMsg) {
