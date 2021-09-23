@@ -128,6 +128,7 @@ public class CryptoTransactionProcessService {
                 null,
                 WalletAddressType.DTC_CLIENT_WALLET,
                 null,
+                null,
                 Boolean.TRUE
         );
         log.info("Auto Sweep Start");

@@ -3,7 +3,7 @@
 [0.41.0] - 
 
 * Handle decimal when get amount from blockchain
-* Update dtc-parent version
+* Update dtc-parent version and *-data dep version
 * Fix Silvergate notify balance checking bug
 * Register txn to Chainalysis after notified by blockchain network
 
