@@ -16,8 +16,10 @@ import top.dtc.common.exception.ValidationException;
 import top.dtc.common.model.crypto.*;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.data.core.model.CryptoTransaction;
+import top.dtc.data.core.model.Currency;
 import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.service.CryptoTransactionService;
+import top.dtc.data.core.service.CurrencyService;
 import top.dtc.data.core.service.DefaultConfigService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.PayableStatus;
@@ -43,6 +45,7 @@ import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -92,10 +95,13 @@ public class CryptoTransactionProcessService {
     @Autowired
     ReceivableSubService receivableSubService;
 
+    @Autowired
+    CurrencyService currencyService;
+
     public void scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
         list.forEach(k -> {
-            if (k.state == CryptoTransactionState.PENDING
+            if (k.state == CryptoTransactionState.AUTHORIZED
                     && k.type == CryptoTransactionType.SATOSHI
                     && k.requestTimestamp.isBefore(LocalDateTime.now().minusMinutes(30))
             ) {
@@ -121,6 +127,7 @@ public class CryptoTransactionProcessService {
                 1L,
                 null,
                 WalletAddressType.DTC_CLIENT_WALLET,
+                null,
                 null,
                 Boolean.TRUE
         );
@@ -192,7 +199,8 @@ public class CryptoTransactionProcessService {
         ) {
             log.error("Notify txn result invalid {}", JSON.toJSONString(transactionResult, SerializerFeature.PrettyFormat));
         }
-        if (!transactionResult.success){
+        if (!ObjectUtils.isEmpty(transactionResult.state) &&
+                !transactionResult.state.equals(CryptoTransactionState.COMPLETED)){
             // Transaction REJECTED by blockchain case
             handleRejectTxn(transactionResult);
         } else {
@@ -205,8 +213,8 @@ public class CryptoTransactionProcessService {
         CryptoTransaction existingTxn = cryptoTransactionService.getOneByTxnHash(transactionResult.hash);
         if (existingTxn != null) { // txnHash found in Crypto Transaction
             switch (existingTxn.state) {
-                case PENDING:
-                    // Only Withdrawal has txnHash in PENDING state
+                case AUTHORIZED:
+                    // Only Withdrawal has txnHash in AUTHORIZED state
                     if (existingTxn.type == CryptoTransactionType.WITHDRAW) {
                         existingTxn.state = CryptoTransactionState.REJECTED;
                         existingTxn.gasFee = transactionResult.fee;
@@ -219,6 +227,8 @@ public class CryptoTransactionProcessService {
                         log.error(String.format("[%s] Transaction[%s] in PENDING state with txnHash[%s].", existingTxn.type.desc, existingTxn.id, existingTxn.txnHash));
                     }
                     break;
+                case PENDING:
+                case PROCESSING:
                 case COMPLETED:
                 case CLOSED:
                     String alertMsg = String.format("WARNING!! WARNING!! Transaction [%s] is REJECTED by blockchain, but system was handling Transaction[%s] as [%s]",
@@ -296,6 +306,7 @@ public class CryptoTransactionProcessService {
                         existingTxn.state = CryptoTransactionState.COMPLETED;
                         existingTxn.gasFee = transactionResult.fee;
                         cryptoTransactionService.updateById(existingTxn);
+                        registerToChainalysis(existingTxn);
                         Payable originalPayable = payableService.getPayableByTransactionId(existingTxn.id);
                         if (originalPayable == null) {
                             alertMsg = String.format("No Payable found to link Crypto Withdrawal Transaction(%s)", existingTxn.id);
@@ -369,10 +380,10 @@ public class CryptoTransactionProcessService {
                 } else if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
                     log.info("Gas filled to DTC_CLIENT_WALLET address [{}]", recipientAddress.address);
                 } else if (senderAddress == null) {
-                    // Get all PENDING satoshi test transaction under recipient address
+                    // Get all AUTHORIZED satoshi test transaction under recipient address
                     List<CryptoTransaction> satoshiTestList = cryptoTransactionService.getByParams(
                             clientId,
-                            CryptoTransactionState.PENDING,
+                            CryptoTransactionState.AUTHORIZED,
                             CryptoTransactionType.SATOSHI,
                             null,
                             recipientAddress.id,
@@ -454,12 +465,13 @@ public class CryptoTransactionProcessService {
             log.error("Wallet account is not activated.");
             return;
         }
+        Currency receivedCurrency = currencyService.getFirstByName(currency);
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
         cryptoTransaction.clientId = senderAddress.ownerId;
         cryptoTransaction.mainNet = mainNet;
-        cryptoTransaction.amount = result.amount;
+        cryptoTransaction.amount = result.amount.setScale(receivedCurrency.exponent, RoundingMode.DOWN);
         cryptoTransaction.operator = "dtc-settlement-engine";
         cryptoTransaction.currency = currency;
         cryptoTransaction.senderAddressId = senderAddress.id;
@@ -468,6 +480,7 @@ public class CryptoTransactionProcessService {
         cryptoTransaction.gasFee = transactionResult.fee;
         cryptoTransaction.requestTimestamp = LocalDateTime.now();
         cryptoTransactionService.save(cryptoTransaction);
+        registerToChainalysis(cryptoTransaction);
         // Credit deposit amount to crypto account
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(cryptoAccount);
@@ -616,6 +629,27 @@ public class CryptoTransactionProcessService {
         }
         log.info("transfer sent txnHash: {}", sendTxnResp.result);
         return true;
+    }
+
+    private void registerToChainalysis(CryptoTransaction cryptoTransaction) {
+        try {
+            String path = String.format("/chainalysis/register/%s/{addressId}/{currency}/{transactionHash}",
+                    cryptoTransaction.type == CryptoTransactionType.DEPOSIT ? "received-transaction" : "withdraw-transaction");
+            ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrlPrefix + path)
+                    .routeParam("addressId", cryptoTransaction.recipientAddressId + "")
+                    .routeParam("currency", cryptoTransaction.currency)
+                    .routeParam("transactionHash", cryptoTransaction.txnHash)
+                    .asObject(new GenericType<ApiResponse<String>>() {
+                    })
+                    .getBody();
+            if (resp != null && resp.header.success) {
+                log.debug(String.format("Transaction(id=%s) %s Screen result: %s", cryptoTransaction.id, cryptoTransaction.txnHash, resp.result));
+            } else {
+                log.error(String.format("Transaction(id=%s) %s Screen Failed", cryptoTransaction.id, cryptoTransaction.txnHash));
+            }
+        } catch (Exception e) {
+            log.error("Chainalysis Register Failed", e);
+        }
     }
 
     private void sendAlert(String recipient, String alertMsg) {

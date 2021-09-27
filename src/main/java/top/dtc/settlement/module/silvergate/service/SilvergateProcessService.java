@@ -24,7 +24,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.*;
 import static top.dtc.settlement.constant.NotificationConstant.NAMES.*;
@@ -69,10 +68,8 @@ public class SilvergateProcessService {
         AccountHistoryResp historyResp = silvergateApiService.getAccountHistory(accountHistoryReq);
         StringBuilder transactionDetails = new StringBuilder();
         if (!ObjectUtils.isEmpty(historyResp.responseDataList) && historyResp.responseDataList.get(0).recs_returned > 0) {
-            List<AccountHistoryResp.Transaction> newTransactions = historyResp.responseDataList.get(0).transactionList.stream()
-                    .takeWhile(silvergateTxn -> new BigDecimal(silvergateTxn.currAvailbal).compareTo(previousAmount) == 0)
-                    .collect(Collectors.toList());
-            log.debug("New Transactions {}", newTransactions);
+            List<AccountHistoryResp.Transaction> newTransactions = historyResp.responseDataList.get(0).transactionList;
+            log.debug("Query Transactions {}", newTransactions);
             for (AccountHistoryResp.Transaction txn : newTransactions) {
                 if (txn.currAvailbal != null) {
                     BigDecimal amtAfterTxn = new BigDecimal(txn.currAvailbal);
