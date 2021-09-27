@@ -198,7 +198,8 @@ public class CryptoTransactionProcessService {
         ) {
             log.error("Notify txn result invalid {}", JSON.toJSONString(transactionResult, SerializerFeature.PrettyFormat));
         }
-        if (!transactionResult.success){
+        if (!ObjectUtils.isEmpty(transactionResult.state) &&
+                !transactionResult.state.equals(CryptoTransactionState.COMPLETED)){
             // Transaction REJECTED by blockchain case
             handleRejectTxn(transactionResult);
         } else {
