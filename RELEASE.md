@@ -1,13 +1,13 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.41.0] - 
+[0.42.0] - 27 Sep 2021
 
 * Handle decimal when get amount from blockchain
 * Update dtc-parent version and *-data dep version
 * Fix Silvergate notify balance checking bug
 * Register txn to Chainalysis after notified by blockchain network
 
-[0.40.0] - 20 Sep 2021
+[0.41.0] - 20 Sep 2021
 
 * Complete crypto notify logic
 * Fix Silvergate notify logic
