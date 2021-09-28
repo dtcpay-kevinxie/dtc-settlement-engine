@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.43.0] - 28 Sep 2021
+
+* Hotfix transfer addressIndex and accountIndex
+* Silvergate notification logic
+
 [0.42.0] - 27 Sep 2021
 
 * Handle decimal when get amount from blockchain
