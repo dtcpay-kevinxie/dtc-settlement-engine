@@ -1,5 +1,7 @@
 package top.dtc.settlement.module.silvergate.service;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -73,13 +75,33 @@ public class SilvergateProcessService {
             for (AccountHistoryResp.Transaction txn : newTransactions) {
                 if (txn.currAvailbal != null) {
                     BigDecimal amtAfterTxn = new BigDecimal(txn.currAvailbal);
-                    if (amtAfterTxn.compareTo(availableAmount) == 0) {
+                    if (amtAfterTxn.multiply(new BigDecimal(100)).compareTo(availableAmount) == 0) {
                         transactionDetails
                                 .append("\n")
                                 .append(txn.tranDesc).append(" ")
                                 .append(txn.tranDescS).append(" ")
                                 .append(txn.drcrFlag.equals(DEBIT) ? "Debit" : "Credit").append(" ")
                                 .append("Amount: ").append(new BigDecimal(txn.tranAmt).setScale(2, RoundingMode.UP));
+                        AccountWireDetailReq accountWireDetailReq = new AccountWireDetailReq();
+                        accountWireDetailReq.accountNumber = notificationPost.accountNumber;
+                        accountWireDetailReq.uniqueId = txn.uniqueId;
+                        try {
+                            log.info("AccountWireDetailReq {}", accountWireDetailReq);
+                            AccountWireDetailResp accountWireDetailResp = silvergateApiService.getAccountWireDetail(accountWireDetailReq);
+                            log.info(JSON.toJSONString(accountWireDetailResp, SerializerFeature.PrettyFormat));
+                        } catch (Exception e) {
+                            log.error("getAccountWireDetail Error", e);
+                        }
+                        AccountWireSummaryReq accountWireSummaryReq = new AccountWireSummaryReq();
+                        accountWireSummaryReq.accountNumber = notificationPost.accountNumber;
+                        accountWireSummaryReq.uniqueId = txn.uniqueId;
+                        try {
+                            log.info("AccountWireSummaryReq {}", accountWireSummaryReq);
+                            AccountWireSummaryResp accountWireSummaryResp = silvergateApiService.getAccountWireSummary(accountWireSummaryReq);
+                            log.info(JSON.toJSONString(accountWireSummaryResp, SerializerFeature.PrettyFormat));
+                        } catch (Exception e) {
+                            log.error("getAccountWireSummary Error", e);
+                        }
                         //TODO: Locate Receivable or Payable by referenceNo.
                         break;
                     }
@@ -97,24 +119,6 @@ public class SilvergateProcessService {
                             "transaction_details", transactionDetails.toString()
                     ))
                     .send();
-            for (AccountHistoryResp.Transaction txn : newTransactions) {
-                AccountWireDetailReq accountWireDetailReq = new AccountWireDetailReq();
-                accountWireDetailReq.uniqueId = txn.uniqueId;
-                try {
-                    log.info("AccountWireDetailReq {}", accountWireDetailReq);
-                    silvergateApiService.getAccountWireDetail(accountWireDetailReq);
-                } catch (Exception e) {
-                    log.error("getAccountWireDetail Error", e);
-                }
-                AccountWireSummaryReq accountWireSummaryReq = new AccountWireSummaryReq();
-                accountWireSummaryReq.uniqueId = txn.uniqueId;
-                try {
-                    log.info("AccountWireSummaryReq {}", accountWireSummaryReq);
-                    silvergateApiService.getAccountWireSummary(accountWireSummaryReq);
-                } catch (Exception e) {
-                    log.error("getAccountWireSummary Error", e);
-                }
-            }
         }
 
     }

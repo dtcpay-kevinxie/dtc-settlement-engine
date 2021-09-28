@@ -612,8 +612,8 @@ public class CryptoTransactionProcessService {
         RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.cryptoEngineUrlPrefix
                 + "/crypto/{netName}/txn/send/{account}/{addressIndex}")
                 .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
-                .routeParam("account", "0")
-                .routeParam("addressIndex", senderAddress.id + "")
+                .routeParam("account", senderAddress.type.account + "")
+                .routeParam("addressIndex", senderAddress.addressIndex + "")
                 .body(cryptoTransactionSend);
         log.debug("Request url: {}", requestBodyEntity.getUrl());
         ApiResponse<String> sendTxnResp = requestBodyEntity
