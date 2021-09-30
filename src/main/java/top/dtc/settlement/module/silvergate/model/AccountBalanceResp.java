@@ -5,11 +5,6 @@ import lombok.Data;
 
 import java.util.List;
 
-/**
- * User: kevin.xie<br/>
- * Date: 01/03/2021<br/>
- * Time: 15:07<br/>
- */
 @Data
 public class AccountBalanceResp {
 
