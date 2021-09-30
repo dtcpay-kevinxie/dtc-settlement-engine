@@ -4,6 +4,8 @@
 
 * Change sweep request parameters to index instead of address
 * Save sweep and gas fill-up transaction to internal_transfer
+* Update parent & data-wallet
+* FTX Portal API integration
 
 [0.44.0] - 30 Sep 2021
 
