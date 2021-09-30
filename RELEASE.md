@@ -1,9 +1,13 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.44.0] - 
+[0.45.0] -
 
 * Change sweep request parameters to index instead of address
 * Save sweep and gas fill-up transaction to internal_transfer
+
+[0.44.0] - 30 Sep 2021
+
+* Hotfix CrpytoTransaction state when notify
 
 [0.43.0] - 28 Sep 2021
 
