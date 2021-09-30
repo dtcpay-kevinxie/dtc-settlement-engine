@@ -295,8 +295,8 @@ public class CryptoTransactionProcessService {
             log.debug("Transaction is linked to {}", JSON.toJSONString(existingTxn, SerializerFeature.PrettyFormat));
             // 2a. Check Transaction State: PENDING, COMPLETED, REJECTED, CLOSED
             switch (existingTxn.state) {
-                case PENDING:
-                    // Only PENDING transaction from DTC_OPS to CLIENT_OWN has txnHash (Crypto Withdrawal case)
+                case AUTHORIZED:
+                    // Only AUTHORIZED transaction from DTC_OPS to CLIENT_OWN has txnHash (Crypto Withdrawal case)
                     if (recipientAddress.type == WalletAddressType.CLIENT_OWN
                             && recipientAddress.id.equals(existingTxn.recipientAddressId)
                             && senderAddress != null

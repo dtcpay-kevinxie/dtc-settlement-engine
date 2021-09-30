@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.44.0] - 30 Sep 2021
+
+* Hotfix CrpytoTransaction state when notify
+
 [0.43.0] - 28 Sep 2021
 
 * Hotfix transfer addressIndex and accountIndex
