@@ -16,4 +16,5 @@ public class DeferCostPaymentResp {
     public String quoteId;
     public Double deferRate;
     public Integer notionalTarget;
+    public LocalDateTime time;
 }

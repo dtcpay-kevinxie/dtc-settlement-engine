@@ -138,4 +138,44 @@ public class FtxPortalApiService {
         return JSON.parseObject(result, DeferCostPaymentResp.class);
     }
 
+    /**
+     * list defer proceeds payment
+     * @return
+     */
+    public DeferCostPaymentResp listDeferProceedsPayment(DeferCostPaymentReq deferProceedsPaymentReq) {
+        HttpResponse<String> response = unirest.post(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/defer_proceeds_payments")
+                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
+                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
+                .body(deferProceedsPaymentReq)
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", "/otc/quotes/defer_proceeds_payments", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/pairs", e));
+                });
+        log.info("response status: {}, \n response body: {}, \n response headers: {}",
+                response.getStatus(), response.getBody(), response.getHeaders());
+        String result = response.getBody();
+        return JSON.parseObject(result, DeferCostPaymentResp.class);
+    }
+
+    /**
+     * list settlement
+     * @return
+     */
+    public DeferCostPaymentResp listSettlement(DeferCostPaymentReq listSettlementReq) {
+        HttpResponse<String> response = unirest.post(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/settlements")
+                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
+                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
+                .body(listSettlementReq)
+                .asString()
+                .ifFailure(resp -> {
+                    log.error("request api failed, path={}, status={}", "/otc/quotes/settlements", resp.getStatus());
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/pairs", e));
+                });
+        log.info("response status: {}, \n response body: {}, \n response headers: {}",
+                response.getStatus(), response.getBody(), response.getHeaders());
+        String result = response.getBody();
+        return JSON.parseObject(result, DeferCostPaymentResp.class);
+    }
+
 }
