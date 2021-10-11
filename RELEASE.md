@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.45.0] -
+[0.45.0] - 11 Oct 2021
 
 * Change sweep request parameters to index instead of address
 * Save sweep and gas fill-up transaction to internal_transfer
