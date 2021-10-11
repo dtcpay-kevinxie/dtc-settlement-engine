@@ -27,8 +27,8 @@ public class FtxPortalApiService {
     @PostConstruct
     public void initUnirest() {
         unirest = Unirest.spawnInstance();
-        unirest.config()
-                .clientCertificateStore(ftxPortalProperties.certificatePath, ftxPortalProperties.certificatePassword);
+//        unirest.config()
+//                .clientCertificateStore(ftxPortalProperties.certificatePath, ftxPortalProperties.certificatePassword);
     }
 
     public OtcPairsResponse getOtcPairs() {
