@@ -1,5 +1,12 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.45.0] - 11 Oct 2021
+
+* Change sweep request parameters to index instead of address
+* Save sweep and gas fill-up transaction to internal_transfer
+* Update parent & data-wallet
+* FTX Portal API integration
+
 [0.44.0] - 30 Sep 2021
 
 * Hotfix CrpytoTransaction state when notify

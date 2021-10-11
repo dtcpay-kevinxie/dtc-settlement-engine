@@ -240,6 +240,7 @@ public class SilvergateApiService {
         HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/wiredetail")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountWireDetailReq.accountNumber))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountWireDetailReq.accountNumber))
+                .queryString("uniqueId", accountWireDetailReq.uniqueId)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", "/account/wiredetail", resp.getStatus());
@@ -263,6 +264,7 @@ public class SilvergateApiService {
         HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/wiresummary")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountWireSummaryReq.accountNumber))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountWireSummaryReq.accountNumber))
+                .queryString("uniqueId", accountWireSummaryReq.uniqueId)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", "/account/wiresummary", resp.getStatus());

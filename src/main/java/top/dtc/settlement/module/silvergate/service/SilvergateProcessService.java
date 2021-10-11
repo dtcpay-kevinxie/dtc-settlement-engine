@@ -83,7 +83,6 @@ public class SilvergateProcessService {
                                 .append(txn.drcrFlag.equals(DEBIT) ? "Debit" : "Credit").append(" ")
                                 .append("Amount: ").append(new BigDecimal(txn.tranAmt).setScale(2, RoundingMode.UP));
                         AccountWireDetailReq accountWireDetailReq = new AccountWireDetailReq();
-                        accountWireDetailReq.accountNumber = notificationPost.accountNumber;
                         accountWireDetailReq.uniqueId = txn.uniqueId;
                         try {
                             log.info("AccountWireDetailReq {}", accountWireDetailReq);
@@ -93,7 +92,6 @@ public class SilvergateProcessService {
                             log.error("getAccountWireDetail Error", e);
                         }
                         AccountWireSummaryReq accountWireSummaryReq = new AccountWireSummaryReq();
-                        accountWireSummaryReq.accountNumber = notificationPost.accountNumber;
                         accountWireSummaryReq.uniqueId = txn.uniqueId;
                         try {
                             log.info("AccountWireSummaryReq {}", accountWireSummaryReq);
