@@ -540,18 +540,20 @@ public class CryptoTransactionProcessService {
         dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, mainNet);
         if (transferAmount.compareTo(threshold) > 0) {
             String txnHash = transfer(currency, transferAmount, dtcAssignedAddress, dtcOpsAddress);
-            InternalTransfer internalTransfer = new InternalTransfer();
-            internalTransfer.type = InternalTransferType.CRYPTO;
-            internalTransfer.reason = InternalTransferReason.SWEEP;
-            internalTransfer.status = InternalTransferStatus.INIT;
-            internalTransfer.amount = transferAmount;
-            internalTransfer.currency = currency;
-            internalTransfer.feeCurrency = getFeeCurrency(mainNet);
-            internalTransfer.recipientAccountId = dtcOpsAddress.id;
-            internalTransfer.senderAccountId = dtcAssignedAddress.id;
-            internalTransfer.referenceNo = txnHash;
-            internalTransfer.remark = "Auto-sweep to DTC_OPS";
-            internalTransferService.save(internalTransfer);
+            if (txnHash != null) {
+                InternalTransfer internalTransfer = new InternalTransfer();
+                internalTransfer.type = InternalTransferType.CRYPTO;
+                internalTransfer.reason = InternalTransferReason.SWEEP;
+                internalTransfer.status = InternalTransferStatus.INIT;
+                internalTransfer.amount = transferAmount;
+                internalTransfer.currency = currency;
+                internalTransfer.feeCurrency = getFeeCurrency(mainNet);
+                internalTransfer.recipientAccountId = dtcOpsAddress.id;
+                internalTransfer.senderAccountId = dtcAssignedAddress.id;
+                internalTransfer.referenceNo = txnHash;
+                internalTransfer.remark = "Auto-sweep to DTC_OPS";
+                internalTransferService.save(internalTransfer);
+            }
             return txnHash;
         } else {
             return null;

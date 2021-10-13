@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.46.0] - 13 Oct 2021
+
+* Hotfix save InternalTransfer only when sweep accepted by blockchain.
+
 [0.45.0] - 11 Oct 2021
 
 * Change sweep request parameters to index instead of address
