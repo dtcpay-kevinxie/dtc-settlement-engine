@@ -6,13 +6,13 @@ import lombok.Data;
 @Data
 public class OtcPairsResponse {
 
-    @JSONField(defaultValue = "id")
+    @JSONField(name = "id")
     public String id;
 
-    @JSONField(defaultValue = "baseCurrency")
+    @JSONField(name = "baseCurrency")
     public String baseCurrency;
 
-    @JSONField(defaultValue = "quoteCurrency")
+    @JSONField(name = "quoteCurrency")
     public String quoteCurrency;
 
 }
