@@ -580,9 +580,8 @@ public class CryptoTransactionProcessService {
         if (recipientAddress.securityType == SecurityType.KMS) {
             contract.toAccount = recipientAddress.type.account;
             contract.toAddressIndex = recipientAddress.addressIndex;
-        } else {
-            contract.to = recipientAddress.address;
         }
+        contract.to = recipientAddress.address;
         contract.amount = amount;
         contract.coinName = currency;
         contract.type = (recipientAddress.mainNet == MainNet.ERC20

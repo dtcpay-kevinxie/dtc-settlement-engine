@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.47.0] - 
+
+* Send both recipient address and index for internal crypto transfer
+
 [0.46.0] - 13 Oct 2021
 
 * Hotfix save InternalTransfer only when sweep accepted by blockchain.
