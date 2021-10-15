@@ -41,6 +41,4 @@ ftx:
   portal:
     api-url-prefix: ${FTX_PORTAL_API_URL_PREFIX}
     api-key: ${FTX_PORTAL_API_KEY}
-    signature: ${FTX_PORTAL_API_SIGNATURE}
-    certificate-path: ${FTX_PORTAL_API_CERTIFICATE_PATH}
-    certificate-password: ${FTX_PORTAL_API_CERTIFICATE_PASSWORD}
+    secret-key: ${FTX_PORTAL_API_SECRET_KEY}
