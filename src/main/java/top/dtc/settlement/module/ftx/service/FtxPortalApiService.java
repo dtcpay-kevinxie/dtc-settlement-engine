@@ -32,14 +32,14 @@ public class FtxPortalApiService {
                 .header(FTX_API_KEY, ftxPortalProperties.apiKey)
                 .header(FTX_TIMESTAMP, String.valueOf(System.currentTimeMillis()))
                 .header(FTX_SIGNATURE, encode(ftxPortalProperties.secretKey, System.currentTimeMillis()
-                        + "POST" + "/otc/pairs"))
+                        + "GET" + "/otc/pairs"))
                 .getUrl();
         log.debug("Request Url: {}", url);
         HttpResponse<String> response = Unirest.get(ftxPortalProperties.apiUrlPrefix + "/otc/pairs")
                 .header(FTX_API_KEY, ftxPortalProperties.apiKey)
                 .header(FTX_TIMESTAMP, String.valueOf(System.currentTimeMillis()))
                 .header(FTX_SIGNATURE, encode(ftxPortalProperties.secretKey, System.currentTimeMillis()
-                        + "POST" + "/otc/pairs"))
+                        + "GET" + "/otc/pairs"))
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", "/otc/pairs", resp.getStatus());
