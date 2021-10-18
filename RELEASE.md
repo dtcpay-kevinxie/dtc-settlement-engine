@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.47.0] - 
+[0.47.0] - 18 Oct 2021
 
 * Send both recipient address and index for internal crypto transfer
 
