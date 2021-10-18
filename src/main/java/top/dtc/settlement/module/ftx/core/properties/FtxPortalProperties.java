@@ -13,12 +13,7 @@ public class FtxPortalProperties {
 
     public String apiKey;
 
-    public String timestamp;
+    public String secretKey;
 
-    public String signature;
-
-    public String certificatePath;
-
-    public String certificatePassword;
 
 }

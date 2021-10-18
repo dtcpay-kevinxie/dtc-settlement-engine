@@ -3,38 +3,43 @@ package top.dtc.settlement.module.ftx.service;
 import com.alibaba.fastjson.JSON;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
-import kong.unirest.UnirestInstance;
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.settlement.module.ftx.core.properties.FtxPortalProperties;
-import top.dtc.settlement.module.ftx.model.*;
+import top.dtc.settlement.module.ftx.model.OtcPairsResponse;
+import top.dtc.settlement.module.ftx.model.RequestQuotesReq;
+import top.dtc.settlement.module.ftx.model.RequestQuotesResponse;
 
-import javax.annotation.PostConstruct;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 @Service
 @Log4j2
 public class FtxPortalApiService {
 
-    private static final String FTX_APIKEY = "FTX-APIKEY";
+    private static final String FTX_API_KEY = "FTX-APIKEY";
+    private static final String FTX_TIMESTAMP = "FTX-TIMESTAMP";
     private static final String FTX_SIGNATURE = "FTX-SIGNATURE";
 
     @Autowired
     FtxPortalProperties ftxPortalProperties;
 
-    private UnirestInstance unirest;
 
-    @PostConstruct
-    public void initUnirest() {
-        unirest = Unirest.spawnInstance();
-//        unirest.config()
-//                .clientCertificateStore(ftxPortalProperties.certificatePath, ftxPortalProperties.certificatePassword);
-    }
-
-    public OtcPairsResponse getOtcPairs() {
-        HttpResponse<String> response = unirest.get(ftxPortalProperties.apiUrlPrefix + "/otc/pairs")
-                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
-                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
+    public OtcPairsResponse getOtcPairs() throws Exception {
+        String url = Unirest.get(ftxPortalProperties.apiUrlPrefix + "/otc/pairs")
+                .header(FTX_API_KEY, ftxPortalProperties.apiKey)
+                .header(FTX_TIMESTAMP, String.valueOf(System.currentTimeMillis()))
+                .header(FTX_SIGNATURE, encode(ftxPortalProperties.secretKey, System.currentTimeMillis()
+                        + "GET" + "/otc/pairs"))
+                .getUrl();
+        log.debug("Request Url: {}", url);
+        HttpResponse<String> response = Unirest.get(ftxPortalProperties.apiUrlPrefix + "/otc/pairs")
+                .header(FTX_API_KEY, ftxPortalProperties.apiKey)
+                .header(FTX_TIMESTAMP, String.valueOf(System.currentTimeMillis()))
+                .header(FTX_SIGNATURE, encode(ftxPortalProperties.secretKey, System.currentTimeMillis()
+                        + "GET" + "/otc/pairs"))
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", "/otc/pairs", resp.getStatus());
@@ -46,10 +51,20 @@ public class FtxPortalApiService {
         return JSON.parseObject(result, OtcPairsResponse.class);
     }
 
-    public RequestQuotes getRequestQuotes(String quoteId) {
-        HttpResponse<String> response = unirest.get(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/{quote_id}")
-                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
-                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
+    public RequestQuotesResponse getRequestQuotes(String quoteId) throws Exception {
+        String url = Unirest.get(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/{quote_id}")
+                .header(FTX_SIGNATURE, encode(ftxPortalProperties.secretKey, System.currentTimeMillis()
+                        + "GET" + "/otc/quotes/" + quoteId))
+                .header(FTX_API_KEY, ftxPortalProperties.apiKey)
+                .header(FTX_TIMESTAMP, String.valueOf(System.currentTimeMillis()))
+                .routeParam("quote_id", quoteId)
+                .getUrl();
+        log.debug("Request Url:{}", url);
+        HttpResponse<String> response = Unirest.get(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/{quote_id}")
+                .header(FTX_SIGNATURE, encode(ftxPortalProperties.secretKey, System.currentTimeMillis()
+                        + "GET" + "/otc/quotes/" + quoteId))
+                .header(FTX_API_KEY, ftxPortalProperties.apiKey)
+                .header(FTX_TIMESTAMP, String.valueOf(System.currentTimeMillis()))
                 .routeParam("quote_id", quoteId)
                 .asString()
                 .ifFailure(resp -> {
@@ -59,13 +74,31 @@ public class FtxPortalApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         String result = response.getBody();
-        return JSON.parseObject(result, RequestQuotes.class);
+        return JSON.parseObject(result, RequestQuotesResponse.class);
     }
 
-    public RequestQuotes listOtcQuotes() {
-        HttpResponse<String> response = unirest.get(ftxPortalProperties.apiUrlPrefix + "/otc/quotes")
-                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
-                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
+    /**
+     * Request a quote. Quotes are generated asynchronously, so the response object will not contain a price.
+     * Instead, a request needs to be made to /otc/quotes/quote_id with the quote ID to retrieve the price.
+     * @param requestQuotesReq
+     * @return
+     * @throws Exception
+     */
+    public RequestQuotesResponse requestQuotes(RequestQuotesReq requestQuotesReq) throws Exception {
+        String url = Unirest.post(ftxPortalProperties.apiUrlPrefix + "/otc/quotes")
+                .header(FTX_SIGNATURE, encode(ftxPortalProperties.secretKey, System.currentTimeMillis()
+                       + "POST" + "/otc/quotes" + JSON.toJSONString(requestQuotesReq)))
+                .header(FTX_TIMESTAMP, String.valueOf(System.currentTimeMillis()))
+                .header(FTX_API_KEY, ftxPortalProperties.apiKey)
+                .body(requestQuotesReq)
+                .getUrl();
+        log.debug("Request Url:{}", url);
+        HttpResponse<String> response = Unirest.post(ftxPortalProperties.apiUrlPrefix + "/otc/quotes")
+                .header(FTX_SIGNATURE, encode(ftxPortalProperties.secretKey, System.currentTimeMillis()
+                        + "POST" + "/otc/quotes" + JSON.toJSONString(requestQuotesReq)))
+                .header(FTX_API_KEY, ftxPortalProperties.apiKey)
+                .header(FTX_TIMESTAMP, String.valueOf(System.currentTimeMillis()))
+                .body(requestQuotesReq)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", "/otc/quotes", resp.getStatus());
@@ -74,108 +107,15 @@ public class FtxPortalApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         String result = response.getBody();
-        return JSON.parseObject(result, RequestQuotes.class);
+        return JSON.parseObject(result, RequestQuotesResponse.class);
     }
 
-    /**
-     *  trade on a quote
-     * @return
-     */
-    public RequestQuotes acceptQuotes(String quoteId) {
-        HttpResponse<String> response = unirest.get(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/{quote_id}/accept")
-                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
-                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
-                .routeParam("quote_id", quoteId)
-                .asString()
-                .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", "/otc/quotes/{quote_id}/accept", resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/pairs", e));
-                });
-        log.info("response status: {}, \n response body: {}, \n response headers: {}",
-                response.getStatus(), response.getBody(), response.getHeaders());
-        String result = response.getBody();
-        return JSON.parseObject(result, RequestQuotes.class);
-    }
+    private String encode(String key, String data) throws Exception {
+        Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+        SecretKeySpec secret_key = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+        sha256_HMAC.init(secret_key);
 
-    /**
-     * list recent accepted quotes
-     * @param acceptedQuoteReq
-     * @return
-     */
-    public RequestQuotes listAllAcceptedQuotes(AcceptedQuoteReq acceptedQuoteReq) {
-        HttpResponse<String> response = unirest.post(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/{quote_id}/accept")
-                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
-                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
-                .body(acceptedQuoteReq)
-                .asString()
-                .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", "/otc/quotes/{quote_id}/accept", resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/pairs", e));
-                });
-        log.info("response status: {}, \n response body: {}, \n response headers: {}",
-                response.getStatus(), response.getBody(), response.getHeaders());
-        String result = response.getBody();
-        return JSON.parseObject(result, RequestQuotes.class);
-    }
-
-    /**
-     * list defer cost payment
-     * @return
-     */
-    public DeferCostPaymentResp listDeferCostPayment(DeferCostPaymentReq deferCostPaymentReq) {
-        HttpResponse<String> response = unirest.post(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/defer_cost_payments")
-                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
-                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
-                .body(deferCostPaymentReq)
-                .asString()
-                .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", "/otc/quotes/{quote_id}/accept", resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/pairs", e));
-                });
-        log.info("response status: {}, \n response body: {}, \n response headers: {}",
-                response.getStatus(), response.getBody(), response.getHeaders());
-        String result = response.getBody();
-        return JSON.parseObject(result, DeferCostPaymentResp.class);
-    }
-
-    /**
-     * list defer proceeds payment
-     * @return
-     */
-    public DeferCostPaymentResp listDeferProceedsPayment(DeferCostPaymentReq deferProceedsPaymentReq) {
-        HttpResponse<String> response = unirest.post(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/defer_proceeds_payments")
-                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
-                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
-                .body(deferProceedsPaymentReq)
-                .asString()
-                .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", "/otc/quotes/defer_proceeds_payments", resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/pairs", e));
-                });
-        log.info("response status: {}, \n response body: {}, \n response headers: {}",
-                response.getStatus(), response.getBody(), response.getHeaders());
-        String result = response.getBody();
-        return JSON.parseObject(result, DeferCostPaymentResp.class);
-    }
-
-    /**
-     * list settlement
-     * @return
-     */
-    public DeferCostPaymentResp listSettlement(DeferCostPaymentReq listSettlementReq) {
-        HttpResponse<String> response = unirest.post(ftxPortalProperties.apiUrlPrefix + "/otc/quotes/settlements")
-                .header(FTX_SIGNATURE, ftxPortalProperties.signature)
-                .header(FTX_APIKEY, ftxPortalProperties.apiKey)
-                .body(listSettlementReq)
-                .asString()
-                .ifFailure(resp -> {
-                    log.error("request api failed, path={}, status={}", "/otc/quotes/settlements", resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/pairs", e));
-                });
-        log.info("response status: {}, \n response body: {}, \n response headers: {}",
-                response.getStatus(), response.getBody(), response.getHeaders());
-        String result = response.getBody();
-        return JSON.parseObject(result, DeferCostPaymentResp.class);
+        return Hex.encodeHexString(sha256_HMAC.doFinal(data.getBytes("UTF-8")));
     }
 
 }
