@@ -1,10 +1,10 @@
 package top.dtc.settlement.module.ftx.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
-import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.settlement.module.ftx.core.properties.FtxPortalProperties;
@@ -14,6 +14,9 @@ import top.dtc.settlement.module.ftx.model.RequestQuotesResponse;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
 
 @Service
 @Log4j2
@@ -48,7 +51,9 @@ public class FtxPortalApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         String result = response.getBody();
-        return JSON.parseObject(result, OtcPairsResponse.class);
+        JSONArray jsonArray = JSON.parseArray(result);
+        List<OtcPairsResponse> otcPairsResponses = JSON.parseArray(jsonArray.toJSONString(), OtcPairsResponse.class);
+        return otcPairsResponses.get(0);
     }
 
     public RequestQuotesResponse getRequestQuotes(String quoteId) throws Exception {
@@ -69,7 +74,7 @@ public class FtxPortalApiService {
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", "/otc/quotes/{quote_id}", resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/pairs", e));
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/quotes", e));
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
@@ -96,13 +101,13 @@ public class FtxPortalApiService {
         HttpResponse<String> response = Unirest.post(ftxPortalProperties.apiUrlPrefix + "/otc/quotes")
                 .header(FTX_SIGNATURE, encode(ftxPortalProperties.secretKey, System.currentTimeMillis()
                         + "POST" + "/otc/quotes" + JSON.toJSONString(requestQuotesReq)))
-                .header(FTX_API_KEY, ftxPortalProperties.apiKey)
                 .header(FTX_TIMESTAMP, String.valueOf(System.currentTimeMillis()))
+                .header(FTX_API_KEY, ftxPortalProperties.apiKey)
                 .body(requestQuotesReq)
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", "/otc/quotes", resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/pairs", e));
+                    resp.getParsingError().ifPresent(e -> log.error("request api failed\n{}", "/otc/quotes", e));
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
@@ -112,10 +117,10 @@ public class FtxPortalApiService {
 
     private String encode(String key, String data) throws Exception {
         Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-        SecretKeySpec secret_key = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+        SecretKeySpec secret_key = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         sha256_HMAC.init(secret_key);
 
-        return Hex.encodeHexString(sha256_HMAC.doFinal(data.getBytes("UTF-8")));
+        return Base64.getEncoder().encodeToString(sha256_HMAC.doFinal(data.getBytes(StandardCharsets.UTF_8)));
     }
 
 }

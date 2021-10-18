@@ -6,7 +6,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.settlement.constant.ApiHeaderConstant;
-import top.dtc.settlement.model.api.ApiRequest;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.module.ftx.core.properties.FtxPortalProperties;
 import top.dtc.settlement.module.ftx.model.OtcPairsResponse;
@@ -33,9 +32,12 @@ public class FtxPortalController {
     }
 
     @PostMapping("/request-quote")
-    public ApiResponse<?> requestQuotes(@RequestBody ApiRequest<RequestQuotesReq> apiRequest) throws Exception {
-        log.debug("[POST] /ftx-portal/request-quote, {}", JSON.toJSONString(apiRequest, SerializerFeature.PrettyFormat));
-        RequestQuotesResponse result = ftxPortalApiService.requestQuotes(apiRequest.getQuery());
+    public ApiResponse<?> requestQuotes(@RequestBody RequestQuotesReq requestQuotesReq) throws Exception {
+        requestQuotesReq.apiOnly = false;
+        requestQuotesReq.counterpartyAutoSettles = false;
+        requestQuotesReq.waitForPrice = false;
+        log.debug("[POST] /ftx-portal/request-quote, {}", JSON.toJSONString(requestQuotesReq, SerializerFeature.PrettyFormat));
+        RequestQuotesResponse result = ftxPortalApiService.requestQuotes(requestQuotesReq);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
     }
 
@@ -45,5 +47,20 @@ public class FtxPortalController {
         RequestQuotesResponse result = ftxPortalApiService.getRequestQuotes(quoteId);
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, result);
     }
+
+//    @PostMapping("/scheduled/get-exchange-rate")
+//    public ApiResponse<?> scheduledGetExchangeRate() throws Exception {
+//        RequestQuotesReq requestQuotesReq = new RequestQuotesReq();
+//        requestQuotesReq.baseCurrency = "BTC";
+//        requestQuotesReq.quoteCurrency = "USDT";
+//        requestQuotesReq.side = "buy";
+//
+//        RequestQuotesResponse requestQuotesResponse = ftxPortalApiService.requestQuotes(requestQuotesReq);
+//        RequestQuotesReq requestQuotes = new RequestQuotesReq();
+//        requestQuotes.baseCurrency = "ETH";
+//        requestQuotes.quoteCurrency = "USDT";
+//        RequestQuotesResponse requestQuotesResp = ftxPortalApiService.requestQuotes(requestQuotes);
+//        return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+//    }
 
 }
