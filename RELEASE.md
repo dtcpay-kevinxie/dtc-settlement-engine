@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.48.0] - 19 Oct 2021
+
+HOTFIX: Update data-finance
+
 [0.47.0] - 18 Oct 2021
 
 * Send both recipient address and index for internal crypto transfer
