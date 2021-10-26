@@ -246,9 +246,20 @@ public class CryptoTransactionProcessService {
                 switch (recipientAddress.type) {
                     case CLIENT_OWN:
                     case DTC_CLIENT_WALLET:
+                        if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
+                            // Gas filling rejected
+                            internalTransferRejected(transactionResult.hash, InternalTransferReason.GAS, transactionResult.fee);
+                        }
+                        break;
                     case DTC_GAS:
                     case DTC_OPS:
+                        break;
                     case DTC_FINANCE:
+                        if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_OPS) {
+                            // Sweep rejected
+                            internalTransferRejected(transactionResult.hash, InternalTransferReason.SWEEP, transactionResult.fee);
+                        }
+                        break;
                 }
                 String txnInfo = String.format("Transaction sent to %s(id=%s) %s", recipientAddress.type.desc, recipientAddress.id, recipientAddress.address);;
                 log.error(String.format("Recipient address (id=%s)[%s] under client %s is REJECTED by blockchain network.", recipientAddress.id, transactionResult.hash, recipientAddress.ownerId));
@@ -717,6 +728,18 @@ public class CryptoTransactionProcessService {
             internalTransfer.fee = fee;
             internalTransferService.updateById(internalTransfer);
         }
+    }
+
+    private void internalTransferRejected(String referenceNo, InternalTransferReason reason, BigDecimal fee) {
+        InternalTransfer internalTransfer = internalTransferService.getOneByReferenceNo(referenceNo);
+        if (internalTransfer == null || internalTransfer.status != InternalTransferStatus.INIT || internalTransfer.reason != reason) {
+            log.error("Invalid InternalTransfer {}", internalTransfer);
+        } else {
+            internalTransfer.status = InternalTransferStatus.CANCELLED;
+            internalTransfer.fee = fee;
+            internalTransferService.updateById(internalTransfer);
+        }
+
     }
 
     private List<String> getClientUserEmails(Long clientId) {
