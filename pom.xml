@@ -6,12 +6,12 @@
     <parent>
         <groupId>top.dtc</groupId>
         <artifactId>dtc-parent</artifactId>
-        <version>0.25.0-SNAPSHOT</version>
+        <version>0.25.0</version>
         <relativePath/>
     </parent>
 
     <artifactId>dtc-settlement-engine</artifactId>
-    <version>0.49.0-SNAPSHOT</version>
+    <version>0.50.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
