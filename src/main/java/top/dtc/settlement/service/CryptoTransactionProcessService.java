@@ -376,6 +376,7 @@ public class CryptoTransactionProcessService {
                     }
                 } else if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
                     log.info("Gas filled to DTC_CLIENT_WALLET address [{}]", recipientAddress.address);
+                    internalTransferCompleted(transactionResult.hash, InternalTransferReason.GAS, transactionResult.fee);
                 } else if (senderAddress == null) {
                     // Get all AUTHORIZED satoshi test transaction under recipient address
                     List<CryptoTransaction> satoshiTestList = cryptoTransactionService.getByParams(
