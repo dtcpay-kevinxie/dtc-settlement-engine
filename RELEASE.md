@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.49.0] -
+[0.49.0] - 26 Oct 2021
 
 * Remove FTX
 
