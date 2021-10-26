@@ -36,9 +36,3 @@ silvergate:
   web-hook-sms: ${SILVERGATE_WEB_HOOK_SMS}
   certificate-path: ${SILVERGATE_CERTIFICATE_PATH}
   certificate-password: ${SILVERGATE_CERTIFICATE_PASSWORD}
-
-ftx:
-  portal:
-    api-url-prefix: ${FTX_PORTAL_API_URL_PREFIX}
-    api-key: ${FTX_PORTAL_API_KEY}
-    secret-key: ${FTX_PORTAL_API_SECRET_KEY}
