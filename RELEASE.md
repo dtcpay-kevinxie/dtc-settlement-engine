@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.49.0] - 26 Oct 2021
+
+* Remove FTX
+* Update fill gas InternalTransfer status
+
 [0.48.0] - 19 Oct 2021
 
 HOTFIX: Update data-finance
