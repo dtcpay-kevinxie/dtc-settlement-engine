@@ -403,20 +403,21 @@ public class CryptoTransactionProcessService {
                     );
                     // 4ab. Check whether PENDING satoshi test exists
                     if (satoshiTestList != null && satoshiTestList.size() > 0) {
-                        CryptoTransaction satoshiTest = satoshiTestList.get(0);
-                        KycWalletAddress whitelistAddress = kycWalletAddressService.getById(satoshiTest.senderAddressId);
-                        // Validate satoshi test amount and address
-                        if (satoshiTest.amount.compareTo(result.amount) == 0 && whitelistAddress.address.equals(result.from)) {
-                            satoshiTest.state = CryptoTransactionState.COMPLETED;
-                            satoshiTest.txnHash = transactionResult.hash;
-                            cryptoTransactionService.updateById(satoshiTest);
-                            whitelistAddress.enabled = true;
-                            kycWalletAddressService.updateById(whitelistAddress, "dtc-settlement-engine", "Satoshi Test completed");
-                            //Satoshi Test received, credit satoshi amount to crypto account
-                            WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
-                            cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
-                            walletAccountService.updateById(cryptoAccount);
-                            return;
+                        for (CryptoTransaction satoshiTest : satoshiTestList) {
+                            KycWalletAddress whitelistAddress = kycWalletAddressService.getById(satoshiTest.senderAddressId);
+                            // Validate satoshi test amount and address
+                            if (satoshiTest.amount.compareTo(result.amount) == 0 && whitelistAddress.address.equals(result.from)) {
+                                satoshiTest.state = CryptoTransactionState.COMPLETED;
+                                satoshiTest.txnHash = transactionResult.hash;
+                                cryptoTransactionService.updateById(satoshiTest);
+                                whitelistAddress.enabled = true;
+                                kycWalletAddressService.updateById(whitelistAddress, "dtc-settlement-engine", "Satoshi Test completed");
+                                //Satoshi Test received, credit satoshi amount to crypto account
+                                WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
+                                cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
+                                walletAccountService.updateById(cryptoAccount);
+                                return;
+                            }
                         }
                     }
                     // Transaction is not for satoshi test
