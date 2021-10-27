@@ -403,20 +403,24 @@ public class CryptoTransactionProcessService {
                     );
                     // 4ab. Check whether PENDING satoshi test exists
                     if (satoshiTestList != null && satoshiTestList.size() > 0) {
-                        CryptoTransaction satoshiTest = satoshiTestList.get(0);
-                        KycWalletAddress whitelistAddress = kycWalletAddressService.getById(satoshiTest.senderAddressId);
-                        // Validate satoshi test amount and address
-                        if (satoshiTest.amount.compareTo(result.amount) == 0 && whitelistAddress.address.equals(result.from)) {
-                            satoshiTest.state = CryptoTransactionState.COMPLETED;
-                            satoshiTest.txnHash = transactionResult.hash;
-                            cryptoTransactionService.updateById(satoshiTest);
-                            whitelistAddress.enabled = true;
-                            kycWalletAddressService.updateById(whitelistAddress, "dtc-settlement-engine", "Satoshi Test completed");
-                            //Satoshi Test received, credit satoshi amount to crypto account
-                            WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
-                            cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
-                            walletAccountService.updateById(cryptoAccount);
-                            return;
+                        for (CryptoTransaction satoshiTest : satoshiTestList) {
+                            KycWalletAddress whitelistAddress = kycWalletAddressService.getById(satoshiTest.senderAddressId);
+                            // Validate satoshi test amount and address
+                            if (satoshiTest.amount.compareTo(result.amount) == 0 && whitelistAddress.address.equals(result.from)) {
+                                satoshiTest.state = CryptoTransactionState.COMPLETED;
+                                satoshiTest.txnHash = transactionResult.hash;
+                                cryptoTransactionService.updateById(satoshiTest);
+                                whitelistAddress.enabled = true;
+                                kycWalletAddressService.updateById(whitelistAddress, "dtc-settlement-engine", "Satoshi Test completed");
+                                //Satoshi Test received, credit satoshi amount to crypto account
+                                WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
+                                cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
+                                walletAccountService.updateById(cryptoAccount);
+                                registerToChainalysis(satoshiTest);
+                                // Create Receivable and auto write-off
+                                depositReceivable(satoshiTest, recipientAddress);
+                                return;
+                            }
                         }
                     }
                     // Transaction is not for satoshi test
@@ -496,9 +500,14 @@ public class CryptoTransactionProcessService {
         // Credit deposit amount to crypto account
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(cryptoAccount);
-        notifyDepositCompleted(cryptoTransaction);
-        //TODO: Standardize Receivable and Payable for internal transfer
+        // Create Receivable and auto write-off
+        depositReceivable(cryptoTransaction, recipientAddress);
+        // Sweep process
+        handleSweep(recipientAddress, cryptoTransaction.currency, cryptoTransaction.amount);
+    }
 
+    private void depositReceivable(CryptoTransaction cryptoTransaction, KycWalletAddress recipientAddress) {
+        notifyDepositCompleted(cryptoTransaction);
         Receivable receivable = new Receivable();
         receivable.status = ReceivableStatus.RECEIVED;
         receivable.type = InvoiceType.DEPOSIT;
@@ -518,8 +527,6 @@ public class CryptoTransactionProcessService {
         receivableSub.type = InvoiceType.DEPOSIT;
         receivableSubService.save(receivableSub);
         notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
-
-        handleSweep(recipientAddress, cryptoTransaction.currency, cryptoTransaction.amount);
     }
 
     private String handleSweep(KycWalletAddress dtcAssignedAddress, String currency, BigDecimal amount) {
