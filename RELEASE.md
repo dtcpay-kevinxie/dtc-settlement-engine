@@ -3,6 +3,7 @@
 [0.50.0] - 27 Oct 2021
 
 * Fix multiple PENDING satoshi logic bug
+* Add receivable after satoshi
 
 [0.49.0] - 26 Oct 2021
 
