@@ -416,6 +416,7 @@ public class CryptoTransactionProcessService {
                                 WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
                                 cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
                                 walletAccountService.updateById(cryptoAccount);
+                                registerToChainalysis(satoshiTest);
                                 // Create Receivable and auto write-off
                                 depositReceivable(satoshiTest, recipientAddress);
                                 return;
