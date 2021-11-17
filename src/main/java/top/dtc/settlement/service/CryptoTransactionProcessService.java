@@ -8,7 +8,7 @@ import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
+import top.dtc.common.constant.crypto.CoinConstant;
 import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.MainNet;
@@ -159,9 +159,8 @@ public class CryptoTransactionProcessService {
                 log.error("Call Crypto-engine Balance Query API Failed {}", JSON.toJSONString(response, SerializerFeature.PrettyFormat));
             }
             if (response != null && response.resultList != null && response.resultList.size() > 0) {
-//                DefaultConfig defaultConfig = defaultConfigService.getById(1L);
                 List<CryptoBalance> balanceList = response.resultList;
-                autoSweep(senderAddress, balanceList, count, sweepingDetails);
+                count += autoSweep(senderAddress, balanceList, sweepingDetails);
             }
         }
         log.info("Auto Sweep End");
@@ -194,7 +193,7 @@ public class CryptoTransactionProcessService {
         if (CryptoEngineUtils.isResultEmpty(result)) {
             log.error("Notify txn result invalid {}", JSON.toJSONString(result, SerializerFeature.PrettyFormat));
         }
-        if (result.state != null && !result.state.equals(CryptoTransactionState.COMPLETED)) {
+        if (result.state != CryptoTransactionState.COMPLETED) {
             // Transaction REJECTED by blockchain case
             handleRejectTxn(result);
         } else {
@@ -277,11 +276,9 @@ public class CryptoTransactionProcessService {
     }
 
     private void handleSuccessTxn(CryptoTransactionResult result) {
-        MainNet mainNet = result.mainNet;
         KycWalletAddress senderAddress = CryptoEngineUtils.matchInOutAddress(result.inputs, address -> kycWalletAddressService.getEnabledAddress(address));
         KycWalletAddress recipientAddress = CryptoEngineUtils.matchInOutAddress(result.outputs, address -> kycWalletAddressService.getEnabledAddress(address));
         String inputAddresses = CryptoEngineUtils.listAddressesStr(result.inputs);
-        String outputAddresses = CryptoEngineUtils.listAddressesStr(result.outputs);
         String alertMsg;
 
         // 1. Check whether recipient address exists and enabled
@@ -330,7 +327,7 @@ public class CryptoTransactionProcessService {
                         notifyCompleteWithdrawal(existingTxn, recipientAddress, cryptoAccount);
                     } else {
                         alertMsg = String.format("Invalid Recipient address(%s) or Sender address(%s) for Crypto Withdrawal Transaction(%s)",
-                                recipientAddress.id, (ObjectUtils.isEmpty(senderAddress)) ? "null" : senderAddress.id, existingTxn.id);
+                                recipientAddress.id, senderAddress == null ? "null" : senderAddress.id, existingTxn.id);
                         log.error(alertMsg);
                         sendAlert(notificationProperties.opsRecipient, alertMsg);
                     }
@@ -377,12 +374,11 @@ public class CryptoTransactionProcessService {
                         alertMsg = String.format("Whitelist address owner %s is different from Recipient address owner %s", senderAddress.ownerId, clientId);
                         log.error(alertMsg);
                         sendAlert(notificationProperties.complianceRecipient, alertMsg);
-                        return;
                     } else {
                         // Deposit, sender address is enabled already
-                        this.handleDeposit(result, mainNet, recipientAddress, senderAddress, output);
-                        return;
+                        this.handleDeposit(result, recipientAddress, senderAddress, output);
                     }
+                    return;
                 } else if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
                     log.info("Gas filled to DTC_CLIENT_WALLET address [{}]", recipientAddress.address);
                     internalTransferCompleted(result.id, InternalTransferReason.GAS, result.fee);
@@ -394,8 +390,8 @@ public class CryptoTransactionProcessService {
                             CryptoTransactionType.SATOSHI,
                             null,
                             recipientAddress.id,
-                            result.coin.name(),
-                            mainNet,
+                            result.coin.name,
+                            result.mainNet,
                             null,
                             null
                     );
@@ -463,22 +459,22 @@ public class CryptoTransactionProcessService {
         }
     }
 
-    private void handleDeposit(CryptoTransactionResult result, MainNet mainNet, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
+    private void handleDeposit(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
         log.info("Deposit detected and completed");
-        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(senderAddress.ownerId, result.coin.name());
+        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(senderAddress.ownerId, result.coin.name);
         if (cryptoAccount == null) {
             log.error("Wallet account is not activated.");
             return;
         }
-        Currency receivedCurrency = currencyService.getFirstByName(result.coin.name());
+        Currency receivedCurrency = currencyService.getFirstByName(result.coin.name);
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
         cryptoTransaction.clientId = senderAddress.ownerId;
-        cryptoTransaction.mainNet = mainNet;
+        cryptoTransaction.mainNet = result.mainNet;
         cryptoTransaction.amount = output.amount.setScale(receivedCurrency.exponent, RoundingMode.DOWN);
         cryptoTransaction.operator = "dtc-settlement-engine";
-        cryptoTransaction.currency = result.coin.name();
+        cryptoTransaction.currency = result.coin.name;
         cryptoTransaction.senderAddressId = senderAddress.id;
         cryptoTransaction.recipientAddressId = recipientAddress.id;
         cryptoTransaction.txnHash = result.id;
@@ -524,20 +520,16 @@ public class CryptoTransactionProcessService {
         DefaultConfig defaultConfig = defaultConfigService.getById(1L);
         BigDecimal threshold;
         BigDecimal transferAmount;
-        MainNet mainNet;
         switch (coin) {
             case USDT:
-                mainNet = MainNet.ERC20;
                 threshold = defaultConfig.thresholdSweepUsdt;
                 transferAmount = amount;
                 break;
             case ETH:
-                mainNet = MainNet.ERC20;
                 threshold = defaultConfig.thresholdSweepEth;
                 transferAmount = amount.subtract(defaultConfig.maxEthGas);
                 break;
             case BTC:
-                mainNet = MainNet.BTC;
                 threshold = defaultConfig.thresholdSweepBtc;
                 transferAmount = amount.subtract(defaultConfig.maxBtcGas);
                 break;
@@ -545,7 +537,7 @@ public class CryptoTransactionProcessService {
                 log.error("Unsupported Currency, {}", coin);
                 return null;
         }
-        dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, mainNet);
+        dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, dtcAssignedAddress.mainNet);
         if (transferAmount.compareTo(threshold) > 0) {
             String txnHash = transfer(coin, transferAmount, dtcAssignedAddress, dtcOpsAddress);
             if (txnHash != null) {
@@ -554,8 +546,8 @@ public class CryptoTransactionProcessService {
                 internalTransfer.reason = InternalTransferReason.SWEEP;
                 internalTransfer.status = InternalTransferStatus.INIT;
                 internalTransfer.amount = transferAmount;
-                internalTransfer.currency = coin.name();
-                internalTransfer.feeCurrency = getFeeCurrency(mainNet);
+                internalTransfer.currency = coin.name;
+                internalTransfer.feeCurrency = getFeeCurrency(dtcAssignedAddress.mainNet);
                 internalTransfer.recipientAccountId = dtcOpsAddress.id;
                 internalTransfer.senderAccountId = dtcAssignedAddress.id;
                 internalTransfer.referenceNo = txnHash;
@@ -568,17 +560,17 @@ public class CryptoTransactionProcessService {
         }
     }
 
-    private void autoSweep(KycWalletAddress senderAddress, List<CryptoBalance> balanceList, int count, StringBuilder usdtDetails) {
+    private int autoSweep(KycWalletAddress senderAddress, List<CryptoBalance> balanceList, StringBuilder usdtDetails) {
+        int count = 0;
         for (CryptoBalance balance : balanceList) {
             String txnHash = this.handleSweep(senderAddress, balance.coin, balance.amount);
             if (txnHash != null) {
                 count++;
-                usdtDetails.append(
-                        String.format("Client[%s] Address[%s] %s Txn Hash [%s]\n",
-                                senderAddress.subId, senderAddress.address, balance.amount, txnHash)
-                );
+                usdtDetails.append(String.format("Client[%s] Address[%s] %s Txn Hash [%s]\n",
+                                senderAddress.subId, senderAddress.address, balance.amount, txnHash));
             }
         }
+        return count;
     }
 
     private String transfer(Coin coin, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
@@ -739,7 +731,7 @@ public class CryptoTransactionProcessService {
 
     private List<String> getClientUserEmails(Long clientId) {
         List<WalletUser> walletUserList = walletUserService.getByClientIdAndStatus(clientId, UserStatus.ENABLED);
-        if (ObjectUtils.isEmpty(walletUserList)) {
+        if (walletUserList == null || walletUserList.isEmpty()) {
             log.info("Not Wallet user for client");
             return new ArrayList<>();
         } else {
@@ -750,11 +742,11 @@ public class CryptoTransactionProcessService {
     private String getFeeCurrency(MainNet mainNet) {
         switch (mainNet) {
             case BTC:
-                return "BTC";
+                return CoinConstant.BTC;
             case ERC20:
-                return "ETH";
+                return CoinConstant.ETH;
             case TRC20:
-                return "TRX";
+                return CoinConstant.TRX;
             default:
                 throw new ValidationException("Invalid Currency");
         }
