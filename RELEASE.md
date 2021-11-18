@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.51.0] -
+
+* Update parent, migrate crypto-engine related object usages
+
 [0.50.0] - 27 Oct 2021
 
 * Fix multiple PENDING satoshi logic bug
