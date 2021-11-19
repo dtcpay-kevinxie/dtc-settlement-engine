@@ -1,7 +1,6 @@
 package top.dtc.settlement.module.silvergate.service;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -87,7 +86,7 @@ public class SilvergateProcessService {
                         try {
                             log.info("AccountWireDetailReq {}", accountWireDetailReq);
                             AccountWireDetailResp accountWireDetailResp = silvergateApiService.getAccountWireDetail(accountWireDetailReq);
-                            log.info(JSON.toJSONString(accountWireDetailResp, SerializerFeature.PrettyFormat));
+                            log.info(JSON.toJSONString(accountWireDetailResp, true));
                         } catch (Exception e) {
                             log.error("getAccountWireDetail Error", e);
                         }
@@ -96,7 +95,7 @@ public class SilvergateProcessService {
                         try {
                             log.info("AccountWireSummaryReq {}", accountWireSummaryReq);
                             AccountWireSummaryResp accountWireSummaryResp = silvergateApiService.getAccountWireSummary(accountWireSummaryReq);
-                            log.info(JSON.toJSONString(accountWireSummaryResp, SerializerFeature.PrettyFormat));
+                            log.info(JSON.toJSONString(accountWireSummaryResp, true));
                         } catch (Exception e) {
                             log.error("getAccountWireSummary Error", e);
                         }

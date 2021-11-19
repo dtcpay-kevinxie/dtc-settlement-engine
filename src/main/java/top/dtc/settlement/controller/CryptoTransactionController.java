@@ -1,7 +1,6 @@
 package top.dtc.settlement.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,7 +50,7 @@ public class CryptoTransactionController {
 
     @PostMapping("/notify")
     public void notify(@RequestBody CryptoTransactionResult transactionResult) {
-        log.debug("[POST] /notify {}", JSON.toJSONString(transactionResult, SerializerFeature.PrettyFormat));
+        log.debug("[POST] /notify {}", JSON.toJSONString(transactionResult, true));
         cryptoTransactionProcessService.notify(transactionResult);
     }
 

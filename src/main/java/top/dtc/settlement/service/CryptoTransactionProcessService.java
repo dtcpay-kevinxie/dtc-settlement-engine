@@ -1,7 +1,6 @@
 package top.dtc.settlement.service;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import kong.unirest.GenericType;
 import kong.unirest.RequestBodyEntity;
 import kong.unirest.Unirest;
@@ -156,7 +155,7 @@ public class CryptoTransactionProcessService {
                     !response.header.success
                     || response.resultList == null
                     || response.resultList.size() < 1) {
-                log.error("Call Crypto-engine Balance Query API Failed {}", JSON.toJSONString(response, SerializerFeature.PrettyFormat));
+                log.error("Call Crypto-engine Balance Query API Failed {}", JSON.toJSONString(response, true));
             }
             if (response != null && response.resultList != null && response.resultList.size() > 0) {
                 List<CryptoBalance> balanceList = response.resultList;
@@ -191,7 +190,7 @@ public class CryptoTransactionProcessService {
      */
     public void notify(CryptoTransactionResult result) {
         if (CryptoEngineUtils.isResultEmpty(result)) {
-            log.error("Notify txn result invalid {}", JSON.toJSONString(result, SerializerFeature.PrettyFormat));
+            log.error("Notify txn result invalid {}", JSON.toJSONString(result, true));
         }
         if (result.state != CryptoTransactionState.COMPLETED) {
             // Transaction REJECTED by blockchain case
@@ -293,7 +292,7 @@ public class CryptoTransactionProcessService {
         // 2. Check whether txnHash exists
         CryptoTransaction existingTxn = cryptoTransactionService.getOneByTxnHash(result.id);
         if (existingTxn != null) {
-            log.debug("Transaction is linked to {}", JSON.toJSONString(existingTxn, SerializerFeature.PrettyFormat));
+            log.debug("Transaction is linked to {}", JSON.toJSONString(existingTxn, true));
             // 2a. Check Transaction State: PENDING, COMPLETED, REJECTED, CLOSED
             switch (existingTxn.state) {
                 case AUTHORIZED:
@@ -574,29 +573,33 @@ public class CryptoTransactionProcessService {
     }
 
     private String transfer(Coin coin, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
-        CryptoTransactionSend cryptoTransactionSend = new CryptoTransactionSend();
-        cryptoTransactionSend.contracts = new ArrayList<>();
-        CryptoContractSend contract = new CryptoContractSend();
+        CryptoTransactionSend transactionSend = new CryptoTransactionSend();
+        CryptoInOutSend input = new CryptoInOutSend();
+        CryptoInOutSend output = new CryptoInOutSend();
+        transactionSend.inputs.add(input);
+        transactionSend.outputs.add(output);
+
+        transactionSend.coin = coin;
+        transactionSend.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, coin);
+        input.account = senderAddress.type.account;
+        input.addressIndex = senderAddress.addressIndex;
+        input.amount = amount;
+        output.address = recipientAddress.address;
+        output.amount = amount;
         if (recipientAddress.securityType == SecurityType.KMS) {
-            contract.toAccount = recipientAddress.type.account;
-            contract.toAddressIndex = recipientAddress.addressIndex;
+            output.account = recipientAddress.type.account;
+            output.addressIndex = recipientAddress.addressIndex;
         }
-        contract.to = recipientAddress.address;
-        contract.amount = amount;
-        contract.coin = coin;
-        contract.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, coin);
-        cryptoTransactionSend.contracts.add(contract);
+
         RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.cryptoEngineUrlPrefix
-                + "/crypto/{netName}/txn/send/{account}/{addressIndex}")
+                + "/crypto/{netName}/txn/send")
                 .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
-                .routeParam("account", senderAddress.type.account + "")
-                .routeParam("addressIndex", senderAddress.addressIndex + "")
-                .body(cryptoTransactionSend);
+                .body(transactionSend);
         log.debug("Request url: {}", requestBodyEntity.getUrl());
         ApiResponse<String> sendTxnResp = requestBodyEntity
                 .asObject(new GenericType<ApiResponse<String>>() {})
                 .getBody();
-        log.debug("Request Body: {}", JSON.toJSONString(cryptoTransactionSend));
+        log.debug("Request Body: {}", JSON.toJSONString(transactionSend));
         if (sendTxnResp == null || sendTxnResp.header == null) {
             log.error("Error when connecting crypto-engine");
             return null;
