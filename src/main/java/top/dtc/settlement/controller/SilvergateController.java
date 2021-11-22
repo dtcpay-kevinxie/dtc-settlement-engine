@@ -1,7 +1,6 @@
 package top.dtc.settlement.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -36,7 +35,7 @@ public class SilvergateController {
 
     @PostMapping("/notify")
     public void notify(@RequestBody NotificationPost notificationPost) {
-        log.debug("[POST] /notify {}", JSON.toJSONString(notificationPost, SerializerFeature.PrettyFormat));
+        log.debug("[POST] /notify {}", JSON.toJSONString(notificationPost, true));
         silvergateProcessService.notify(notificationPost);
     }
 
@@ -44,15 +43,15 @@ public class SilvergateController {
     public ApiResponse<?> getAccountBalance(@PathVariable("accountNumber") String accountNumber) {
         log.debug("[GET] /account/get-account-balance/{}", accountNumber);
         AccountBalanceResp accountBalance = silvergateProcessService.getAccountBalance(accountNumber);
-        log.info("/account/get-account-balance/{} response: {}", accountNumber, JSON.toJSONString(accountBalance, SerializerFeature.PrettyFormat));
+        log.info("/account/get-account-balance/{} response: {}", accountNumber, JSON.toJSONString(accountBalance, true));
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountBalance);
     }
 
     @PostMapping("/account/get-account-history")
     public ApiResponse<?> getAccountHistory(@RequestBody AccountHistoryReq accountHistoryReq) {
-        log.debug("[POST] /account/get-account-history {}", JSON.toJSONString(accountHistoryReq, SerializerFeature.PrettyFormat));
+        log.debug("[POST] /account/get-account-history {}", JSON.toJSONString(accountHistoryReq, true));
         AccountHistoryResp accountHistory = silvergateProcessService.getAccountHistory(accountHistoryReq);
-        log.info("/account/history response: {}", JSON.toJSONString(accountHistory, SerializerFeature.PrettyFormat));
+        log.info("/account/history response: {}", JSON.toJSONString(accountHistory, true));
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, accountHistory);
     }
 
@@ -110,17 +109,17 @@ public class SilvergateController {
 
     @PostMapping("/webhooks/get")
     public ApiResponse<?> webHooksGet(@RequestBody WebHooksGetReq webHooksGetReq) {
-        log.debug("[POST] /webhooks/get {}", JSON.toJSONString(webHooksGetReq, SerializerFeature.PrettyFormat));
+        log.debug("[POST] /webhooks/get {}", JSON.toJSONString(webHooksGetReq, true));
         List<WebHooksGetRegisterResp> webHooksGetRegisterResp = apiService.webHooksGet(webHooksGetReq);
-        log.info("[POST] /webhooks/get response: {}", JSON.toJSONString(webHooksGetRegisterResp, SerializerFeature.PrettyFormat));
+        log.info("[POST] /webhooks/get response: {}", JSON.toJSONString(webHooksGetRegisterResp, true));
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksGetRegisterResp);
     }
 
     @PostMapping("/webhooks/register")
     public ApiResponse<?> webHooksRegister(@RequestBody WebHooksRegisterReq webHooksRegisterReq) {
-        log.debug("[POST] /webhooks/register {}", JSON.toJSONString(webHooksRegisterReq, SerializerFeature.PrettyFormat));
+        log.debug("[POST] /webhooks/register {}", JSON.toJSONString(webHooksRegisterReq, true));
         WebHooksGetRegisterResp webHooksRegisterResp = apiService.webHooksRegister(webHooksRegisterReq);
-        log.info("[POST] /webhooks/register response: {}", JSON.toJSONString(webHooksRegisterResp, SerializerFeature.PrettyFormat));
+        log.info("[POST] /webhooks/register response: {}", JSON.toJSONString(webHooksRegisterResp, true));
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS, webHooksRegisterResp);
     }
 
