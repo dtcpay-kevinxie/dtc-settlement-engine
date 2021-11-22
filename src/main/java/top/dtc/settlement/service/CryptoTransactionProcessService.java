@@ -14,7 +14,10 @@ import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.MainNet;
 import top.dtc.common.enums.crypto.Coin;
 import top.dtc.common.exception.ValidationException;
-import top.dtc.common.model.crypto.*;
+import top.dtc.common.model.crypto.CryptoBalance;
+import top.dtc.common.model.crypto.CryptoInOutResult;
+import top.dtc.common.model.crypto.CryptoTransactionResult;
+import top.dtc.common.model.crypto.CryptoTransactionSend;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.common.util.crypto.CryptoEngineUtils;
 import top.dtc.data.core.model.CryptoTransaction;
@@ -145,7 +148,7 @@ public class CryptoTransactionProcessService {
                 continue;
             }
             ApiResponse<CryptoBalance> response = Unirest.get(
-                            httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
+                    httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
                     .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
                     .routeParam("address", senderAddress.address)
                     .routeParam("force", Boolean.TRUE + "")
@@ -177,7 +180,7 @@ public class CryptoTransactionProcessService {
 
     /**
      * Notify Checking Logic:
-     *
+     * <p>
      * 1. Check whether txnHash exists
      * 2. Check whether recipient address exists and enabled
      * 3. Check recipient address type: DTC_CLIENT_WALLET, DTC_GAS, DTC_OPS
@@ -185,7 +188,7 @@ public class CryptoTransactionProcessService {
      * 5. Validate amount if it is Satoshi Test Transaction
      * 6. Process as Deposit or Satoshi Completion
      * 7. Send Alerts / Notifications according to checking flows above
-     *
+     * <p>
      * Notify Diagram Document
      * https://docs.google.com/presentation/d/1eWtfVLDEGY8uK2IELga1F_8NHBx_6969H1FRjCspCWE/edit#slide=id.p5
      */
@@ -256,7 +259,8 @@ public class CryptoTransactionProcessService {
                         }
                         break;
                 }
-                String txnInfo = String.format("Transaction sent to %s(id=%s) %s", recipientAddress.type.desc, recipientAddress.id, recipientAddress.address);;
+                String txnInfo = String.format("Transaction sent to %s(id=%s) %s", recipientAddress.type.desc, recipientAddress.id, recipientAddress.address);
+                ;
                 log.error(String.format("Recipient address (id=%s)[%s] under client %s is REJECTED by blockchain network.", recipientAddress.id, result.id, recipientAddress.ownerId));
                 String clientInfo = String.format("(%s)%s", recipientAddress.ownerId, kycCommonService.getClientName(recipientAddress.ownerId));
                 rejectAlert(notificationProperties.opsRecipient, recipientAddress.mainNet, result.id, txnInfo, clientInfo);
@@ -567,7 +571,7 @@ public class CryptoTransactionProcessService {
             if (txnHash != null) {
                 count++;
                 usdtDetails.append(String.format("Client[%s] Address[%s] %s Txn Hash [%s]\n",
-                                senderAddress.subId, senderAddress.address, balance.amount, txnHash));
+                        senderAddress.subId, senderAddress.address, balance.amount, txnHash));
             }
         }
         return count;
@@ -594,7 +598,8 @@ public class CryptoTransactionProcessService {
                 .body(cryptoTransactionSend);
         log.debug("Request url: {}", requestBodyEntity.getUrl());
         ApiResponse<String> sendTxnResp = requestBodyEntity
-                .asObject(new GenericType<ApiResponse<String>>() {})
+                .asObject(new GenericType<ApiResponse<String>>() {
+                })
                 .getBody();
         log.debug("Request Body: {}", JSON.toJSONString(cryptoTransactionSend));
         if (sendTxnResp == null || sendTxnResp.header == null) {

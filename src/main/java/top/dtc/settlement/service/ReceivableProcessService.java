@@ -118,7 +118,9 @@ public class ReceivableProcessService {
     private void processGlobalPaymentReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList) {
         //TODO : Add GP settlement cycle and generate Receivable
         List<Long> ids = new ArrayList<>();
-        transactionList.forEach(transaction -> {ids.add(transaction.id);});
+        transactionList.forEach(transaction -> {
+            ids.add(transaction.id);
+        });
         transactionService.updateSettlementStatusByIdIn(SettlementStatus.ACQ_SETTLED, ids);
     }
 

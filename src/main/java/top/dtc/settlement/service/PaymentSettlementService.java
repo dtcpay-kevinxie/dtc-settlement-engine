@@ -64,7 +64,7 @@ public class PaymentSettlementService {
     public void processSettlement(LocalDate today) {
         log.info("Start process Daily settlement");
         List<SettlementConfig> dailySettlementList = settlementConfigService.getByScheduleTypeIn(SettlementConstant.SETTLEMENT_SCHEDULE.DAILY);
-        for(SettlementConfig settlementConfig : dailySettlementList) {
+        for (SettlementConfig settlementConfig : dailySettlementList) {
             // Pack all transactions From Yesterday (00:00) to Yesterday (23:59)
             packTransactionByDate(settlementConfig, today.minusDays(1), today.minusDays(1));
         }
@@ -127,7 +127,7 @@ public class PaymentSettlementService {
             invoiceNumber.prefix = prefix;
             settlement.invoiceNumber = prefix + StringUtils.leftPad("1", 8, '0');
         } else {
-            invoiceNumber.runningNumber ++;
+            invoiceNumber.runningNumber++;
             settlement.invoiceNumber = prefix + StringUtils.leftPad(String.valueOf(invoiceNumber.runningNumber + 1), 8, '0');
         }
         settlementService.updateById(settlement);
