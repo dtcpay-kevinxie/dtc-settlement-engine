@@ -10,6 +10,7 @@ public class PaymentGetResp {
     @JSONField(name = "ERROR")
     public List<Error> errorList;
 
+    @JSONField(name = "payment_status")
     public String status;
     public String payment_id;
     public String payment_date;

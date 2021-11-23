@@ -10,11 +10,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import top.dtc.common.core.data.CommonCacheConfig;
 import top.dtc.settlement.constant.SettlementEngineRedisConstant;
 
-/**
- * User: kevin.xie<br/>
- * Date: 23/02/2021<br/>
- * Time: 18:22<br/>
- */
 @Getter
 @Configuration
 public class CacheSettlementEngineConfig extends CommonCacheConfig {
@@ -34,7 +29,7 @@ public class CacheSettlementEngineConfig extends CommonCacheConfig {
     }
 
     @Bean(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.REDIS_TEMPLATE)
-    RedisTemplate<?,?> portalRedisTemplate(@Qualifier(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.CONNECTION_FACTORY) RedisConnectionFactory registerConnectionFactory) {
+    RedisTemplate<?, ?> portalRedisTemplate(@Qualifier(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.CONNECTION_FACTORY) RedisConnectionFactory registerConnectionFactory) {
         return redisTemplate(registerConnectionFactory);
     }
 }
