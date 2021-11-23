@@ -13,10 +13,7 @@ import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.MainNet;
 import top.dtc.common.enums.crypto.Coin;
 import top.dtc.common.exception.ValidationException;
-import top.dtc.common.model.crypto.CryptoBalance;
-import top.dtc.common.model.crypto.CryptoInOutResult;
-import top.dtc.common.model.crypto.CryptoTransactionResult;
-import top.dtc.common.model.crypto.CryptoTransactionSend;
+import top.dtc.common.model.crypto.*;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.common.util.crypto.CryptoEngineUtils;
 import top.dtc.data.core.model.CryptoTransaction;
@@ -540,7 +537,11 @@ public class CryptoTransactionProcessService {
                 log.error("Unsupported Currency, {}", coin);
                 return null;
         }
-        dtcOpsAddress = kycWalletAddressService.getDtcAddress(WalletAddressType.DTC_OPS, dtcAssignedAddress.mainNet);
+        dtcOpsAddress = kycWalletAddressService.getById(defaultConfig.defaultAutoSweepAddress);
+        if (dtcOpsAddress == null || !dtcOpsAddress.enabled || dtcOpsAddress.type != WalletAddressType.DTC_OPS) {
+            log.error("Invalid DTC_OPS address {} in Auto-sweep", defaultConfig.defaultAutoSweepAddress);
+            return null;
+        }
         if (transferAmount.compareTo(threshold) > 0) {
             String txnHash = transfer(coin, transferAmount, dtcAssignedAddress, dtcOpsAddress);
             if (txnHash != null) {
@@ -734,7 +735,6 @@ public class CryptoTransactionProcessService {
             internalTransfer.fee = fee;
             internalTransferService.updateById(internalTransfer);
         }
-
     }
 
     private List<String> getClientUserEmails(Long clientId) {

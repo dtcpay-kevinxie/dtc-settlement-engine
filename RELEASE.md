@@ -3,6 +3,8 @@
 [0.51.0] -
 
 * Update parent, migrate crypto-engine related object usages
+* Fix Silvergate API payment_status
+* Change auto-sweep address logic
 
 [0.50.0] - 27 Oct 2021
 
