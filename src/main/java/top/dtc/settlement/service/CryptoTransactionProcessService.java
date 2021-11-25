@@ -537,9 +537,10 @@ public class CryptoTransactionProcessService {
                 log.error("Unsupported Currency, {}", coin);
                 return null;
         }
-        dtcOpsAddress = kycWalletAddressService.getById(defaultConfig.defaultAutoSweepAddress);
+        Long defaultAutoSweepAddress = getDefaultAutoSweepAddress(defaultConfig, dtcAssignedAddress.mainNet);
+        dtcOpsAddress = kycWalletAddressService.getById(defaultAutoSweepAddress);
         if (dtcOpsAddress == null || !dtcOpsAddress.enabled || dtcOpsAddress.type != WalletAddressType.DTC_OPS) {
-            log.error("Invalid DTC_OPS address {} in Auto-sweep", defaultConfig.defaultAutoSweepAddress);
+            log.error("Invalid DTC_OPS address {} in Auto-sweep", defaultAutoSweepAddress);
             return null;
         }
         if (transferAmount.compareTo(threshold) > 0) {
@@ -757,6 +758,19 @@ public class CryptoTransactionProcessService {
                 return CoinConstant.TRX;
             default:
                 throw new ValidationException("Invalid Currency");
+        }
+    }
+
+    private Long getDefaultAutoSweepAddress(DefaultConfig defaultConfig, MainNet mainNet) {
+        switch (mainNet) {
+            case BTC:
+                return defaultConfig.defaultAutoSweepBtcAddress;
+            case ERC20:
+                return defaultConfig.defaultAutoSweepErcAddress;
+            case TRC20:
+                return defaultConfig.defaultAutoSweepTrcAddress;
+            default:
+                return null;
         }
     }
 
