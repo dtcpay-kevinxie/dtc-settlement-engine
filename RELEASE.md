@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.51.0] -
+[0.51.0] - 29 Nov 2021
 
 * Update parent, migrate crypto-engine related object usages
 * Fix Silvergate API payment_status
