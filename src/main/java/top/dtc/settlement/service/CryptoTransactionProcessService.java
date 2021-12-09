@@ -452,6 +452,15 @@ public class CryptoTransactionProcessService {
                     sendAlert(notificationProperties.complianceRecipient, alertMsg);
                 }
                 return;
+            case DTC_FINANCE:
+                if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_OPS) {
+                    log.info("Sweep from [{}] to [{}] completed", senderAddress.address, recipientAddress.address);
+                    internalTransferCompleted(result.id, InternalTransferReason.SWEEP, result.fee);
+                } else {
+                    alertMsg = String.format("Transaction [%s] sent from undefined address(es) [%s] to DTC_FINANCE address [%s].", result.id, inputAddresses, recipientAddress.address);
+                    log.error(alertMsg);
+                    sendAlert(notificationProperties.complianceRecipient, alertMsg);
+                }
             default:
                 alertMsg = String.format("Unexpected Address Id [%s] Type [%s]", recipientAddress.id, recipientAddress.type.desc);
                 log.error(alertMsg);
