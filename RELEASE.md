@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.52.0] - 
+
+* Add TRC-20 logic reference
+
 [0.51.0] - 29 Nov 2021
 
 * Update parent, migrate crypto-engine related object usages
