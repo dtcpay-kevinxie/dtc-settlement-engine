@@ -1,8 +1,16 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.52.0] - 
+[0.54.0] -
 
 * Add TRC-20 logic reference
+
+[0.53.0] - 10 Dec 2021
+
+* Hotfix: Crypto PROCESSING txn handling
+
+[0.52.0] - 09 Dec 2021
+
+* Hotfix: Handle sweep to DTC_FINANCE case
 
 [0.51.0] - 29 Nov 2021
 
