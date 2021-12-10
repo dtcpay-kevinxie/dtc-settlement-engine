@@ -205,6 +205,7 @@ public class CryptoTransactionProcessService {
         if (existingTxn != null) { // txnHash found in Crypto Transaction
             switch (existingTxn.state) {
                 case AUTHORIZED:
+                case PROCESSING:
                     // Only Withdrawal has txnHash in AUTHORIZED state
                     if (existingTxn.type == CryptoTransactionType.WITHDRAW) {
                         existingTxn.state = CryptoTransactionState.REJECTED;
@@ -219,7 +220,6 @@ public class CryptoTransactionProcessService {
                     }
                     break;
                 case PENDING:
-                case PROCESSING:
                 case COMPLETED:
                 case CLOSED:
                     String alertMsg = String.format("WARNING!! WARNING!! Transaction [%s] is REJECTED by blockchain, but system was handling Transaction[%s] as [%s]",
@@ -297,6 +297,7 @@ public class CryptoTransactionProcessService {
             // 2a. Check Transaction State: PENDING, COMPLETED, REJECTED, CLOSED
             switch (existingTxn.state) {
                 case AUTHORIZED:
+                case PROCESSING:
                     // Only AUTHORIZED transaction from DTC_OPS to CLIENT_OWN has txnHash (Crypto Withdrawal case)
                     if (recipientAddress.type == WalletAddressType.CLIENT_OWN
                             && recipientAddress.id.equals(existingTxn.recipientAddressId)
