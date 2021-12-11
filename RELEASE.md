@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.54.0] - 11 Dec 2021
+
+* HOTFIX: Crypto handleSuccessTxn false alert
+
 [0.53.0] - 10 Dec 2021
 
 * Hotfix: Crypto PROCESSING txn handling
