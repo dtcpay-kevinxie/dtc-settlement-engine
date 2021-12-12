@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.55.0] - 12 Dec 2021
+
+* HOTFIX: Upgrade log4j, https://www.lunasec.io/docs/blog/log4j-zero-day/
+
 [0.54.0] - 11 Dec 2021
 
 * HOTFIX: Crypto handleSuccessTxn false alert
