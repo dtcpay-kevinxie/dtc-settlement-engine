@@ -462,6 +462,7 @@ public class CryptoTransactionProcessService {
                     log.error(alertMsg);
                     sendAlert(notificationProperties.complianceRecipient, alertMsg);
                 }
+                return;
             default:
                 alertMsg = String.format("Unexpected Address Id [%s] Type [%s]", recipientAddress.id, recipientAddress.type.desc);
                 log.error(alertMsg);
