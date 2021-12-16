@@ -3,6 +3,7 @@
 [0.56.0] - 16 Dec 2021
 
 * Add TRC-20 logic reference
+* Remove OpsEmail notification
 
 [0.55.0] - 12 Dec 2021
 
