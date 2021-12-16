@@ -679,7 +679,6 @@ public class CryptoTransactionProcessService {
 
     private void notifyCompleteWithdrawal(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress, WalletAccount walletAccount) {
         List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
-        recipients.add(notificationProperties.opsRecipient);
         try {
             NotificationSender.
                     by(WITHDRAWAL_CRYPTO_COMPLETED)
@@ -699,7 +698,6 @@ public class CryptoTransactionProcessService {
 
     private void notifyDepositCompleted(CryptoTransaction cryptoTransaction) {
         List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
-        recipients.add(notificationProperties.opsRecipient);
         try {
             NotificationSender.by(DEPOSIT_CONFIRMED)
                     .to(recipients)
