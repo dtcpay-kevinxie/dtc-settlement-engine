@@ -7,7 +7,6 @@ import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.constant.crypto.CoinConstant;
 import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.MainNet;
@@ -567,7 +566,7 @@ public class CryptoTransactionProcessService {
                 internalTransfer.status = InternalTransferStatus.INIT;
                 internalTransfer.amount = transferAmount;
                 internalTransfer.currency = coin.name;
-                internalTransfer.feeCurrency = getFeeCurrency(dtcAssignedAddress.mainNet);
+                internalTransfer.feeCurrency = dtcAssignedAddress.mainNet.feeCurrency;
                 internalTransfer.recipientAccountId = dtcOpsAddress.id;
                 internalTransfer.senderAccountId = dtcAssignedAddress.id;
                 internalTransfer.referenceNo = txnHash;
@@ -760,19 +759,6 @@ public class CryptoTransactionProcessService {
             return new ArrayList<>();
         } else {
             return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.toList());
-        }
-    }
-
-    private String getFeeCurrency(MainNet mainNet) {
-        switch (mainNet) {
-            case BTC:
-                return CoinConstant.BTC;
-            case ERC20:
-                return CoinConstant.ETH;
-            case TRC20:
-                return CoinConstant.TRX;
-            default:
-                throw new ValidationException("Invalid Currency");
         }
     }
 
