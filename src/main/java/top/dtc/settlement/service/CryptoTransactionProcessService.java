@@ -544,6 +544,10 @@ public class CryptoTransactionProcessService {
                 threshold = defaultConfig.thresholdSweepBtc;
                 transferAmount = amount.subtract(defaultConfig.maxBtcGas);
                 break;
+            case TRX:
+                threshold = defaultConfig.thresholdSweepTrx;
+                transferAmount = amount.subtract(defaultConfig.maxTronGas);
+                break;
             default:
                 log.error("Unsupported Currency, {}", coin);
                 return null;
