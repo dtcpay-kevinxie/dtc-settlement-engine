@@ -7,7 +7,6 @@ import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.constant.crypto.CoinConstant;
 import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.MainNet;
@@ -544,6 +543,10 @@ public class CryptoTransactionProcessService {
                 threshold = defaultConfig.thresholdSweepBtc;
                 transferAmount = amount.subtract(defaultConfig.maxBtcGas);
                 break;
+            case TRX:
+                threshold = defaultConfig.thresholdSweepTrx;
+                transferAmount = amount.subtract(defaultConfig.maxTronGas);
+                break;
             default:
                 log.error("Unsupported Currency, {}", coin);
                 return null;
@@ -563,7 +566,7 @@ public class CryptoTransactionProcessService {
                 internalTransfer.status = InternalTransferStatus.INIT;
                 internalTransfer.amount = transferAmount;
                 internalTransfer.currency = coin.name;
-                internalTransfer.feeCurrency = getFeeCurrency(dtcAssignedAddress.mainNet);
+                internalTransfer.feeCurrency = dtcAssignedAddress.mainNet.feeCurrency;
                 internalTransfer.recipientAccountId = dtcOpsAddress.id;
                 internalTransfer.senderAccountId = dtcAssignedAddress.id;
                 internalTransfer.referenceNo = txnHash;
@@ -675,12 +678,11 @@ public class CryptoTransactionProcessService {
 
     private void notifyCompleteWithdrawal(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress, WalletAccount walletAccount) {
         List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
-        recipients.add(notificationProperties.opsRecipient);
         try {
             NotificationSender.
                     by(WITHDRAWAL_CRYPTO_COMPLETED)
                     .to(recipients)
-                    .dataMap(Map.of("amount", cryptoTransaction.amount + "",
+                    .dataMap(Map.of("amount", cryptoTransaction.amount.subtract(cryptoTransaction.transactionFee).toPlainString(),
                             "currency", cryptoTransaction.currency,
                             "recipient_address", kycWalletAddress.address,
                             "txn_hash", cryptoTransaction.txnHash,
@@ -695,7 +697,6 @@ public class CryptoTransactionProcessService {
 
     private void notifyDepositCompleted(CryptoTransaction cryptoTransaction) {
         List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
-        recipients.add(notificationProperties.opsRecipient);
         try {
             NotificationSender.by(DEPOSIT_CONFIRMED)
                     .to(recipients)
@@ -756,19 +757,6 @@ public class CryptoTransactionProcessService {
             return new ArrayList<>();
         } else {
             return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.toList());
-        }
-    }
-
-    private String getFeeCurrency(MainNet mainNet) {
-        switch (mainNet) {
-            case BTC:
-                return CoinConstant.BTC;
-            case ERC20:
-                return CoinConstant.ETH;
-            case TRC20:
-                return CoinConstant.TRX;
-            default:
-                throw new ValidationException("Invalid Currency");
         }
     }
 
