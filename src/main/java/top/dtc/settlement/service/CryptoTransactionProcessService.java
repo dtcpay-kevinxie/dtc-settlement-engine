@@ -682,7 +682,7 @@ public class CryptoTransactionProcessService {
             NotificationSender.
                     by(WITHDRAWAL_CRYPTO_COMPLETED)
                     .to(recipients)
-                    .dataMap(Map.of("amount", cryptoTransaction.amount + "",
+                    .dataMap(Map.of("amount", cryptoTransaction.amount.subtract(cryptoTransaction.transactionFee).toPlainString(),
                             "currency", cryptoTransaction.currency,
                             "recipient_address", kycWalletAddress.address,
                             "txn_hash", cryptoTransaction.txnHash,

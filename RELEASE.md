@@ -4,6 +4,7 @@
 
 * Add TRC-20 logic reference
 * Remove OpsEmail notification
+* Crypto withdrawal completed email displays as amount - fee
 
 [0.55.0] - 12 Dec 2021
 
