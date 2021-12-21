@@ -1,8 +1,12 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.57.0] - 21 Dec 2021
+[0.58.0] - 21 Dec 2021
 
 * Update data-risk dep version
+
+[0.57.0] - 20 Dec 2021
+
+* Upgrade log4j, https://logging.apache.org/log4j/2.x/security.html
 
 [0.56.0] - 16 Dec 2021
 
