@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.57.0] - 21 Dec 2021
+
+* Update data-risk dep version
+
 [0.56.0] - 16 Dec 2021
 
 * Add TRC-20 logic reference
