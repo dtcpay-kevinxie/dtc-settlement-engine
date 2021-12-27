@@ -14,11 +14,6 @@ import top.dtc.settlement.module.silvergate.service.SilvergateProcessService;
 
 import java.util.List;
 
-/**
- * User: kevin.xie<br/>
- * Date: 22/02/2021<br/>
- * Time: 17:53<br/>
- */
 @Log4j2
 @RestController
 @RequestMapping("/silvergate")

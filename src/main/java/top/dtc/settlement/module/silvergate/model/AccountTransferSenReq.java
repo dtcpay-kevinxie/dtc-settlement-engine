@@ -4,11 +4,6 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
-/**
- * User: kevin.xie<br/>
- * Date: 07/05/2021<br/>
- * Time: 17:05<br/>
- */
 @Data
 public class AccountTransferSenReq {
 

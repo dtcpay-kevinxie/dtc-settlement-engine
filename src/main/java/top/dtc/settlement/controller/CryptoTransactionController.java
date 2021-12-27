@@ -12,11 +12,6 @@ import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.CryptoTransactionProcessService;
 
-/**
- * User: kevin.xie<br/>
- * Date: 20/05/2021<br/>
- * Time: 17:37<br/>
- */
 @Log4j2
 @RestController
 @RequestMapping("/crypto-transaction")

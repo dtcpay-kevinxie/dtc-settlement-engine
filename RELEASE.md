@@ -3,6 +3,7 @@
 [0.58.0] - 21 Dec 2021
 
 * Update data-risk dep version
+* ExchangeRates API Integration
 
 [0.57.0] - 20 Dec 2021
 

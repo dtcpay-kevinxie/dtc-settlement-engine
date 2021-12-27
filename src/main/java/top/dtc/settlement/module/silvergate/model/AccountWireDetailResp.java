@@ -6,11 +6,6 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * User: kevin.xie<br/>
- * Date: 07/05/2021<br/>
- * Time: 17:00<br/>
- */
 @Data
 public class AccountWireDetailResp {
 
