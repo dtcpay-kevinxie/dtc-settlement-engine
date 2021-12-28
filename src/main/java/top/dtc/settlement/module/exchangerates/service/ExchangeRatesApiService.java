@@ -41,8 +41,8 @@ public class ExchangeRatesApiService {
         routeMap.put("base", "USD");
         routeMap.put("symbols", "SGD");
         GetRequest request = Unirest.get(exchangeRatesProperties.apiUrlPrefix + "/v1/latest")
-                .routeParam(ACCESS_KEY, exchangeRatesProperties.accessKey)
-                .routeParam(routeMap);
+                .queryString(ACCESS_KEY, exchangeRatesProperties.accessKey)
+                .queryString(routeMap);
         HttpResponse<String> response = request
                 .asString()
                 .ifFailure(resp -> {

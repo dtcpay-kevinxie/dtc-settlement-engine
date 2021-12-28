@@ -24,7 +24,7 @@ public class ExchangeRatesController {
             log.debug("[POST] /scheduled/get-latest-rate");
             exchangeRatesApiService.getLatestRate();
         } catch (Exception e) {
-            log.error("Cannot process scheduled get latest rate, {}", e.getMessage());
+            log.error("Cannot process scheduled get-latest-rate API, {}", e.getMessage());
         }
         return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
     }
