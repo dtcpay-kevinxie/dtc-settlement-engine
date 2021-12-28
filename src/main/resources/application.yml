@@ -38,5 +38,5 @@ silvergate:
   certificate-password: ${SILVERGATE_CERTIFICATE_PASSWORD}
 
 exchangerates:
-  api-url-prefix: {EXCHANGE_RATE_API_URL_PREFIX}
-  access-key: {EXCHANGE_RATE_API_ACCESS_KEY}
+  api-url-prefix: ${EXCHANGE_RATE_API_URL_PREFIX}
+  access-key: ${EXCHANGE_RATE_API_ACCESS_KEY}
