@@ -71,7 +71,7 @@ public class ExchangeRatesApiService {
             exchangeRate.buyCurrency = getLatestRateResp.base;
             exchangeRate.sellCurrency = (String) routeMap.get("symbols");
             exchangeRate.rateSource = "ExchangeRates API";
-            exchangeRate.exchangeRate = getLatestRateResp.rates.exchangeRate;
+            exchangeRate.exchangeRate = getLatestRateResp.rates.getBigDecimal((String) routeMap.get("symbols"));
             String dateStr = Instant.ofEpochSecond(getLatestRateResp.timestamp).atZone(ZoneId.of("GMT+8"))
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             exchangeRate.rateTime = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));

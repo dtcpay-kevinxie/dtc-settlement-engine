@@ -1,8 +1,7 @@
 package top.dtc.settlement.module.exchangerates.model;
 
+import com.alibaba.fastjson.JSONObject;
 import lombok.Data;
-
-import java.math.BigDecimal;
 
 @Data
 public class GetLatestRateResp {
@@ -15,11 +14,7 @@ public class GetLatestRateResp {
 
     public String date;
 
-    public Rate rates; // output currency
+    public JSONObject rates; // output currency rate
 
-    @Data
-    public static class Rate {
-        public BigDecimal exchangeRate;
-    }
 
 }
