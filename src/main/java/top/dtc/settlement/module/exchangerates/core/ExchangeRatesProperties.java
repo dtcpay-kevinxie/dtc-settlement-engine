@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("exchangerates")
 public class ExchangeRatesProperties {
 
-    public String urlPrefix;
+    public String apiUrlPrefix;
 
     public String accessKey;
 

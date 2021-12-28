@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.58.0] - 21 Dec 2021
+[0.58.0] - 
 
 * Update data-risk dep version
 * ExchangeRates API Integration
