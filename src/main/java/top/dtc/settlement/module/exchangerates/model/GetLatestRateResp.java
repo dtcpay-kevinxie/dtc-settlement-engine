@@ -13,13 +13,13 @@ public class GetLatestRateResp {
 
     public String base; // base currency
 
-    public String data;
+    public String date;
 
-    public Rate outputRate; // output currency
+    public Rate rates; // output currency
 
     @Data
     public static class Rate {
-        public BigDecimal rate;
+        public BigDecimal exchangeRate;
     }
 
 }

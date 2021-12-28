@@ -25,6 +25,8 @@ import java.util.Map;
 public class ExchangeRatesApiService {
 
     private static final String ACCESS_KEY = "access_key";
+    private static final String USD = "USD";
+    private static final String SGD = "SGD";
 
     @Autowired
     ExchangeRatesProperties exchangeRatesProperties;
@@ -37,20 +39,29 @@ public class ExchangeRatesApiService {
      * which gets updated every 60 minutes, every 10 minutes, or every 60 seconds.
      */
     public void getLatestRate() {
+        // USD -> SGD
         Map<String, Object> routeMap = new HashMap<>();
-        routeMap.put("base", "USD");
-        routeMap.put("symbols", "SGD");
+        routeMap.put("base", USD);
+        routeMap.put("symbols", SGD);
+        getForexRate(routeMap);
+        // SGD -> USD
+        Map<String, Object> queryMap = new HashMap<>();
+        queryMap.put("base", SGD);
+        queryMap.put("symbols", USD);
+        getForexRate(queryMap);
+    }
+
+    private void getForexRate(Map<String, Object> routeMap) {
         GetRequest request = Unirest.get(exchangeRatesProperties.apiUrlPrefix + "/v1/latest")
                 .queryString(ACCESS_KEY, exchangeRatesProperties.accessKey)
                 .queryString(routeMap);
-        log.debug("Request url: {}",request.getUrl());
         HttpResponse<String> response = request
                 .asString()
                 .ifFailure(resp -> {
                     String url = request.getUrl();
                     log.error("ExchangeRate API request failed, path={}, status={}", url, resp.getStatus());
                     resp.getParsingError().ifPresent(e -> log.error("ExchangeRate API request failed\n{}", url, e));
-                });;
+                });
         String resp = response.getBody();
         log.debug("Response body: {}", resp);
         GetLatestRateResp getLatestRateResp = JSON.parseObject(resp, GetLatestRateResp.class);
@@ -60,7 +71,7 @@ public class ExchangeRatesApiService {
             exchangeRate.buyCurrency = getLatestRateResp.base;
             exchangeRate.sellCurrency = (String) routeMap.get("symbols");
             exchangeRate.rateSource = "ExchangeRates API";
-            exchangeRate.exchangeRate = getLatestRateResp.outputRate.rate;
+            exchangeRate.exchangeRate = getLatestRateResp.rates.exchangeRate;
             String dateStr = Instant.ofEpochSecond(getLatestRateResp.timestamp).atZone(ZoneId.of("GMT+8"))
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             exchangeRate.rateTime = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
