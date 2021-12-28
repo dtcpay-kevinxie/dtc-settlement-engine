@@ -3,7 +3,6 @@ package top.dtc.settlement.module.exchangerates.model;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Data
 public class GetLatestRateResp {
@@ -16,6 +15,11 @@ public class GetLatestRateResp {
 
     public String data;
 
-    public List<BigDecimal> rates; // output currency
+    public Rate outputRate; // output currency
+
+    @Data
+    public static class Rate {
+        public BigDecimal rate;
+    }
 
 }

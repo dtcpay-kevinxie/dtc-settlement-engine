@@ -43,17 +43,16 @@ public class ExchangeRatesApiService {
         GetRequest request = Unirest.get(exchangeRatesProperties.apiUrlPrefix + "/v1/latest")
                 .queryString(ACCESS_KEY, exchangeRatesProperties.accessKey)
                 .queryString(routeMap);
+        log.debug("Request url: {}",request.getUrl());
         HttpResponse<String> response = request
                 .asString()
                 .ifFailure(resp -> {
                     String url = request.getUrl();
-                    log.error("ExchangeRate API request failed, path={}, status={}", request.getUrl(), resp.getStatus());
+                    log.error("ExchangeRate API request failed, path={}, status={}", url, resp.getStatus());
                     resp.getParsingError().ifPresent(e -> log.error("ExchangeRate API request failed\n{}", url, e));
                 });;
         String resp = response.getBody();
-        if (response.getStatus() != 200) {
-            log.error("ExchangeRate APIs request failed: {}\n{}", response.getStatus(), resp);
-        }
+        log.debug("Response body: {}", resp);
         GetLatestRateResp getLatestRateResp = JSON.parseObject(resp, GetLatestRateResp.class);
         if (getLatestRateResp.success) {
             ExchangeRate exchangeRate = new ExchangeRate();
@@ -61,11 +60,11 @@ public class ExchangeRatesApiService {
             exchangeRate.buyCurrency = getLatestRateResp.base;
             exchangeRate.sellCurrency = (String) routeMap.get("symbols");
             exchangeRate.rateSource = "ExchangeRates API";
+            exchangeRate.exchangeRate = getLatestRateResp.outputRate.rate;
             String dateStr = Instant.ofEpochSecond(getLatestRateResp.timestamp).atZone(ZoneId.of("GMT+8"))
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             exchangeRate.rateTime = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             exchangeRateService.save(exchangeRate);
-            log.debug("Save success");
         }
     }
 
