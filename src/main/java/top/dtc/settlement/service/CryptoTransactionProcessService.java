@@ -170,7 +170,6 @@ public class CryptoTransactionProcessService {
                         "details", sweepingDetails + "\n"
                 ))
                 .send();
-
     }
 
     /**
@@ -634,12 +633,10 @@ public class CryptoTransactionProcessService {
 
     private void registerToChainalysis(CryptoTransaction cryptoTransaction) {
         try {
-            String path = String.format("/chainalysis/register/%s/{addressId}/{currency}/{transactionHash}",
-                    cryptoTransaction.type == CryptoTransactionType.DEPOSIT ? "received-transaction" : "withdraw-transaction");
+            String path = String.format("/chainalysis/register-%s-transfer/{cryptoTransactionId}",
+                    cryptoTransaction.type == CryptoTransactionType.DEPOSIT ? "received" : "sent");
             ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrlPrefix + path)
-                    .routeParam("addressId", cryptoTransaction.recipientAddressId + "")
-                    .routeParam("currency", cryptoTransaction.currency)
-                    .routeParam("transactionHash", cryptoTransaction.txnHash)
+                    .routeParam("cryptoTransactionId", cryptoTransaction.id + "")
                     .asObject(new GenericType<ApiResponse<String>>() {
                     })
                     .getBody();
