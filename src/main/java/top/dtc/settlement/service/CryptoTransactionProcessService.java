@@ -244,7 +244,12 @@ public class CryptoTransactionProcessService {
                         }
                         break;
                     case DTC_GAS:
+                        break;
                     case DTC_OPS:
+                        if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_CLIENT_WALLET) {
+                            // Sweep rejected
+                            internalTransferRejected(result.id, InternalTransferReason.SWEEP, result.fee);
+                        }
                         break;
                     case DTC_FINANCE:
                         if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_OPS) {
