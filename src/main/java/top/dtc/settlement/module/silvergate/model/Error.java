@@ -3,11 +3,6 @@ package top.dtc.settlement.module.silvergate.model;
 import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
-/**
- * User: kevin.xie<br/>
- * Date: 04/03/2021<br/>
- * Time: 13:23<br/>
- */
 @Data
 public class Error {
     @JSONField(name = "MESSAGEID")

@@ -7,11 +7,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-/**
- * User: kevin.xie<br/>
- * Date: 01/03/2021<br/>
- * Time: 12:01<br/>
- */
 public class Test {
 
     private static final HttpClient httpClient = HttpClient.newBuilder()

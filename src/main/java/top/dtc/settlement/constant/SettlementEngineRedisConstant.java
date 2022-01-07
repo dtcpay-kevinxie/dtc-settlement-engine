@@ -1,10 +1,5 @@
 package top.dtc.settlement.constant;
 
-/**
- * User: kevin.xie<br/>
- * Date: 23/02/2021<br/>
- * Time: 18:23<br/>
- */
 public class SettlementEngineRedisConstant {
 
     public static final class DB {

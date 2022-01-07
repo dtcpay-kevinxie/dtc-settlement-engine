@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.58.0] - 
+
+* Update data-risk dep version
+* ExchangeRates API Integration
+
 [0.57.0] - 20 Dec 2021
 
 * Upgrade log4j, https://logging.apache.org/log4j/2.x/security.html
