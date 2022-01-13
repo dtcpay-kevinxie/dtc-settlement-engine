@@ -1,14 +1,19 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.60.0] - 13 Jan 2022
+
+* Disable sweep after deposit
+
 [0.59.0] - 13 Jan 2022
 
 * Update data-* and parent dep version
 * Fix chainalysis v2 url bug
 
-[0.58.0] - 7 Jan 2022
+[0.58.0] - 07 Jan 2022
 
-* Update data-risk dep version
-* ExchangeRates API Integration
+* Rollback data-core dep version
+* Fix sweep to OPS address reject case bug 
+* Migrate to Chainalysis v2 API 
 
 [0.57.0] - 20 Dec 2021
 
