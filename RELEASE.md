@@ -1,6 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.58.0] - 
+[0.59.0] - 13 Jan 2022
+
+* Update data-* and parent dep version
+* Fix chainalysis v2 url bug
+
+[0.58.0] - 7 Jan 2022
 
 * Update data-risk dep version
 * ExchangeRates API Integration
