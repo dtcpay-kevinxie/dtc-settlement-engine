@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.60.0] - 13 Jan 2022
+
+* Disable sweep after deposit
+
 [0.59.0] - 13 Jan 2022
 
 * Update data-* and parent dep version

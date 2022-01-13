@@ -502,7 +502,7 @@ public class CryptoTransactionProcessService {
         // Create Receivable and auto write-off
         depositReceivable(cryptoTransaction, recipientAddress);
         // Sweep process
-        handleSweep(recipientAddress, result.coin, cryptoTransaction.amount);
+//        handleSweep(recipientAddress, result.coin, cryptoTransaction.amount);
     }
 
     private void depositReceivable(CryptoTransaction cryptoTransaction, KycWalletAddress recipientAddress) {
