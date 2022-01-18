@@ -640,7 +640,7 @@ public class CryptoTransactionProcessService {
         try {
             String path = String.format("/chainalysis/v2/register-%s-transfer/{cryptoTransactionId}",
                     cryptoTransaction.type == CryptoTransactionType.DEPOSIT ? "received" : "sent");
-            ApiResponse<String> resp = Unirest.post(httpProperties.riskEngineUrlPrefix + path)
+            ApiResponse<String> resp = Unirest.get(httpProperties.riskEngineUrlPrefix + path)
                     .routeParam("cryptoTransactionId", cryptoTransaction.id + "")
                     .asObject(new GenericType<ApiResponse<String>>() {
                     })

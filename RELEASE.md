@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.61.0] - 18 Jan 2022
+
+* Hotfix chainalysis v2 API GET method
+
 [0.60.0] - 13 Jan 2022
 
 * Disable sweep after deposit
