@@ -3,6 +3,7 @@
 [0.61.0] - 18 Jan 2022
 
 * Hotfix chainalysis v2 API GET method
+* Add SSE Trigger for wallet account updated
 
 [0.60.0] - 13 Jan 2022
 
