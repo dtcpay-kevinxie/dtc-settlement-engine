@@ -1,17 +1,18 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.61.0] - 18 Jan 2022
+[0.61.0] - 26 Jan 2022
+
+* Upgrade parent & data-*
+
+[0.60.0] - 18 Jan 2022
 
 * Hotfix chainalysis v2 API GET method
-
-[0.60.0] - 13 Jan 2022
-
-* Disable sweep after deposit
 
 [0.59.0] - 13 Jan 2022
 
 * Update data-* and parent dep version
 * Fix chainalysis v2 url bug
+* Disable sweep after deposit
 
 [0.58.0] - 07 Jan 2022
 
