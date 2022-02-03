@@ -442,7 +442,7 @@ public class CryptoTransactionProcessService {
                 } else {
                     alertMsg = String.format("Transaction [%s] sent from undefined address(es) [%s] to DTC_GAS address [%s].", result.id, inputAddresses, recipientAddress.address);
                     log.error(alertMsg);
-                    sendAlert(notificationProperties.complianceRecipient, alertMsg);
+                    sendAlert(notificationProperties.opsRecipient, alertMsg);
                 }
                 return;
             case DTC_OPS:
@@ -453,7 +453,7 @@ public class CryptoTransactionProcessService {
                 } else {
                     alertMsg = String.format("Transaction [%s] sent from undefined address(es) [%s] to DTC_OPS address [%s].", result.id, inputAddresses, recipientAddress.address);
                     log.error(alertMsg);
-                    sendAlert(notificationProperties.complianceRecipient, alertMsg);
+                    sendAlert(notificationProperties.opsRecipient, alertMsg);
                 }
                 return;
             case DTC_FINANCE:
@@ -463,7 +463,7 @@ public class CryptoTransactionProcessService {
                 } else {
                     alertMsg = String.format("Transaction [%s] sent from undefined address(es) [%s] to DTC_FINANCE address [%s].", result.id, inputAddresses, recipientAddress.address);
                     log.error(alertMsg);
-                    sendAlert(notificationProperties.complianceRecipient, alertMsg);
+                    sendAlert(notificationProperties.opsRecipient, alertMsg);
                 }
                 return;
             default:
