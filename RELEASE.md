@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.62.0] - 03 Feb 2022
+
+* Change recipient of internal address alerts to Ops instead of Compliance
+
 [0.61.0] - 26 Jan 2022
 
 * Upgrade parent & data-*
