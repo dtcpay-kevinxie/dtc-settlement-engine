@@ -7,6 +7,7 @@ import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.MainNet;
@@ -40,6 +41,7 @@ import top.dtc.data.wallet.model.WalletUser;
 import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.data.wallet.service.WalletUserService;
 import top.dtc.settlement.constant.NotificationConstant;
+import top.dtc.settlement.constant.SseConstant;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.model.api.ApiResponse;
@@ -415,6 +417,8 @@ public class CryptoTransactionProcessService {
                                 WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
                                 cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
                                 walletAccountService.updateById(cryptoAccount);
+                                // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED)
+                                triggerSSE();
                                 registerToChainalysis(satoshiTest);
                                 // Create Receivable and auto write-off
                                 depositReceivable(satoshiTest, recipientAddress);
@@ -499,6 +503,8 @@ public class CryptoTransactionProcessService {
         // Credit deposit amount to crypto account
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(cryptoAccount);
+        // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED)
+        triggerSSE();
         // Create Receivable and auto write-off
         depositReceivable(cryptoTransaction, recipientAddress);
         // Sweep process
@@ -772,6 +778,16 @@ public class CryptoTransactionProcessService {
                 return defaultConfig.defaultAutoSweepTrcAddress;
             default:
                 return null;
+        }
+    }
+
+    private void triggerSSE() {
+        try {
+            SseEmitter emitter = new SseEmitter();
+            emitter.send(SseConstant.MSG.WALLET_ACCOUNT_UPDATED);
+            emitter.complete();
+        } catch (Exception e) {
+            throw new ValidationException(e.getMessage());
         }
     }
 
