@@ -2,7 +2,6 @@ package top.dtc.settlement.core.config;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -14,18 +13,9 @@ import top.dtc.settlement.constant.SettlementEngineRedisConstant;
 @Configuration
 public class CacheSettlementEngineConfig extends CommonCacheConfig {
 
-    @Value("${CORE_REDIS_HOST}")
-    private String host;
-
-    @Value("${CORE_REDIS_PORT}")
-    private Integer port;
-
-    @Value("${CORE_REDIS_PASSWORD:}")
-    private String password;
-
     @Bean(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.CONNECTION_FACTORY)
     RedisConnectionFactory settlementEngineConnectionFactory() {
-        return connectionFactory(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.INDEX);
+        return defaultConnectionFactory(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.INDEX);
     }
 
     @Bean(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.REDIS_TEMPLATE)

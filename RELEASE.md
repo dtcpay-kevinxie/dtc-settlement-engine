@@ -1,5 +1,14 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.63.0] -
+
+* Upgrade parent & data-*
+* Add SSE Trigger for wallet account updated
+
+[0.62.0] - 03 Feb 2022
+
+* Change recipient of internal address alerts to Ops instead of Compliance
+
 [0.61.0] - 26 Jan 2022
 
 * Hotfix chainalysis v2 API GET method
