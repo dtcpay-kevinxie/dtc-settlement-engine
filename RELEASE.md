@@ -4,6 +4,7 @@
 
 * Upgrade parent & data-*
 * Add SSE Trigger for wallet account updated
+* Add OtcCommission logic 
 
 [0.62.0] - 03 Feb 2022
 

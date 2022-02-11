@@ -8,13 +8,20 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.data.core.enums.OtcStatus;
+import top.dtc.data.core.model.ExchangeRate;
 import top.dtc.data.core.model.Otc;
+import top.dtc.data.core.service.ExchangeRateService;
 import top.dtc.data.core.service.OtcService;
+import top.dtc.data.finance.enums.CommissionStatus;
 import top.dtc.data.finance.enums.ReferralMode;
-import top.dtc.data.finance.service.*;
-import top.dtc.settlement.core.properties.NotificationProperties;
+import top.dtc.data.finance.model.OtcCommission;
+import top.dtc.data.finance.model.Referrer;
+import top.dtc.data.finance.service.OtcCommissionService;
+import top.dtc.data.finance.service.ReferralMappingService;
+import top.dtc.data.finance.service.ReferrerService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -29,22 +36,16 @@ public class CommissionService {
     private ReferralMappingService referralMappingService;
 
     @Autowired
-    private ReferrerService referrerService;
-
-    @Autowired
     private OtcService otcService;
 
     @Autowired
     private OtcCommissionService commissionService;
 
     @Autowired
-    private PayableService payableService;
+    private ReferrerService refererService;
 
     @Autowired
-    private PayableSubService payableSubService;
-
-    @Autowired
-    NotificationProperties notificationProperties;
+    ExchangeRateService exchangeRateService;
 
     public void process(LocalDate date) {
         Map<ReferralKey, List<Otc>> referralOtcMap = referralMappingService.list().stream()
@@ -75,7 +76,29 @@ public class CommissionService {
     }
 
     private void generateOtcCommission(ReferralKey key, List<Otc> otcList) {
-        // TODO: Create OtcCommission
+        otcList.forEach(
+                otc -> {
+                    if (key.referralMode == ReferralMode.FIXED_RATE) {
+                        Referrer referrer = refererService.getOneByClientId(otc.clientId);
+                        OtcCommission otcCommission = new OtcCommission();
+                        otcCommission.referrerId = key.referrerId;
+                        otcCommission.status = CommissionStatus.PENDING;
+                        otcCommission.otcId = otc.id;
+                        otcCommission.otcFiatAmount = otc.fiatAmount;
+                        otcCommission.otcCurrency = otc.fiatCurrency;
+                        otcCommission.commissionRate = key.commissionRate;
+                        otcCommission.commissionCurrency = referrer.settleCurrency;
+                        otcCommission.otcTime = otc.completedTime;
+                        if (!referrer.settleCurrency.equals(otc.fiatCurrency)) {
+                            ExchangeRate exchangeRate = exchangeRateService.getFirstBySellCurrencyAndBuyCurrencyOrderByIdDesc(otc.fiatCurrency, referrer.settleCurrency);
+                            otcCommission.commission = otc.fiatAmount.multiply(exchangeRate.exchangeRate).setScale(2, RoundingMode.DOWN);
+                        } else {
+                            otcCommission.commission = otc.fiatAmount.multiply(key.commissionRate).setScale(2, RoundingMode.DOWN);
+                        }
+                        commissionService.save(otcCommission);
+                    }
+                });
+
     }
 
 
