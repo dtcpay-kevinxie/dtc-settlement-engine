@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
+import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.MainNet;
 import top.dtc.common.enums.crypto.Coin;
 import top.dtc.common.exception.ValidationException;
@@ -17,10 +18,8 @@ import top.dtc.common.model.crypto.*;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.common.util.crypto.CryptoEngineUtils;
 import top.dtc.data.core.model.CryptoTransaction;
-import top.dtc.data.core.model.Currency;
 import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.service.CryptoTransactionService;
-import top.dtc.data.core.service.CurrencyService;
 import top.dtc.data.core.service.DefaultConfigService;
 import top.dtc.data.finance.enums.*;
 import top.dtc.data.finance.model.InternalTransfer;
@@ -96,9 +95,6 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     ReceivableSubService receivableSubService;
-
-    @Autowired
-    CurrencyService currencyService;
 
     @Autowired
     InternalTransferService internalTransferService;
@@ -484,7 +480,7 @@ public class CryptoTransactionProcessService {
             log.error("Wallet account is not activated.");
             return;
         }
-        Currency receivedCurrency = currencyService.getFirstByName(result.coin.name);
+        Currency receivedCurrency = Currency.getByName(result.coin.name);
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
