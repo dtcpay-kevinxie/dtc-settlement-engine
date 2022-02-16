@@ -1,12 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.63.0] -
+[0.63.0] - 
 
-* Upgrade parent & data-*
+* Upgrade parent & data-* version
 * Add SSE Trigger for wallet account updated
 * Add OtcCommission logic 
 * Remove Currency APIs instead of using Currency Enum
-* Update data-core version
 
 [0.62.0] - 03 Feb 2022
 
