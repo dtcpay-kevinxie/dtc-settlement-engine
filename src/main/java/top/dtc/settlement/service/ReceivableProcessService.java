@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.SettlementStatus;
 import top.dtc.data.core.model.AcqRoute;
 import top.dtc.data.core.model.Module;
@@ -189,7 +190,7 @@ public class ReceivableProcessService {
     @Data
     @AllArgsConstructor
     private static class ReceivableKey {
-        public String currency;
+        public Currency currency;
         public Long moduleId;
         public LocalDate txnDate;
 

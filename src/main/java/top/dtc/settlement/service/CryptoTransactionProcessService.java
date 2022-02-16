@@ -392,7 +392,7 @@ public class CryptoTransactionProcessService {
                             CryptoTransactionType.SATOSHI,
                             null,
                             recipientAddress.id,
-                            result.coin.name,
+                            Currency.getByName(result.coin.name),
                             result.mainNet,
                             null,
                             null
@@ -475,7 +475,7 @@ public class CryptoTransactionProcessService {
 
     private void handleDeposit(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
         log.info("Deposit detected and completed");
-        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(senderAddress.ownerId, result.coin.name);
+        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(senderAddress.ownerId, Currency.getByName(result.coin.name));
         if (cryptoAccount == null) {
             log.error("Wallet account is not activated.");
             return;
@@ -488,7 +488,7 @@ public class CryptoTransactionProcessService {
         cryptoTransaction.mainNet = result.mainNet;
         cryptoTransaction.amount = output.amount.setScale(receivedCurrency.exponent, RoundingMode.DOWN);
         cryptoTransaction.operator = "dtc-settlement-engine";
-        cryptoTransaction.currency = result.coin.name;
+        cryptoTransaction.currency = Currency.getByName(result.coin.name);
         cryptoTransaction.senderAddressId = senderAddress.id;
         cryptoTransaction.recipientAddressId = recipientAddress.id;
         cryptoTransaction.txnHash = result.id;
@@ -571,8 +571,8 @@ public class CryptoTransactionProcessService {
                 internalTransfer.reason = InternalTransferReason.SWEEP;
                 internalTransfer.status = InternalTransferStatus.INIT;
                 internalTransfer.amount = transferAmount;
-                internalTransfer.currency = coin.name;
-                internalTransfer.feeCurrency = dtcAssignedAddress.mainNet.feeCurrency;
+                internalTransfer.currency = Currency.getByName(coin.name);
+                internalTransfer.feeCurrency = Currency.getByName(dtcAssignedAddress.mainNet.feeCurrency);
                 internalTransfer.recipientAccountId = dtcOpsAddress.id;
                 internalTransfer.senderAccountId = dtcAssignedAddress.id;
                 internalTransfer.referenceNo = txnHash;
@@ -687,7 +687,7 @@ public class CryptoTransactionProcessService {
                     by(WITHDRAWAL_CRYPTO_COMPLETED)
                     .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount.subtract(cryptoTransaction.transactionFee).toPlainString(),
-                            "currency", cryptoTransaction.currency,
+                            "currency", cryptoTransaction.currency.name,
                             "recipient_address", kycWalletAddress.address,
                             "txn_hash", cryptoTransaction.txnHash,
                             "balance", walletAccount.balance + "",
@@ -705,7 +705,7 @@ public class CryptoTransactionProcessService {
             NotificationSender.by(DEPOSIT_CONFIRMED)
                     .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount.toString(),
-                            "currency", cryptoTransaction.currency,
+                            "currency", cryptoTransaction.currency.name,
                             "transaction_url", notificationProperties.walletUrlPrefix + "/crypto-transaction-info/" + cryptoTransaction.id))
                     .send();
         } catch (Exception e) {

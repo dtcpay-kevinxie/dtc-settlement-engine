@@ -7,6 +7,7 @@ import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.dtc.common.enums.Currency;
 import top.dtc.data.core.enums.ExchangeType;
 import top.dtc.data.core.model.ExchangeRate;
 import top.dtc.data.core.service.ExchangeRateService;
@@ -68,8 +69,8 @@ public class ExchangeRatesApiService {
         if (getLatestRateResp.success) {
             ExchangeRate exchangeRate = new ExchangeRate();
             exchangeRate.type = ExchangeType.RATE;
-            exchangeRate.buyCurrency = getLatestRateResp.base;
-            exchangeRate.sellCurrency = (String) routeMap.get("symbols");
+            exchangeRate.buyCurrency = Currency.getByName(getLatestRateResp.base);
+            exchangeRate.sellCurrency = Currency.getByName((String)routeMap.get("symbols"));
             exchangeRate.rateSource = "ExchangeRates API";
             exchangeRate.exchangeRate = getLatestRateResp.rates.getBigDecimal((String) routeMap.get("symbols"));
             String dateStr = Instant.ofEpochSecond(getLatestRateResp.timestamp).atZone(ZoneId.of("GMT+8"))
