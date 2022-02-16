@@ -8,7 +8,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.data.core.enums.OtcStatus;
-import top.dtc.data.core.model.ExchangeRate;
 import top.dtc.data.core.model.Otc;
 import top.dtc.data.core.service.ExchangeRateService;
 import top.dtc.data.core.service.OtcService;
@@ -78,29 +77,45 @@ public class CommissionService {
     private void generateOtcCommission(ReferralKey key, List<Otc> otcList) {
         otcList.forEach(
                 otc -> {
-                    if (key.referralMode == ReferralMode.FIXED_RATE) {
-                        Referrer referrer = refererService.getOneByClientId(otc.clientId);
-                        OtcCommission otcCommission = new OtcCommission();
-                        otcCommission.referrerId = key.referrerId;
-                        otcCommission.status = CommissionStatus.PENDING;
-                        otcCommission.otcId = otc.id;
-                        otcCommission.otcFiatAmount = otc.fiatAmount;
-                        otcCommission.otcCurrency = otc.fiatCurrency;
-                        otcCommission.commissionRate = key.commissionRate;
-                        otcCommission.commissionCurrency = referrer.settleCurrency;
-                        otcCommission.otcTime = otc.completedTime;
-                        if (!referrer.settleCurrency.equals(otc.fiatCurrency)) {
-                            ExchangeRate exchangeRate = exchangeRateService.getFirstBySellCurrencyAndBuyCurrencyOrderByIdDesc(otc.fiatCurrency, referrer.settleCurrency);
-                            otcCommission.commission = otc.fiatAmount.multiply(exchangeRate.exchangeRate).setScale(2, RoundingMode.DOWN);
-                        } else {
-                            otcCommission.commission = otc.fiatAmount.multiply(key.commissionRate).setScale(2, RoundingMode.DOWN);
-                        }
-                        commissionService.save(otcCommission);
+                    BigDecimal profitRate = otc.rate.subtract(otc.originalRate);
+                    BigDecimal grossProfit = otc.fiatAmount.multiply(profitRate);
+                    BigDecimal fiatExchangeRate = BigDecimal.ONE;
+                    if (grossProfit.compareTo(BigDecimal.ZERO) <= 0) {
+                        return;
                     }
+                    OtcCommission otcCommission = new OtcCommission();
+                    otcCommission.referrerId = key.referrerId;
+                    otcCommission.status = CommissionStatus.PENDING;
+                    otcCommission.otcId = otc.id;
+                    otcCommission.otcFiatAmount = otc.fiatAmount;
+                    otcCommission.otcCurrency = otc.fiatCurrency;
+                    otcCommission.commissionRate = key.commissionRate;
+                    Referrer referrer = refererService.getOneByClientId(otc.clientId);
+                    otcCommission.commissionCurrency = referrer.settleCurrency;
+                    otcCommission.otcTime = otc.completedTime;
+                    if (!otcCommission.commissionCurrency.equals(otcCommission.otcCurrency)) {
+                        fiatExchangeRate = exchangeRateService.getFirstBySellCurrencyAndBuyCurrencyOrderByIdDesc(otc.fiatCurrency, referrer.settleCurrency).exchangeRate;
+                    }
+                    if (key.referralMode == ReferralMode.PROFIT_BASE_FIXED) {
+                        // PROFIT_BASE_FIXED commission is calculated from gross profit
+                        otcCommission.commission = grossProfit.multiply(key.commissionRate).multiply(fiatExchangeRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
+                        log.debug("OTC Commission = {} ({} * {}) * {} * {} = {} {}",
+                                otcCommission.otcCurrency, otcCommission.otcFiatAmount, profitRate, otcCommission.commissionRate, fiatExchangeRate, otcCommission.commissionCurrency, otcCommission.commission);
+                    } else if (key.referralMode == ReferralMode.VOLUME_BASE_FIXED) {
+                        // VOLUME_BASE_FIXED commission is calculated from OTC amount
+                        if (otcCommission.commissionRate.compareTo(profitRate) > 0) {
+                            otcCommission.commission = otcCommission.otcFiatAmount.multiply(otcCommission.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
+                            log.debug("OTC Commission = {} {} * {} * {} = {} {}",
+                                    otcCommission.otcCurrency, otcCommission.otcFiatAmount, otcCommission.commissionRate, fiatExchangeRate, otcCommission.commissionCurrency, otcCommission.commission);
+                        } else {
+                            // profit rate is lower than commission rate
+                            return;
+                        }
+                    }
+                    commissionService.save(otcCommission);
                 });
 
     }
-
 
     @Data
     @AllArgsConstructor
