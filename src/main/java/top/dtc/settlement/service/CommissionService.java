@@ -93,7 +93,7 @@ public class CommissionService {
                     Referrer referrer = refererService.getOneByClientId(otc.clientId);
                     otcCommission.commissionCurrency = referrer.settleCurrency;
                     otcCommission.otcTime = otc.completedTime;
-                    if (!otcCommission.commissionCurrency.equals(otcCommission.otcCurrency)) {
+                    if (otcCommission.commissionCurrency != otcCommission.otcCurrency) {
                         fiatExchangeRate = exchangeRateService.getFirstBySellCurrencyAndBuyCurrencyOrderByIdDesc(otc.fiatCurrency, referrer.settleCurrency).exchangeRate;
                     }
                     if (key.referralMode == ReferralMode.PROFIT_BASE_FIXED) {
