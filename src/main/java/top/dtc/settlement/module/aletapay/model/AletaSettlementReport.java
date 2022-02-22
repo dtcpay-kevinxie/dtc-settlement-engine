@@ -1,6 +1,7 @@
 package top.dtc.settlement.module.aletapay.model;
 
 import lombok.Data;
+import top.dtc.common.enums.Currency;
 import top.dtc.settlement.handler.RecordField;
 
 import java.util.Date;
@@ -30,10 +31,10 @@ public class AletaSettlementReport {
         @RecordField(order = 7)
         public String txnAmount;
         @RecordField(order = 8)
-        public String txnCurrency;
+        public Currency txnCurrency;
         @RecordField(order = 9)
         public String settlementAmount;
         @RecordField(order = 10)
-        public String settlementCurrency;
+        public Currency settlementCurrency;
     }
 }

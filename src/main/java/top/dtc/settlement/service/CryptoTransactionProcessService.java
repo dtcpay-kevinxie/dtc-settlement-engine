@@ -7,19 +7,18 @@ import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
+import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.MainNet;
-import top.dtc.common.enums.crypto.Coin;
 import top.dtc.common.exception.ValidationException;
 import top.dtc.common.model.crypto.*;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.common.util.crypto.CryptoEngineUtils;
 import top.dtc.data.core.model.CryptoTransaction;
-import top.dtc.data.core.model.Currency;
 import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.service.CryptoTransactionService;
-import top.dtc.data.core.service.CurrencyService;
 import top.dtc.data.core.service.DefaultConfigService;
 import top.dtc.data.finance.enums.*;
 import top.dtc.data.finance.model.InternalTransfer;
@@ -40,6 +39,7 @@ import top.dtc.data.wallet.model.WalletUser;
 import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.data.wallet.service.WalletUserService;
 import top.dtc.settlement.constant.NotificationConstant;
+import top.dtc.settlement.constant.SseConstant;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.model.api.ApiResponse;
@@ -94,9 +94,6 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     ReceivableSubService receivableSubService;
-
-    @Autowired
-    CurrencyService currencyService;
 
     @Autowired
     InternalTransferService internalTransferService;
@@ -394,7 +391,7 @@ public class CryptoTransactionProcessService {
                             CryptoTransactionType.SATOSHI,
                             null,
                             recipientAddress.id,
-                            result.coin.name,
+                            result.currency,
                             result.mainNet,
                             null,
                             null
@@ -415,6 +412,8 @@ public class CryptoTransactionProcessService {
                                 WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
                                 cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
                                 walletAccountService.updateById(cryptoAccount);
+                                // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED)
+                                triggerSSE();
                                 registerToChainalysis(satoshiTest);
                                 // Create Receivable and auto write-off
                                 depositReceivable(satoshiTest, recipientAddress);
@@ -475,12 +474,12 @@ public class CryptoTransactionProcessService {
 
     private void handleDeposit(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
         log.info("Deposit detected and completed");
-        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(senderAddress.ownerId, result.coin.name);
+        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(senderAddress.ownerId, result.currency);
         if (cryptoAccount == null) {
             log.error("Wallet account is not activated.");
             return;
         }
-        Currency receivedCurrency = currencyService.getFirstByName(result.coin.name);
+        Currency receivedCurrency = result.currency;
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
@@ -488,7 +487,7 @@ public class CryptoTransactionProcessService {
         cryptoTransaction.mainNet = result.mainNet;
         cryptoTransaction.amount = output.amount.setScale(receivedCurrency.exponent, RoundingMode.DOWN);
         cryptoTransaction.operator = "dtc-settlement-engine";
-        cryptoTransaction.currency = result.coin.name;
+        cryptoTransaction.currency = result.currency;
         cryptoTransaction.senderAddressId = senderAddress.id;
         cryptoTransaction.recipientAddressId = recipientAddress.id;
         cryptoTransaction.txnHash = result.id;
@@ -499,6 +498,8 @@ public class CryptoTransactionProcessService {
         // Credit deposit amount to crypto account
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
         walletAccountService.updateById(cryptoAccount);
+        // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED)
+        triggerSSE();
         // Create Receivable and auto write-off
         depositReceivable(cryptoTransaction, recipientAddress);
         // Sweep process
@@ -528,13 +529,13 @@ public class CryptoTransactionProcessService {
         notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
     }
 
-    private String handleSweep(KycWalletAddress dtcAssignedAddress, Coin coin, BigDecimal amount) {
+    private String handleSweep(KycWalletAddress dtcAssignedAddress, Currency currency, BigDecimal amount) {
         // sweep if amount exceeds the specific currency threshold
         KycWalletAddress dtcOpsAddress;
         DefaultConfig defaultConfig = defaultConfigService.getById(1L);
         BigDecimal threshold;
         BigDecimal transferAmount;
-        switch (coin) {
+        switch (currency) {
             case USDT:
                 threshold = defaultConfig.thresholdSweepUsdt;
                 transferAmount = amount;
@@ -552,7 +553,7 @@ public class CryptoTransactionProcessService {
                 transferAmount = amount.subtract(defaultConfig.maxTronGas);
                 break;
             default:
-                log.error("Unsupported Currency, {}", coin);
+                log.error("Unsupported Currency, {}", currency);
                 return null;
         }
         Long defaultAutoSweepAddress = getDefaultAutoSweepAddress(defaultConfig, dtcAssignedAddress.mainNet);
@@ -562,14 +563,14 @@ public class CryptoTransactionProcessService {
             return null;
         }
         if (transferAmount.compareTo(threshold) > 0) {
-            String txnHash = transfer(coin, transferAmount, dtcAssignedAddress, dtcOpsAddress);
+            String txnHash = transfer(currency, transferAmount, dtcAssignedAddress, dtcOpsAddress);
             if (txnHash != null) {
                 InternalTransfer internalTransfer = new InternalTransfer();
                 internalTransfer.type = InternalTransferType.CRYPTO;
                 internalTransfer.reason = InternalTransferReason.SWEEP;
                 internalTransfer.status = InternalTransferStatus.INIT;
                 internalTransfer.amount = transferAmount;
-                internalTransfer.currency = coin.name;
+                internalTransfer.currency = currency;
                 internalTransfer.feeCurrency = dtcAssignedAddress.mainNet.feeCurrency;
                 internalTransfer.recipientAccountId = dtcOpsAddress.id;
                 internalTransfer.senderAccountId = dtcAssignedAddress.id;
@@ -586,7 +587,7 @@ public class CryptoTransactionProcessService {
     private int autoSweep(KycWalletAddress senderAddress, List<CryptoBalance> balanceList, StringBuilder usdtDetails) {
         int count = 0;
         for (CryptoBalance balance : balanceList) {
-            String txnHash = this.handleSweep(senderAddress, balance.coin, balance.amount);
+            String txnHash = this.handleSweep(senderAddress, balance.currency, balance.amount);
             if (txnHash != null) {
                 count++;
                 usdtDetails.append(String.format("Client[%s] Address[%s] %s Txn Hash [%s]\n",
@@ -596,15 +597,15 @@ public class CryptoTransactionProcessService {
         return count;
     }
 
-    private String transfer(Coin coin, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
+    private String transfer(Currency currency, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
         CryptoTransactionSend transactionSend = new CryptoTransactionSend();
         CryptoInOutSend input = new CryptoInOutSend();
         CryptoInOutSend output = new CryptoInOutSend();
         transactionSend.inputs.add(input);
         transactionSend.outputs.add(output);
 
-        transactionSend.coin = coin;
-        transactionSend.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, coin);
+        transactionSend.currency = currency;
+        transactionSend.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, currency);
         input.account = senderAddress.type.account;
         input.addressIndex = senderAddress.addressIndex;
         input.amount = amount;
@@ -685,7 +686,7 @@ public class CryptoTransactionProcessService {
                     by(WITHDRAWAL_CRYPTO_COMPLETED)
                     .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount.subtract(cryptoTransaction.transactionFee).toPlainString(),
-                            "currency", cryptoTransaction.currency,
+                            "currency", cryptoTransaction.currency.name,
                             "recipient_address", kycWalletAddress.address,
                             "txn_hash", cryptoTransaction.txnHash,
                             "balance", walletAccount.balance + "",
@@ -703,7 +704,7 @@ public class CryptoTransactionProcessService {
             NotificationSender.by(DEPOSIT_CONFIRMED)
                     .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount.toString(),
-                            "currency", cryptoTransaction.currency,
+                            "currency", cryptoTransaction.currency.name,
                             "transaction_url", notificationProperties.walletUrlPrefix + "/crypto-transaction-info/" + cryptoTransaction.id))
                     .send();
         } catch (Exception e) {
@@ -772,6 +773,16 @@ public class CryptoTransactionProcessService {
                 return defaultConfig.defaultAutoSweepTrcAddress;
             default:
                 return null;
+        }
+    }
+
+    private void triggerSSE() {
+        try {
+            SseEmitter emitter = new SseEmitter();
+            emitter.send(SseConstant.MSG.WALLET_ACCOUNT_UPDATED);
+            emitter.complete();
+        } catch (Exception e) {
+            throw new ValidationException(e.getMessage());
         }
     }
 
