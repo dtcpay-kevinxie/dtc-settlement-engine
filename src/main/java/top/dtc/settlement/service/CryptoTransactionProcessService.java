@@ -12,7 +12,6 @@ import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.MainNet;
-import top.dtc.common.enums.crypto.Coin;
 import top.dtc.common.exception.ValidationException;
 import top.dtc.common.model.crypto.*;
 import top.dtc.common.util.NotificationSender;
@@ -392,7 +391,7 @@ public class CryptoTransactionProcessService {
                             CryptoTransactionType.SATOSHI,
                             null,
                             recipientAddress.id,
-                            Currency.getByName(result.coin.name),
+                            result.currency,
                             result.mainNet,
                             null,
                             null
@@ -475,12 +474,12 @@ public class CryptoTransactionProcessService {
 
     private void handleDeposit(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
         log.info("Deposit detected and completed");
-        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(senderAddress.ownerId, Currency.getByName(result.coin.name));
+        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(senderAddress.ownerId, result.currency);
         if (cryptoAccount == null) {
             log.error("Wallet account is not activated.");
             return;
         }
-        Currency receivedCurrency = Currency.getByName(result.coin.name);
+        Currency receivedCurrency = result.currency;
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
@@ -488,7 +487,7 @@ public class CryptoTransactionProcessService {
         cryptoTransaction.mainNet = result.mainNet;
         cryptoTransaction.amount = output.amount.setScale(receivedCurrency.exponent, RoundingMode.DOWN);
         cryptoTransaction.operator = "dtc-settlement-engine";
-        cryptoTransaction.currency = Currency.getByName(result.coin.name);
+        cryptoTransaction.currency = result.currency;
         cryptoTransaction.senderAddressId = senderAddress.id;
         cryptoTransaction.recipientAddressId = recipientAddress.id;
         cryptoTransaction.txnHash = result.id;
@@ -530,13 +529,13 @@ public class CryptoTransactionProcessService {
         notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
     }
 
-    private String handleSweep(KycWalletAddress dtcAssignedAddress, Coin coin, BigDecimal amount) {
+    private String handleSweep(KycWalletAddress dtcAssignedAddress, Currency currency, BigDecimal amount) {
         // sweep if amount exceeds the specific currency threshold
         KycWalletAddress dtcOpsAddress;
         DefaultConfig defaultConfig = defaultConfigService.getById(1L);
         BigDecimal threshold;
         BigDecimal transferAmount;
-        switch (coin) {
+        switch (currency) {
             case USDT:
                 threshold = defaultConfig.thresholdSweepUsdt;
                 transferAmount = amount;
@@ -554,7 +553,7 @@ public class CryptoTransactionProcessService {
                 transferAmount = amount.subtract(defaultConfig.maxTronGas);
                 break;
             default:
-                log.error("Unsupported Currency, {}", coin);
+                log.error("Unsupported Currency, {}", currency);
                 return null;
         }
         Long defaultAutoSweepAddress = getDefaultAutoSweepAddress(defaultConfig, dtcAssignedAddress.mainNet);
@@ -564,15 +563,15 @@ public class CryptoTransactionProcessService {
             return null;
         }
         if (transferAmount.compareTo(threshold) > 0) {
-            String txnHash = transfer(coin, transferAmount, dtcAssignedAddress, dtcOpsAddress);
+            String txnHash = transfer(currency, transferAmount, dtcAssignedAddress, dtcOpsAddress);
             if (txnHash != null) {
                 InternalTransfer internalTransfer = new InternalTransfer();
                 internalTransfer.type = InternalTransferType.CRYPTO;
                 internalTransfer.reason = InternalTransferReason.SWEEP;
                 internalTransfer.status = InternalTransferStatus.INIT;
                 internalTransfer.amount = transferAmount;
-                internalTransfer.currency = Currency.getByName(coin.name);
-                internalTransfer.feeCurrency = Currency.getByName(dtcAssignedAddress.mainNet.feeCurrency);
+                internalTransfer.currency = currency;
+                internalTransfer.feeCurrency = dtcAssignedAddress.mainNet.feeCurrency;
                 internalTransfer.recipientAccountId = dtcOpsAddress.id;
                 internalTransfer.senderAccountId = dtcAssignedAddress.id;
                 internalTransfer.referenceNo = txnHash;
@@ -588,7 +587,7 @@ public class CryptoTransactionProcessService {
     private int autoSweep(KycWalletAddress senderAddress, List<CryptoBalance> balanceList, StringBuilder usdtDetails) {
         int count = 0;
         for (CryptoBalance balance : balanceList) {
-            String txnHash = this.handleSweep(senderAddress, balance.coin, balance.amount);
+            String txnHash = this.handleSweep(senderAddress, balance.currency, balance.amount);
             if (txnHash != null) {
                 count++;
                 usdtDetails.append(String.format("Client[%s] Address[%s] %s Txn Hash [%s]\n",
@@ -598,15 +597,15 @@ public class CryptoTransactionProcessService {
         return count;
     }
 
-    private String transfer(Coin coin, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
+    private String transfer(Currency currency, BigDecimal amount, KycWalletAddress senderAddress, KycWalletAddress recipientAddress) {
         CryptoTransactionSend transactionSend = new CryptoTransactionSend();
         CryptoInOutSend input = new CryptoInOutSend();
         CryptoInOutSend output = new CryptoInOutSend();
         transactionSend.inputs.add(input);
         transactionSend.outputs.add(output);
 
-        transactionSend.coin = coin;
-        transactionSend.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, coin);
+        transactionSend.currency = currency;
+        transactionSend.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, currency);
         input.account = senderAddress.type.account;
         input.addressIndex = senderAddress.addressIndex;
         input.amount = amount;
