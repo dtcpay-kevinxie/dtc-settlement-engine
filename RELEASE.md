@@ -2,7 +2,7 @@
 
 [0.64.0] - 22 Feb 2022
 
-* HOTFIX: Update data-finance
+* Upgrade data-finance
 
 [0.63.0] - 22 Feb 2022
 
