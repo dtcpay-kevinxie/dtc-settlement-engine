@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.64.0] - 22 Feb 2022
+
+* HOTFIX: Update data-finance 
+
 [0.63.0] - 22 Feb 2022
 
 * Upgrade parent & data-* version
