@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.63.0] - 
+[0.63.0] - 22 Feb 2022
 
 * Upgrade parent & data-* version
 * Add SSE Trigger for wallet account updated
