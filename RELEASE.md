@@ -3,11 +3,11 @@
 [0.65.0] -
 
 * Send notification with PDF file attachment
-* Update dtc-parent 
+* Update dtc-parent
 
 [0.64.0] - 22 Feb 2022
 
-* HOTFIX: Update data-finance 
+* Upgrade data-finance
 
 [0.63.0] - 22 Feb 2022
 
