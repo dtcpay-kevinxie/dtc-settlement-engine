@@ -33,25 +33,22 @@ import top.dtc.data.risk.enums.SecurityType;
 import top.dtc.data.risk.enums.WalletAddressType;
 import top.dtc.data.risk.model.KycWalletAddress;
 import top.dtc.data.risk.service.KycWalletAddressService;
-import top.dtc.data.wallet.enums.UserStatus;
 import top.dtc.data.wallet.model.WalletAccount;
-import top.dtc.data.wallet.model.WalletUser;
 import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.data.wallet.service.WalletUserService;
 import top.dtc.settlement.constant.NotificationConstant;
 import top.dtc.settlement.constant.SseConstant;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
+import top.dtc.settlement.handler.PdfGenerator;
 import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static top.dtc.settlement.constant.NotificationConstant.NAMES.*;
 
@@ -97,6 +94,12 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     InternalTransferService internalTransferService;
+
+    @Autowired
+    PdfGenerator pdfGenerator;
+
+    @Autowired
+    CommonValidationService commonValidationService;
 
     public void scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
@@ -507,7 +510,7 @@ public class CryptoTransactionProcessService {
     }
 
     private void depositReceivable(CryptoTransaction cryptoTransaction, KycWalletAddress recipientAddress) {
-        notifyDepositCompleted(cryptoTransaction);
+        notifyDepositCompleted(cryptoTransaction, recipientAddress);
         Receivable receivable = new Receivable();
         receivable.status = ReceivableStatus.RECEIVED;
         receivable.type = InvoiceType.DEPOSIT;
@@ -680,7 +683,10 @@ public class CryptoTransactionProcessService {
     }
 
     private void notifyCompleteWithdrawal(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress, WalletAccount walletAccount) {
-        List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
+        List<String> recipients = commonValidationService.getClientUserEmails(cryptoTransaction.clientId);
+        String clientName = commonValidationService.getClientName(cryptoTransaction.clientId);
+        String clientEmail = commonValidationService.getClientEmail(cryptoTransaction.clientId);
+        String owner = commonValidationService.getClientName(kycWalletAddress.ownerId);
         try {
             NotificationSender.
                     by(WITHDRAWAL_CRYPTO_COMPLETED)
@@ -692,20 +698,25 @@ public class CryptoTransactionProcessService {
                             "balance", walletAccount.balance + "",
                             "transaction_url", notificationProperties.walletUrlPrefix + "/crypto-transaction-info/" + cryptoTransaction.id
                     ))
+                    .attachment("Crypto-withdrawal-" + cryptoTransaction.id + ".pdf", pdfGenerator.toCryptoReceipt(cryptoTransaction, owner, kycWalletAddress, clientName, clientEmail))
                     .send();
         } catch (Exception e) {
             log.error("Notification Error", e);
         }
     }
 
-    private void notifyDepositCompleted(CryptoTransaction cryptoTransaction) {
-        List<String> recipients = getClientUserEmails(cryptoTransaction.clientId);
+    private void notifyDepositCompleted(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress) {
+        List<String> recipients = commonValidationService.getClientUserEmails(cryptoTransaction.clientId);
+        String clientName = commonValidationService.getClientName(cryptoTransaction.clientId);
+        String clientContact = commonValidationService.getClientEmail(cryptoTransaction.clientId);
+        String owner = commonValidationService.getClientName(kycWalletAddress.ownerId);
         try {
             NotificationSender.by(DEPOSIT_CONFIRMED)
                     .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount.toString(),
                             "currency", cryptoTransaction.currency.name,
                             "transaction_url", notificationProperties.walletUrlPrefix + "/crypto-transaction-info/" + cryptoTransaction.id))
+                    .attachment("Crypto-deposit-" + cryptoTransaction.id + ".pdf", pdfGenerator.toCryptoReceipt(cryptoTransaction, owner, kycWalletAddress, clientContact, clientName))
                     .send();
         } catch (Exception e) {
             log.error("Notification Error", e);
@@ -750,16 +761,6 @@ public class CryptoTransactionProcessService {
             internalTransfer.status = InternalTransferStatus.CANCELLED;
             internalTransfer.fee = fee;
             internalTransferService.updateById(internalTransfer);
-        }
-    }
-
-    private List<String> getClientUserEmails(Long clientId) {
-        List<WalletUser> walletUserList = walletUserService.getByClientIdAndStatus(clientId, UserStatus.ENABLED);
-        if (walletUserList == null || walletUserList.isEmpty()) {
-            log.info("Not Wallet user for client");
-            return new ArrayList<>();
-        } else {
-            return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.toList());
         }
     }
 
