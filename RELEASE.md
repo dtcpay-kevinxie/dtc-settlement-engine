@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.65.0] -
+[0.65.0] - 01 Mar 2022
 
 * Send notification with PDF file attachment
 * Update dtc-parent
