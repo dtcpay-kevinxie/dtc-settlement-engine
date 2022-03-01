@@ -13,13 +13,17 @@ public class PdfGenerator {
 
     public byte[] toCryptoReceipt(CryptoTransaction txn, String owner, KycWalletAddress walletAddress, String clientName, String clientContact) {
         PdfProcessor pdf = PdfProcessor.create();
-        this.pdfHeader(pdf, txn, txn.clientId, clientName, clientContact);
+        boolean isDeposit = false;
+        if (txn.type == CryptoTransactionType.DEPOSIT || txn.type == CryptoTransactionType.SATOSHI) {
+            isDeposit = true;
+        }
+        this.pdfHeader(pdf, txn, txn.clientId, clientName, clientContact, isDeposit);
         Table itemTable = pdf.table(new float[] {0.08f, 0.17f, 0.16f, 0.13f, 0.46f})
                 .marginTop(20)
                 .fontSize(6)
                 .appendBlueCell("Item", 8f)
-                .appendBlueCell(txn.type == CryptoTransactionType.DEPOSIT ? "Deposit Amount" : "Withdrawal Amount", 8f)
-                .appendBlueCell(txn.type == CryptoTransactionType.DEPOSIT ? "Deposit Fees" : "Withdrawal Fees", 8f)
+                .appendBlueCell(isDeposit ? "Deposit Amount" : "Withdrawal Amount", 8f)
+                .appendBlueCell(isDeposit ? "Deposit Fees" : "Withdrawal Fees", 8f)
                 .appendBlueCell("Net Amount", 8f)
                 .appendBlueCell("Transaction hash", 8f);
         itemTable
@@ -33,24 +37,24 @@ public class PdfGenerator {
         pdf.append(pdf.table(new float[] {0.32f, 0.68f})
                 .marginTop(20)
                 .fontSize(6)
-                .appendBlueCell(txn.type == CryptoTransactionType.DEPOSIT ? "Sender's Crypto Wallet Information": "Beneficiary's Crypto Wallet Information", 8f, 2)
-                .appendCell(txn.type == CryptoTransactionType.DEPOSIT ? "Sender’s Name": "Beneficiary's Name")
+                .appendBlueCell(isDeposit ? "Sender's Crypto Wallet Information": "Beneficiary's Crypto Wallet Information", 8f, 2)
+                .appendCell(isDeposit ? "Sender’s Name": "Beneficiary's Name")
                 .appendCell(owner)
-                .appendCell(txn.type == CryptoTransactionType.DEPOSIT ? "Sender’s Crypto Wallet Address": "Beneficiary’s Crypto Wallet Address")
+                .appendCell(isDeposit ? "Sender’s Crypto Wallet Address": "Beneficiary’s Crypto Wallet Address")
                 .appendCell(walletAddress.address)
-                .appendCell(txn.type == CryptoTransactionType.DEPOSIT ? "Sender’s Crypto Wallet Network": "Beneficiary's Crypto Wallet Network")
+                .appendCell(isDeposit ? "Sender’s Crypto Wallet Network": "Beneficiary's Crypto Wallet Network")
                 .appendCell(walletAddress.mainNet.desc)
         );
         return pdf.toByteArray();
     }
 
-    private void pdfHeader(PdfProcessor pdf, CryptoTransaction txn, Long clientId, String clientName, String clientContact) {
+    private void pdfHeader(PdfProcessor pdf, CryptoTransaction txn, Long clientId, String clientName, String clientContact, Boolean isDeposit) {
         pdf.append(pdf.table(new float[] {0.15f, 0.87f})
                 .fontSize(9)
                 .appendBlueCell("Order ID")
                 .appendCell(txn.id)
                 .appendBlueCell("Order Type")
-                .appendCell(txn.type == CryptoTransactionType.DEPOSIT ? "Crypto Deposit" : "Crypto Withdrawal")
+                .appendCell(isDeposit ? "Crypto Deposit" : "Crypto Withdrawal")
         ).append(pdf.table(new float[] {0.18f, 0.37f, 0.18f, 0.37f})
                 .marginTop(7)
                 .fontSize(8)
