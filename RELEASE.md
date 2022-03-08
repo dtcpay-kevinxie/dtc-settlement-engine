@@ -2,7 +2,9 @@
 
 [0.66.0] - 
 
-* Suspend ExchangeRate API Calls 
+* Suspend ExchangeRate API Calls
+* Update parent & data-*
+* Use enum Module
 
 [0.65.0] - 01 Mar 2022
 

@@ -7,12 +7,11 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.Currency;
+import top.dtc.common.enums.Module;
 import top.dtc.common.enums.SettlementStatus;
 import top.dtc.data.core.model.AcqRoute;
-import top.dtc.data.core.model.Module;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.AcqRouteService;
-import top.dtc.data.core.service.ModuleService;
 import top.dtc.data.core.service.PaymentTransactionService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.ReceivableStatus;
@@ -45,9 +44,6 @@ public class ReceivableProcessService {
     private AcqRouteService acqRouteService;
 
     @Autowired
-    private ModuleService moduleService;
-
-    @Autowired
     private PayoutReconcileService payoutReconcileService;
 
     @Autowired
@@ -62,25 +58,24 @@ public class ReceivableProcessService {
             return;
         }
         for (ReceivableKey key : txnReceivableMap.keySet()) {
-            Module module = moduleService.getById(key.moduleId);
-            switch (module.name) {
-                case SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME:
+            switch (key.module) {
+                case ALETA:
                     processAletaReceivable(key, txnReceivableMap.get(key));
                     break;
-                case SettlementConstant.MODULE.GLOBAL_PAYMENT.NAME:
+                case CS_GP_CNP:
                     processGlobalPaymentReceivable(key, txnReceivableMap.get(key));
                     break;
                 default:
-                    log.error("Undefined Settlement Host {}", module.name);
+                    log.error("Undefined Settlement Host {}", key.module);
                     break;
             }
         }
     }
 
-    private Map<ReceivableKey, List<PaymentTransaction>> processReceivable(Long moduleId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
-        log.debug("Receivable Process for {}, {} - {}", moduleId, startDateTime, endDateTime);
+    private Map<ReceivableKey, List<PaymentTransaction>> processReceivable(Module module, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        log.debug("Receivable Process for {}, {} - {}", module, startDateTime, endDateTime);
         List<PaymentTransaction> transactionList = transactionService.getReceivableTransactions(
-                moduleId, // null means ALL modules
+                module, // null means ALL modules
                 startDateTime,
                 endDateTime
         );
@@ -90,7 +85,7 @@ public class ReceivableProcessService {
         }
         return transactionList.stream()
                 .collect(Collectors.toMap(
-                        o -> new ReceivableKey(o.settlementCurrency, o.moduleId, o.dtcTimestamp.toLocalDate()),
+                        o -> new ReceivableKey(o.settlementCurrency, o.module, o.dtcTimestamp.toLocalDate()),
                         x -> {
                             List<PaymentTransaction> list = new ArrayList<>();
                             list.add(x);
@@ -106,7 +101,7 @@ public class ReceivableProcessService {
 
     private void processAletaReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList) {
         LocalDate receivableDate = settlementCalendarService.getClosestSettleDate(
-                receivableKey.moduleId,
+                receivableKey.module,
                 receivableKey.currency,
                 receivableKey.txnDate.plusDays(receivableKey.currency == Currency.SGD ? 1 : 2) // SGD: T+1; USD: T+2
         );
@@ -191,7 +186,7 @@ public class ReceivableProcessService {
     @AllArgsConstructor
     private static class ReceivableKey {
         public Currency currency;
-        public Long moduleId;
+        public Module module;
         public LocalDate txnDate;
 
         @Override
@@ -199,14 +194,14 @@ public class ReceivableProcessService {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             ReceivableKey key = (ReceivableKey) o;
-            return Objects.equal(currency, key.currency) &&
-                    Objects.equal(moduleId, key.moduleId) &&
+            return currency == key.currency &&
+                    module == key.module &&
                     Objects.equal(txnDate, key.txnDate);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(currency, moduleId, txnDate);
+            return Objects.hashCode(currency, module, txnDate);
         }
     }
 
