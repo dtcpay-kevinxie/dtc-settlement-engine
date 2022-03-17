@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.66.0] - 
+[0.66.0] - 17 Mar 2022
 
 * Suspend ExchangeRate API Calls
 * Update parent & data-*
