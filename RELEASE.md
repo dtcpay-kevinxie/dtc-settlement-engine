@@ -1,5 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.66.0] - 17 Mar 2022
+
+* Suspend ExchangeRate API Calls
+* Update parent & data-*
+* Use enum Module
+
 [0.65.0] - 01 Mar 2022
 
 * Send notification with PDF file attachment
