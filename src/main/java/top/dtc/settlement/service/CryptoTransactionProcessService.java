@@ -147,8 +147,7 @@ public class CryptoTransactionProcessService {
                     .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
                     .routeParam("address", senderAddress.address)
                     .routeParam("force", Boolean.TRUE + "")
-                    .asObject(new GenericType<ApiResponse<CryptoBalance>>() {
-                    })
+                    .asObject(new GenericType<ApiResponse<CryptoBalance>>() {})
                     .getBody();
             if (response == null ||
                     !response.header.success
@@ -354,10 +353,14 @@ public class CryptoTransactionProcessService {
 
         CryptoInOutResult output = CryptoEngineUtils.findInOutByAddress(result.outputs, recipientAddress.address);
 
-        // 3. Check recipient address type: DTC_CLIENT_WALLET, DTC_GAS, DTC_OPS
+        // 3. Check recipient address type: CLIENT_OWN, DTC_CLIENT_WALLET, DTC_GAS, DTC_OPS
         switch (recipientAddress.type) {
-            case CLIENT_OWN:
-                log.error("CLIENT_OWN address shouldn't be in watchlist. Please check.");
+            case CLIENT_OWN: // Payment Transaction
+                String resp = Unirest.post(httpProperties.paymentEngineUrlPrefix + "/callback/crypto")
+                        .body(result)
+                        .asString()
+                        .getBody();
+                log.info("Crypto callback result: {}", resp);
                 return;
             case DTC_CLIENT_WALLET:
                 // DTC_CLIENT_WALLET sub_id is clientId
@@ -646,8 +649,7 @@ public class CryptoTransactionProcessService {
                     cryptoTransaction.type == CryptoTransactionType.DEPOSIT ? "received" : "sent");
             ApiResponse<String> resp = Unirest.get(httpProperties.riskEngineUrlPrefix + path)
                     .routeParam("cryptoTransactionId", cryptoTransaction.id + "")
-                    .asObject(new GenericType<ApiResponse<String>>() {
-                    })
+                    .asObject(new GenericType<ApiResponse<String>>() {})
                     .getBody();
             if (resp != null && resp.header.success) {
                 log.debug(String.format("Transaction(id=%s) %s Screen result: %s", cryptoTransaction.id, cryptoTransaction.txnHash, resp.result));

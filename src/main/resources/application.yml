@@ -12,6 +12,7 @@ aleta:
 http:
   risk-engine-url-prefix: ${RISK_ENGINE_URL_PREFIX}
   crypto-engine-url-prefix: ${CRYPTO_ENGINE_URL_PREFIX}
+  payment-engine-url-prefix: ${PAYMENT_ENGINE_URL_PREFIX}
 
 notification:
   ops-recipient: ${NOTIFICATION_OPS_RECIPIENT}
@@ -20,11 +21,6 @@ notification:
   it-recipient: ${NOTIFICATION_IT_RECIPIENT}
   portal-url-prefix: ${PORTAL_URL_PREFIX}
   wallet-url-prefix: ${WALLET_URL_PREFIX}
-
-etherscan:
-  api-url-prefix: ${ETHERSCAN_API_URL_PREFIX}
-  api-key: ${ETHERSCAN_API_KEY}
-  max-end-block: ${ETHERSCAN_MAX_END_BLOCK}
 
 silvergate:
   dev-mode: ${SILVERGATE_DEV_MODE}

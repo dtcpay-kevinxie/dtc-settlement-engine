@@ -17,4 +17,7 @@ public class HttpProperties {
     // Crypto Engine http url
     public String cryptoEngineUrlPrefix;
 
+    // Payment Engine http URL
+    public String paymentEngineUrlPrefix;
+
 }

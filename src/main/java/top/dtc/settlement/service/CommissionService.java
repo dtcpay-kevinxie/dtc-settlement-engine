@@ -94,7 +94,7 @@ public class CommissionService {
                     otcCommission.commissionCurrency = referrer.settleCurrency;
                     otcCommission.otcTime = otc.completedTime;
                     if (otcCommission.commissionCurrency != otcCommission.otcCurrency) {
-                        fiatExchangeRate = exchangeRateService.getFirstBySellCurrencyAndBuyCurrencyOrderByIdDesc(otc.fiatCurrency, referrer.settleCurrency).exchangeRate;
+                        fiatExchangeRate = exchangeRateService.getMiddleRate(otc.fiatCurrency, referrer.settleCurrency);
                     }
                     if (key.referralMode == ReferralMode.PROFIT_BASE_FIXED) {
                         // PROFIT_BASE_FIXED commission is calculated from gross profit
