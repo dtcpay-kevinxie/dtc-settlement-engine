@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.67.0] - 04 Apr 2022
+
+* Update parent & data-*
+* Crypto Payment callback
+
 [0.66.0] - 17 Mar 2022
 
 * Suspend ExchangeRate API Calls
