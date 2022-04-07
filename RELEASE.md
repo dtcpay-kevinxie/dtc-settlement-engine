@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.68.0] - 
+
+* Add BalanceHistory process
+
 [0.67.0] - 04 Apr 2022
 
 * Update parent & data-*
