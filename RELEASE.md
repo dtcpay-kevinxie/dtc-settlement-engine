@@ -4,6 +4,7 @@
 
 * Update parent & data-*
 * Crypto Payment callback
+* MatchMove Payment callback
 
 [0.66.0] - 17 Mar 2022
 
