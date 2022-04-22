@@ -311,7 +311,7 @@ public class CryptoTransactionProcessService {
                         existingTxn.gasFee = result.fee;
                         cryptoTransactionService.updateById(existingTxn);
                         registerToChainalysis(existingTxn);
-                        Payable originalPayable = payableService.getPayableByTransactionId(existingTxn.id);
+                        Payable originalPayable = payableService.getCryptoWithdrawalByTransactionId(existingTxn.id);
                         if (originalPayable == null) {
                             alertMsg = String.format("No Payable found to link Crypto Withdrawal Transaction(%s)", existingTxn.id);
                             log.error(alertMsg);
@@ -353,9 +353,11 @@ public class CryptoTransactionProcessService {
 
         CryptoInOutResult output = CryptoEngineUtils.findInOutByAddress(result.outputs, recipientAddress.address);
 
-        // 3. Check recipient address type: CLIENT_OWN, DTC_CLIENT_WALLET, DTC_GAS, DTC_OPS
+        // 3. Check recipient address type: CLIENT_OWN, DTC_CLIENT_WALLET, DTC_GAS, DTC_OPS, SELF_CUSTODIAL
         switch (recipientAddress.type) {
-            case CLIENT_OWN: // Payment Transaction
+            case CLIENT_OWN:
+                log.error("CLIENT_OWN address shouldn't be in watchlist. Please check.");
+            case SELF_CUSTODIAL: // Payment Transaction
                 String resp = Unirest.post(httpProperties.paymentEngineUrlPrefix + "/callback/crypto")
                         .body(result)
                         .asString()
@@ -516,7 +518,7 @@ public class CryptoTransactionProcessService {
         notifyDepositCompleted(cryptoTransaction, recipientAddress);
         Receivable receivable = new Receivable();
         receivable.status = ReceivableStatus.RECEIVED;
-        receivable.type = InvoiceType.DEPOSIT;
+        receivable.type = InvoiceType.CRYPTO_DEPOSIT;
         receivable.receivedAmount = receivable.amount = cryptoTransaction.amount;
         receivable.currency = cryptoTransaction.currency;
         receivable.bankName = cryptoTransaction.mainNet.desc;
@@ -530,7 +532,7 @@ public class CryptoTransactionProcessService {
         ReceivableSub receivableSub = new ReceivableSub();
         receivableSub.receivableId = receivable.id;
         receivableSub.subId = cryptoTransaction.id;
-        receivableSub.type = InvoiceType.DEPOSIT;
+        receivableSub.type = InvoiceType.CRYPTO_DEPOSIT;
         receivableSubService.save(receivableSub);
         notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
     }

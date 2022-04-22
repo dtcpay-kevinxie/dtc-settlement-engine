@@ -3,6 +3,8 @@
 [0.68.0] - 
 
 * Add BalanceHistory process
+* Update dtc-parent, data-core and data-risk version
+* Add SELF_CUSTODIAL logic when receive notification from crypto-engine
 
 [0.67.0] - 04 Apr 2022
 
