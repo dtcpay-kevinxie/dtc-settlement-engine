@@ -377,7 +377,7 @@ public class CryptoTransactionProcessService {
                     return;
                 }
                 // 4a. Check whether sender address is CLIENT_OWN
-                if (senderAddress != null && senderAddress.type == WalletAddressType.CLIENT_OWN) {
+                if (senderAddress != null && (senderAddress.type == WalletAddressType.CLIENT_OWN)) {
                     // 4aa. Validate sender address owner
                     if (!senderAddress.ownerId.equals(clientId)) {
                         alertMsg = String.format("Whitelist address owner %s is different from Recipient address owner %s", senderAddress.ownerId, clientId);
@@ -388,7 +388,17 @@ public class CryptoTransactionProcessService {
                         this.handleDeposit(result, recipientAddress, senderAddress, output);
                     }
                     return;
-                } else if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
+                } else if (senderAddress != null && senderAddress.type == WalletAddressType.SELF_CUSTODIAL) {
+                    if (!senderAddress.ownerId.equals(clientId)) {
+                        alertMsg = String.format("Whitelist address owner %s is different from Recipient address owner %s", senderAddress.ownerId, clientId);
+                        log.error(alertMsg);
+                        sendAlert(notificationProperties.complianceRecipient, alertMsg);
+                    } else {
+                        // Deposit, sender address is enabled already
+                        this.handleSelfCustodialSettle(result, recipientAddress, senderAddress, output);
+                    }
+                    return;
+                }  else if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
                     log.info("Gas filled to DTC_CLIENT_WALLET address [{}]", recipientAddress.address);
                     internalTransferCompleted(result.id, InternalTransferReason.GAS, result.fee);
                 } else if (senderAddress == null) {
@@ -454,15 +464,27 @@ public class CryptoTransactionProcessService {
                 return;
             case DTC_OPS:
                 // 4c. Check whether sender address is DTC_CLIENT_WALLET or DTC_GAS
-                if (senderAddress != null && (senderAddress.type == WalletAddressType.DTC_CLIENT_WALLET || senderAddress.type == WalletAddressType.DTC_GAS)) {
-                    log.info("Sweep from [{}] to [{}] completed", senderAddress.address, recipientAddress.address);
-                    internalTransferCompleted(result.id, InternalTransferReason.SWEEP, result.fee);
+                if (senderAddress != null) {
+                    switch (senderAddress.type) {
+                        case DTC_CLIENT_WALLET:
+                        case DTC_GAS:
+                        case DTC_FINANCE:
+                            log.info("Sweep from [{}] to [{}] completed", senderAddress.address, recipientAddress.address);
+                            internalTransferCompleted(result.id, InternalTransferReason.SWEEP, result.fee);
+                            return;
+                        case SELF_CUSTODIAL:
+                        case CLIENT_OWN:
+                            alertMsg = String.format("Transaction [%s] sent from Client Own address(es) [%s] to DTC_OPS address [%s].", result.id, inputAddresses, recipientAddress.address);
+                            log.error(alertMsg);
+                            sendAlert(notificationProperties.opsRecipient, alertMsg);
+                            return;
+                    }
                 } else {
                     alertMsg = String.format("Transaction [%s] sent from undefined address(es) [%s] to DTC_OPS address [%s].", result.id, inputAddresses, recipientAddress.address);
                     log.error(alertMsg);
                     sendAlert(notificationProperties.opsRecipient, alertMsg);
+                    return;
                 }
-                return;
             case DTC_FINANCE:
                 if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_OPS) {
                     log.info("Sweep from [{}] to [{}] completed", senderAddress.address, recipientAddress.address);
@@ -478,6 +500,12 @@ public class CryptoTransactionProcessService {
                 log.error(alertMsg);
                 sendAlert(notificationProperties.itRecipient, alertMsg);
         }
+    }
+
+    private void handleSelfCustodialSettle(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
+        log.info("Settlement detected");
+        //TODO: route to handle deposit first
+        handleDeposit(result, recipientAddress, senderAddress, output);
     }
 
     private void handleDeposit(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
