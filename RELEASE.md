@@ -1,9 +1,16 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.68.0] - 26 Apr 2022
+
+* Add BalanceHistory process
+* Update dtc-parent, data-core and data-risk version
+* Add SELF_CUSTODIAL logic when receive notification from crypto-engine
+
 [0.67.0] - 04 Apr 2022
 
 * Update parent & data-*
 * Crypto Payment callback
+* MatchMove Payment callback
 
 [0.66.0] - 17 Mar 2022
 
