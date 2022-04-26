@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.68.0] - 
+[0.68.0] - 26 Apr 2022
 
 * Add BalanceHistory process
 * Update dtc-parent, data-core and data-risk version
