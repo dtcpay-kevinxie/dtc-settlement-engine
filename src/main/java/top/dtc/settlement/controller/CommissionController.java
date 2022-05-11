@@ -33,4 +33,16 @@ public class CommissionController {
         }
     }
 
+    @GetMapping(value = "/otc/scheduled")
+    public ApiResponse<?> processOtcCommission() {
+        try {
+            log.debug("[GET] /otc/scheduled");
+            commissionService.process(LocalDate.now());
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+        } catch (Exception e) {
+            log.error("Cannot process otc commission", e);
+            return new ApiResponse<>(ApiHeaderConstant.RECEIVABLE.OTHER_ERROR(e.getMessage()));
+        }
+    }
+
 }
