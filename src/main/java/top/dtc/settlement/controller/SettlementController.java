@@ -18,7 +18,7 @@ public class SettlementController {
     @Autowired
     private PaymentSettlementService paymentSettlementService;
 
-    @PostMapping(value = "/scheduled")
+    @GetMapping(value = "/scheduled")
     public ApiResponse<?> scheduled() {
         try {
             log.debug("/scheduled");

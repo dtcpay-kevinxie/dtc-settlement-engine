@@ -237,7 +237,8 @@ public class PaymentSettlementService {
         calculateFinalAmount(settlement);
         Reserve reserve = calculateReserve(settlement);
         settlementService.updateById(settlement);
-        calculatePayable(settlement, reserve);
+        //TODO: Move Payable creation after settlement approved
+//        calculatePayable(settlement, reserve);
     }
 
     private boolean calculateTransaction(List<PaymentTransaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {

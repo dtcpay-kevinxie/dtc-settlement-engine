@@ -5,7 +5,8 @@
 * Add BalanceHistory process
 * Update dtc-parent, data-core and data-risk version
 * Add SELF_CUSTODIAL logic when receive notification from crypto-engine
-* Add OTC Commission scheduled
+* Add OTC Commission scheduled, remove profit check logic when generate OTC commission
+* Change settlement scheduler API to GET
 
 [0.67.0] - 04 Apr 2022
 
