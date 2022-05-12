@@ -1,5 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.69.0] - 
+
+* Add OTC commission scheduled API
+* Remove profit check when generate OTC commission;
+* Update dtc-parent, data-core, data-finance versions
+
 [0.68.0] - 26 Apr 2022
 
 * Add BalanceHistory process

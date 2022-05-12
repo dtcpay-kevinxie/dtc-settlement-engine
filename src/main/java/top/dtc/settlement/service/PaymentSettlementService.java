@@ -372,7 +372,7 @@ public class PaymentSettlementService {
         settlementPayable.type = InvoiceType.PAYMENT;
         settlementPayable.currency = settlement.currency;
         settlementPayable.beneficiary = settlement.merchantName;
-        settlementPayable.remitInfoId = settlement.remitInfoId;
+        settlementPayable.recipientAccountId = settlement.recipientAccountId;
         settlementPayable.payableDate = settlement.settleDate;
         if (reserve != null) {
             Payable reservePayable = payableService.getPayableByReserveId(reserve.id);
@@ -385,7 +385,7 @@ public class PaymentSettlementService {
             reservePayable.type = InvoiceType.RESERVE;
             reservePayable.currency = reserve.currency;
             reservePayable.amount = reserve.totalAmount;
-            reservePayable.remitInfoId = settlement.remitInfoId;
+            reservePayable.recipientAccountId = settlement.recipientAccountId;
             reservePayable.beneficiary = settlement.merchantName;
             reservePayable.payableDate = reserve.dateToRelease;
             payableService.saveOrUpdate(reservePayable);

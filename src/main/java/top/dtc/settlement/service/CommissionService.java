@@ -14,7 +14,6 @@ import top.dtc.data.core.service.OtcService;
 import top.dtc.data.finance.enums.CommissionStatus;
 import top.dtc.data.finance.enums.ReferralMode;
 import top.dtc.data.finance.model.OtcCommission;
-import top.dtc.data.finance.model.Referrer;
 import top.dtc.data.finance.service.OtcCommissionService;
 import top.dtc.data.finance.service.ReferralMappingService;
 import top.dtc.data.finance.service.ReferrerService;
@@ -79,9 +78,8 @@ public class CommissionService {
         log.debug("generateOtcCommission: {}", key);
         otcList.forEach(
                 otc -> {
-                    BigDecimal profitRate = otc.rate.subtract(otc.originalRate);
+                    BigDecimal profitRate = otc.costRate.multiply(otc.fiatConvertRate).subtract(otc.rate);
                     BigDecimal grossProfit = otc.fiatAmount.multiply(profitRate);
-                    BigDecimal fiatExchangeRate = BigDecimal.ONE;
 //                    if (grossProfit.compareTo(BigDecimal.ZERO) <= 0) {
 //                        log.debug("grossProfit {} is lower than 0", grossProfit);
 //                        return;
@@ -93,22 +91,18 @@ public class CommissionService {
                     otcCommission.otcFiatAmount = otc.fiatAmount;
                     otcCommission.otcCurrency = otc.fiatCurrency;
                     otcCommission.commissionRate = key.commissionRate;
-                    Referrer referrer = refererService.getById(key.referrerId);
-                    otcCommission.commissionCurrency = referrer.settleCurrency;
+                    otcCommission.commissionCurrency = otc.fiatCurrency;
                     otcCommission.otcTime = otc.completedTime;
-                    if (otcCommission.commissionCurrency != otcCommission.otcCurrency) {
-                        fiatExchangeRate = exchangeRateService.getMiddleRate(otc.fiatCurrency, referrer.settleCurrency);
-                    }
                     if (key.referralMode == ReferralMode.PROFIT_BASE_FIXED) {
                         // PROFIT_BASE_FIXED commission is calculated from gross profit
-                        otcCommission.commission = grossProfit.multiply(key.commissionRate).multiply(fiatExchangeRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
-                        log.debug("OTC Commission = {} ({} * {}) * {} * {} = {} {}",
-                                otcCommission.otcCurrency, otcCommission.otcFiatAmount, profitRate, otcCommission.commissionRate, fiatExchangeRate, otcCommission.commissionCurrency, otcCommission.commission);
+                        otcCommission.commission = grossProfit.multiply(key.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
+                        log.debug("OTC Commission = {} ({} * {}) * {} = {} {}",
+                                otcCommission.otcCurrency, otcCommission.otcFiatAmount, profitRate, otcCommission.commissionRate, otcCommission.commissionCurrency, otcCommission.commission);
                     } else if (key.referralMode == ReferralMode.VOLUME_BASE_FIXED) {
                         // VOLUME_BASE_FIXED commission is calculated from OTC amount
                         otcCommission.commission = otcCommission.otcFiatAmount.multiply(otcCommission.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
-                        log.debug("OTC Commission = {} {} * {} * {} = {} {}",
-                                otcCommission.otcCurrency, otcCommission.otcFiatAmount, otcCommission.commissionRate, fiatExchangeRate, otcCommission.commissionCurrency, otcCommission.commission);
+                        log.debug("OTC Commission = {} {} * {} = {} {}",
+                                otcCommission.otcCurrency, otcCommission.otcFiatAmount, otcCommission.commissionRate, otcCommission.commissionCurrency, otcCommission.commission);
 //                        if (otcCommission.commissionRate.compareTo(profitRate) > 0) {
 //                            otcCommission.commission = otcCommission.otcFiatAmount.multiply(otcCommission.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
 //                            log.debug("OTC Commission = {} {} * {} * {} = {} {}",
