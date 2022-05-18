@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.69.0] - 
+[0.69.0] - 18 May 2022
 
 * Add OTC commission scheduled API
 * Remove profit check when generate OTC commission;
