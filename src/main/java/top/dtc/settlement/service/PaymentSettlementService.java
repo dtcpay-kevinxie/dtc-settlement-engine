@@ -10,10 +10,7 @@ import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.NonIndividualService;
 import top.dtc.data.core.service.PaymentTransactionService;
-import top.dtc.data.finance.enums.InvoiceType;
-import top.dtc.data.finance.enums.PayableStatus;
-import top.dtc.data.finance.enums.ReconcileStatus;
-import top.dtc.data.finance.enums.ReserveStatus;
+import top.dtc.data.finance.enums.*;
 import top.dtc.data.finance.model.*;
 import top.dtc.data.finance.service.*;
 import top.dtc.settlement.constant.ErrorMessage;
@@ -294,7 +291,10 @@ public class PaymentSettlementService {
 
     private Reserve calculateReserve(Settlement settlement) {
         ReserveConfig reserveConfig = reserveConfigService.getOneByClientIdAndCurrency(settlement.merchantId, settlement.currency);
-        if (reserveConfig == null) {
+        if (reserveConfig == null
+                || reserveConfig.type == ReserveType.FIXED && reserveConfig.amount.compareTo(BigDecimal.ZERO) <= 0
+                || reserveConfig.type == ReserveType.ROLLING && reserveConfig.percentage.compareTo(BigDecimal.ZERO) <= 0
+        ) {
             return null;
         }
         Reserve reserve;
