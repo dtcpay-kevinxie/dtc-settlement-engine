@@ -5,6 +5,7 @@
 * Add OTC commission scheduled API
 * Remove profit check when generate OTC commission;
 * Update dtc-parent, data-core, data-finance versions
+* Add PayoutReconcile generating from scheduled settlement process
 
 [0.68.0] - 26 Apr 2022
 

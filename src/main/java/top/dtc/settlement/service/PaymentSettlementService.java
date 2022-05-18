@@ -12,6 +12,7 @@ import top.dtc.data.core.service.NonIndividualService;
 import top.dtc.data.core.service.PaymentTransactionService;
 import top.dtc.data.finance.enums.InvoiceType;
 import top.dtc.data.finance.enums.PayableStatus;
+import top.dtc.data.finance.enums.ReconcileStatus;
 import top.dtc.data.finance.enums.ReserveStatus;
 import top.dtc.data.finance.model.*;
 import top.dtc.data.finance.service.*;
@@ -245,6 +246,14 @@ public class PaymentSettlementService {
         boolean isSettlementUpdated = false;
         for (PaymentTransaction transaction : transactionList) {
             PayoutReconcile payoutReconcile = payoutReconcileService.getById(transaction.id);
+            if (payoutReconcile == null) {
+                // Reconcile data not yet generated
+                payoutReconcile = new PayoutReconcile();
+                payoutReconcile.transactionId = transaction.id;
+                payoutReconcile.status = ReconcileStatus.PENDING;
+                payoutReconcile.requestAmount = transaction.totalAmount;
+                payoutReconcile.requestCurrency = transaction.requestCurrency;
+            }
             if (payoutReconcile.settlementId != null || payoutReconcile.payoutAmount != null || payoutReconcile.payoutCurrency != null) {
                 // Transaction has been packed into settlement.
                 continue;
@@ -278,7 +287,7 @@ public class PaymentSettlementService {
                     log.error("Invalid Transaction Type found {}", transaction);
                     continue;
             }
-            payoutReconcileService.updateById(payoutReconcile);
+            payoutReconcileService.saveOrUpdate(payoutReconcile);
         }
         return isSettlementUpdated;
     }
