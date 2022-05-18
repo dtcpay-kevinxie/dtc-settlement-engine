@@ -1,10 +1,19 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.69.0] - 18 May 2022
+
+* Add OTC commission scheduled API
+* Remove profit check when generate OTC commission;
+* Update dtc-parent, data-core, data-finance versions
+* Add PayoutReconcile generating from scheduled settlement process
+
 [0.68.0] - 26 Apr 2022
 
 * Add BalanceHistory process
 * Update dtc-parent, data-core and data-risk version
 * Add SELF_CUSTODIAL logic when receive notification from crypto-engine
+* Add OTC Commission scheduled, remove profit check logic when generate OTC commission
+* Change settlement scheduler API to GET
 
 [0.67.0] - 04 Apr 2022
 

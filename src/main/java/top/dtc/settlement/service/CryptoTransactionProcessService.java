@@ -1,6 +1,7 @@
 package top.dtc.settlement.service;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.collect.Sets;
 import kong.unirest.GenericType;
 import kong.unirest.RequestBodyEntity;
 import kong.unirest.Unirest;
@@ -16,10 +17,14 @@ import top.dtc.common.exception.ValidationException;
 import top.dtc.common.model.crypto.*;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.common.util.crypto.CryptoEngineUtils;
+import top.dtc.data.core.enums.OtcStatus;
+import top.dtc.data.core.enums.OtcType;
 import top.dtc.data.core.model.CryptoTransaction;
 import top.dtc.data.core.model.DefaultConfig;
+import top.dtc.data.core.model.Otc;
 import top.dtc.data.core.service.CryptoTransactionService;
 import top.dtc.data.core.service.DefaultConfigService;
+import top.dtc.data.core.service.OtcService;
 import top.dtc.data.finance.enums.*;
 import top.dtc.data.finance.model.InternalTransfer;
 import top.dtc.data.finance.model.Payable;
@@ -58,6 +63,9 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     CryptoTransactionService cryptoTransactionService;
+
+    @Autowired
+    OtcService otcService;
 
     @Autowired
     KycWalletAddressService kycWalletAddressService;
@@ -434,7 +442,7 @@ public class CryptoTransactionProcessService {
                                 triggerSSE();
                                 registerToChainalysis(satoshiTest);
                                 // Create Receivable and auto write-off
-                                depositReceivable(satoshiTest, recipientAddress);
+                                createReceivable(satoshiTest, recipientAddress);
                                 return;
                             }
                         }
@@ -504,24 +512,59 @@ public class CryptoTransactionProcessService {
 
     private void handleSelfCustodialSettle(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
         log.info("Settlement detected");
-        //TODO: route to handle deposit first
-        handleDeposit(result, recipientAddress, senderAddress, output);
+        // Get PENDING CryptoTransaction data
+//        List<CryptoTransaction> pendingTxnList = cryptoTransactionService.getByParams(
+//                senderAddress.ownerId,
+//                CryptoTransactionState.PENDING,
+//                CryptoTransactionType.SETTLEMENT,
+//                senderAddress.id,
+//                recipientAddress.id,
+//                result.currency,
+//                result.mainNet,
+//                null,
+//                null
+//                );
+//
+//        // Get PENDING settlement OTC
+//        Otc settlementOtc = getPendingSettlementOtc(senderAddress.ownerId, result.currency, output.amount);
+//        if (settlementOtc == null) {
+//            return;
+//        } else {
+//            // Complete settlement OTC
+//            settlementOtc.status = OtcStatus.COMPLETED;
+//            settlementOtc.receivedTime = LocalDateTime.now();
+//            settlementOtc.completedTime = LocalDateTime.now();
+//            otcService.updateById(settlementOtc);
+//        }
+//        // Screen Blockchain transaction
+//        registerToChainalysis(cryptoTransaction);
+//        // Create Receivable and auto write-off
+//        createReceivable(cryptoTransaction, recipientAddress);
+//        // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED) to Wallet Frontend
+//        triggerSSE();
     }
 
     private void handleDeposit(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
+        // Create CryptoTransaction
+        CryptoTransaction cryptoTransaction = createDepositCryptoTransaction(result, recipientAddress, senderAddress, output);
+        // Screen Blockchain transaction
+        registerToChainalysis(cryptoTransaction);
+        // Create Receivable and auto write-off
+        createReceivable(cryptoTransaction, recipientAddress);
+        // Credit deposit amount to crypto account
+        creditCryptoAmount(senderAddress.ownerId, cryptoTransaction.amount, cryptoTransaction.currency);
+        // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED) to Wallet Frontend
+        triggerSSE();
+    }
+
+    private CryptoTransaction createDepositCryptoTransaction(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
         log.info("Deposit detected and completed");
-        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(senderAddress.ownerId, result.currency);
-        if (cryptoAccount == null) {
-            log.error("Wallet account is not activated.");
-            return;
-        }
-        Currency receivedCurrency = result.currency;
         CryptoTransaction cryptoTransaction = new CryptoTransaction();
         cryptoTransaction.type = CryptoTransactionType.DEPOSIT;
         cryptoTransaction.state = CryptoTransactionState.COMPLETED;
         cryptoTransaction.clientId = senderAddress.ownerId;
         cryptoTransaction.mainNet = result.mainNet;
-        cryptoTransaction.amount = output.amount.setScale(receivedCurrency.exponent, RoundingMode.DOWN);
+        cryptoTransaction.amount = output.amount.setScale(result.currency.exponent, RoundingMode.DOWN);
         cryptoTransaction.operator = "dtc-settlement-engine";
         cryptoTransaction.currency = result.currency;
         cryptoTransaction.senderAddressId = senderAddress.id;
@@ -530,19 +573,10 @@ public class CryptoTransactionProcessService {
         cryptoTransaction.gasFee = result.fee;
         cryptoTransaction.requestTimestamp = LocalDateTime.now();
         cryptoTransactionService.save(cryptoTransaction);
-        registerToChainalysis(cryptoTransaction);
-        // Credit deposit amount to crypto account
-        cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
-        walletAccountService.updateById(cryptoAccount);
-        // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED)
-        triggerSSE();
-        // Create Receivable and auto write-off
-        depositReceivable(cryptoTransaction, recipientAddress);
-        // Sweep process
-//        handleSweep(recipientAddress, result.coin, cryptoTransaction.amount);
+        return cryptoTransaction;
     }
 
-    private void depositReceivable(CryptoTransaction cryptoTransaction, KycWalletAddress recipientAddress) {
+    private void createReceivable(CryptoTransaction cryptoTransaction, KycWalletAddress recipientAddress) {
         notifyDepositCompleted(cryptoTransaction, recipientAddress);
         Receivable receivable = new Receivable();
         receivable.status = ReceivableStatus.RECEIVED;
@@ -563,6 +597,34 @@ public class CryptoTransactionProcessService {
         receivableSub.type = InvoiceType.CRYPTO_DEPOSIT;
         receivableSubService.save(receivableSub);
         notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
+    }
+
+    private void creditCryptoAmount(Long clientId, BigDecimal creditAmount, Currency creditCurrency) {
+        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(clientId, creditCurrency);
+        if (cryptoAccount == null) {
+            log.error("Wallet account is not activated.");
+            return;
+        }
+        cryptoAccount.balance = cryptoAccount.balance.add(creditAmount);
+        walletAccountService.updateById(cryptoAccount);
+    }
+
+    private Otc getPendingSettlementOtc(Long clientId, Currency currency, BigDecimal amount) {
+        List<Otc> pendingOtcList = otcService.getByParams(
+                OtcType.SELLING,
+                OtcStatus.PENDING,
+                Sets.newHashSet(clientId),
+                currency,
+                null,
+                null
+                );
+        for (Otc pendingOtc : pendingOtcList) {
+            if (pendingOtc.cryptoAmount.equals(amount) && pendingOtc.referenceNo != null) {
+                log.debug("Settlement OTC currency and amount matched.");
+                return pendingOtc;
+            }
+        }
+        return null;
     }
 
     private String handleSweep(KycWalletAddress dtcAssignedAddress, Currency currency, BigDecimal amount) {

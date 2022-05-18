@@ -127,10 +127,10 @@ public class SilvergateProcessService {
      */
     public Payable initialPaymentPost(Long payableId) {
         Payable payable = payableService.getById(payableId);
-        if (payable.status != PayableStatus.UNPAID || payable.remitInfoId == null) {
+        if (payable.status != PayableStatus.UNPAID || payable.recipientAccountId == null) {
             throw new ValidationException(INVALID_PAYABLE);
         }
-        RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
+        RemitInfo remitInfo = remitInfoService.getById(payable.recipientAccountId);
         PaymentPostReq paymentPostReq = new PaymentPostReq();
         paymentPostReq.originator_account_number = getTransferAccountNumber(remitInfo);
         paymentPostReq.amount = payable.amount;
@@ -204,7 +204,7 @@ public class SilvergateProcessService {
             throw new ValidationException(INVALID_PAYABLE);
         }
         PaymentGetReq paymentGetReq = new PaymentGetReq();
-        RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
+        RemitInfo remitInfo = remitInfoService.getById(payable.recipientAccountId);
         String accountNumber = getTransferAccountNumber(remitInfo);
         paymentGetReq.accountNumber = accountNumber;
         paymentGetReq.paymentId = payable.referenceNo;
@@ -245,11 +245,11 @@ public class SilvergateProcessService {
      */
     public PaymentGetResp getPaymentDetails(Long payableId) {
         Payable payable = payableService.getById(payableId);
-        if (payable == null || payable.remitInfoId == null || payable.status == PayableStatus.UNPAID || payable.status == PayableStatus.CANCELLED) {
+        if (payable == null || payable.recipientAccountId == null || payable.status == PayableStatus.UNPAID || payable.status == PayableStatus.CANCELLED) {
             throw new ValidationException(INVALID_PAYABLE);
         }
         PaymentGetReq paymentGetReq = new PaymentGetReq();
-        RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
+        RemitInfo remitInfo = remitInfoService.getById(payable.recipientAccountId);
         paymentGetReq.accountNumber = getTransferAccountNumber(remitInfo);
         paymentGetReq.paymentId = payable.referenceNo;
         return silvergateApiService.getPaymentDetails(paymentGetReq);
@@ -262,10 +262,10 @@ public class SilvergateProcessService {
      */
     public AccountTransferSenResp getAccountTransferSen(Long payableId) {
         Payable payable = payableService.getById(payableId);
-        if (payable.status != PayableStatus.UNPAID || payable.remitInfoId == null) {
+        if (payable.status != PayableStatus.UNPAID || payable.recipientAccountId == null) {
             throw new ValidationException(INVALID_PAYABLE);
         }
-        RemitInfo remitInfo = remitInfoService.getById(payable.remitInfoId);
+        RemitInfo remitInfo = remitInfoService.getById(payable.recipientAccountId);
         AccountTransferSenReq accountTransferSenReq = new AccountTransferSenReq();
         accountTransferSenReq.accountNumberFrom = getTransferAccountNumber(remitInfo);
         accountTransferSenReq.accountNumberTo = remitInfo.beneficiaryAccount;

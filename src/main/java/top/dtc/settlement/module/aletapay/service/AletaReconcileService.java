@@ -92,7 +92,7 @@ public class AletaReconcileService {
             payoutReconcile.receivableId = receivable.id;
             payoutReconcile.receivedAmount = receivedAmount;
             payoutReconcile.receivedCurrency = record.settlementCurrency;
-            payoutReconcileService.saveOrUpdate(payoutReconcile);
+            payoutReconcileService.updateById(payoutReconcile);
             totalAmount = totalAmount.add(receivedAmount);
         }
         if (receivable.receivedAmount.setScale(2, RoundingMode.HALF_UP).compareTo(totalAmount.setScale(2, RoundingMode.HALF_UP)) == 0) {

@@ -10,9 +10,7 @@ import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.NonIndividualService;
 import top.dtc.data.core.service.PaymentTransactionService;
-import top.dtc.data.finance.enums.InvoiceType;
-import top.dtc.data.finance.enums.PayableStatus;
-import top.dtc.data.finance.enums.ReserveStatus;
+import top.dtc.data.finance.enums.*;
 import top.dtc.data.finance.model.*;
 import top.dtc.data.finance.service.*;
 import top.dtc.settlement.constant.ErrorMessage;
@@ -237,13 +235,22 @@ public class PaymentSettlementService {
         calculateFinalAmount(settlement);
         Reserve reserve = calculateReserve(settlement);
         settlementService.updateById(settlement);
-        calculatePayable(settlement, reserve);
+        //TODO: Move Payable creation after settlement approved
+//        calculatePayable(settlement, reserve);
     }
 
     private boolean calculateTransaction(List<PaymentTransaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
         boolean isSettlementUpdated = false;
         for (PaymentTransaction transaction : transactionList) {
             PayoutReconcile payoutReconcile = payoutReconcileService.getById(transaction.id);
+            if (payoutReconcile == null) {
+                // Reconcile data not yet generated
+                payoutReconcile = new PayoutReconcile();
+                payoutReconcile.transactionId = transaction.id;
+                payoutReconcile.status = ReconcileStatus.PENDING;
+                payoutReconcile.requestAmount = transaction.totalAmount;
+                payoutReconcile.requestCurrency = transaction.requestCurrency;
+            }
             if (payoutReconcile.settlementId != null || payoutReconcile.payoutAmount != null || payoutReconcile.payoutCurrency != null) {
                 // Transaction has been packed into settlement.
                 continue;
@@ -277,14 +284,17 @@ public class PaymentSettlementService {
                     log.error("Invalid Transaction Type found {}", transaction);
                     continue;
             }
-            payoutReconcileService.updateById(payoutReconcile);
+            payoutReconcileService.saveOrUpdate(payoutReconcile);
         }
         return isSettlementUpdated;
     }
 
     private Reserve calculateReserve(Settlement settlement) {
         ReserveConfig reserveConfig = reserveConfigService.getOneByClientIdAndCurrency(settlement.merchantId, settlement.currency);
-        if (reserveConfig == null) {
+        if (reserveConfig == null
+                || reserveConfig.type == ReserveType.FIXED && reserveConfig.amount.compareTo(BigDecimal.ZERO) <= 0
+                || reserveConfig.type == ReserveType.ROLLING && reserveConfig.percentage.compareTo(BigDecimal.ZERO) <= 0
+        ) {
             return null;
         }
         Reserve reserve;
@@ -371,7 +381,7 @@ public class PaymentSettlementService {
         settlementPayable.type = InvoiceType.PAYMENT;
         settlementPayable.currency = settlement.currency;
         settlementPayable.beneficiary = settlement.merchantName;
-        settlementPayable.remitInfoId = settlement.remitInfoId;
+        settlementPayable.recipientAccountId = settlement.recipientAccountId;
         settlementPayable.payableDate = settlement.settleDate;
         if (reserve != null) {
             Payable reservePayable = payableService.getPayableByReserveId(reserve.id);
@@ -384,7 +394,7 @@ public class PaymentSettlementService {
             reservePayable.type = InvoiceType.RESERVE;
             reservePayable.currency = reserve.currency;
             reservePayable.amount = reserve.totalAmount;
-            reservePayable.remitInfoId = settlement.remitInfoId;
+            reservePayable.recipientAccountId = settlement.recipientAccountId;
             reservePayable.beneficiary = settlement.merchantName;
             reservePayable.payableDate = reserve.dateToRelease;
             payableService.saveOrUpdate(reservePayable);

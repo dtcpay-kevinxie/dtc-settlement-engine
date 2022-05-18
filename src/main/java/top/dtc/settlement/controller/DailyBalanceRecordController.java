@@ -8,21 +8,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
-import top.dtc.settlement.service.BalanceProcessService;
+import top.dtc.settlement.service.DailyBalanceRecordProcessService;
 
 @Log4j2
 @RestController
 @RequestMapping("/balance")
-public class BalanceHistoryController {
+public class DailyBalanceRecordController {
 
     @Autowired
-    BalanceProcessService balanceProcessService;
+    DailyBalanceRecordProcessService dailyBalanceRecordProcessService;
 
     @GetMapping(value = "/day-end/{date}")
     public ApiResponse<?> processDayEndBalance(@PathVariable("date") String date) {
         try {
             log.debug("[GET] /day-end/{}", date);
-            balanceProcessService.processDayEndBalance();
+            dailyBalanceRecordProcessService.processDayEndBalance();
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process Balance History", e);
