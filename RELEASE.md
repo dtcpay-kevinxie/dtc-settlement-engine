@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.70.0] - 
+
+* Add scheduled crypto exchange rate from FTX
+
 [0.69.0] - 18 May 2022
 
 * Add OTC commission scheduled API
