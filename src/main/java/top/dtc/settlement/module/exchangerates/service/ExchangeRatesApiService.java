@@ -35,8 +35,6 @@ public class ExchangeRatesApiService {
     ExchangeRateService exchangeRateService;
 
     public void getCryptoRate() {
-        // USDT -> USD
-        getCryptoOtcRateFromFTX(USDT);
         // ETH -> USD
         getCryptoOtcRateFromFTX(ETH);
         // BTC -> USD
