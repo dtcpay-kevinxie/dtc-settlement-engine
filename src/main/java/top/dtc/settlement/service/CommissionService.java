@@ -109,7 +109,6 @@ public class CommissionService {
                     }
                     commissionService.saveOrUpdate(otcCommission);
                 });
-
     }
 
     @Data
