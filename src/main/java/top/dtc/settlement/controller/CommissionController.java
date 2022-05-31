@@ -21,11 +21,14 @@ public class CommissionController {
     @Autowired
     private CommissionService commissionService;
 
-    @GetMapping(value = "/otc/{otcDate}")
-    public ApiResponse<?> processOtcCommission(@PathVariable("otcDate") String otcDate) {
+    @GetMapping(value = "/otc/{dateStart}/{dateEnd}")
+    public ApiResponse<?> processOtcCommission(
+            @PathVariable("dateStart") String dateStart,
+            @PathVariable("dateEnd") String dateEnd
+    ) {
         try {
-            log.debug("[GET] /otc/{}", otcDate);
-            commissionService.process(LocalDate.parse(otcDate, DateTime.FORMAT.YYMMDD));
+            log.debug("[GET] /otc/{}/{}", dateStart, dateEnd);
+            commissionService.process(LocalDate.parse(dateStart, DateTime.FORMAT.YYMMDD), LocalDate.parse(dateEnd, DateTime.FORMAT.YYMMDD));
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process otc commission", e);
@@ -37,7 +40,7 @@ public class CommissionController {
     public ApiResponse<?> processOtcCommission() {
         try {
             log.debug("[GET] /otc/scheduled");
-            commissionService.process(LocalDate.now());
+            commissionService.process(LocalDate.now(), LocalDate.now()); // Process for today OTC
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process otc commission", e);

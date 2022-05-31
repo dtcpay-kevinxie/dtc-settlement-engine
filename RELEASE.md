@@ -3,6 +3,9 @@
 [0.70.0] - 
 
 * Add scheduled crypto exchange rate from FTX
+* Update data-finance version
+* Standardize OTC Commission logic
+* Add daily balance record logic
 
 [0.69.0] - 18 May 2022
 

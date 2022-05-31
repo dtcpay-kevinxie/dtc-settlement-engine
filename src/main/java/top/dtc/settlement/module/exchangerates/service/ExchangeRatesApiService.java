@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.Institution;
 import top.dtc.common.exception.DtcRuntimeException;
-import top.dtc.common.exception.ValidationException;
 import top.dtc.common.integration.ftx_otc.domain.Quote;
 import top.dtc.common.integration.ftx_otc.domain.QuoteRequestReq;
 import top.dtc.common.model.api.ApiRequest;
@@ -35,12 +34,24 @@ public class ExchangeRatesApiService {
     ExchangeRateService exchangeRateService;
 
     public void getCryptoRate() {
-        // ETH -> USD
-        getCryptoOtcRateFromFTX(ETH);
-        // BTC -> USD
-        getCryptoOtcRateFromFTX(BTC);
-        // TRX -> USD
-        getCryptoOtcRateFromFTX(TRX);
+        try {
+            // ETH -> USD
+            getCryptoOtcRateFromFTX(ETH);
+        } catch (Exception e) {
+            log.error("Failed to get daily ETH -> USD rate. \n {}", e.getMessage());
+        }
+        try {
+            // BTC -> USD
+            getCryptoOtcRateFromFTX(BTC);
+        } catch (Exception e) {
+            log.error("Failed to get daily BTC -> USD rate. \n {}", e.getMessage());
+        }
+        try {
+            // TRX -> USD
+            getCryptoOtcRateFromFTX(TRX);
+        } catch (Exception e) {
+            log.error("Failed to get daily TRX -> USD rate. \n {}", e.getMessage());
+        }
     }
 
     private void getCryptoOtcRateFromFTX(Currency cryptoCurrency) {
@@ -66,7 +77,7 @@ public class ExchangeRatesApiService {
         log.debug("Request result: {}", requestQuoteResp.result);
         Quote quote = JSONObject.parseObject(JSONObject.toJSONString(requestQuoteResp.result), Quote.class);
         if (quote.price == null || quote.expiry == null) {
-            throw new ValidationException("Can not get price at the moment, please try again");
+            throw new DtcRuntimeException("Can not get price at the moment, please try again");
         }
         ExchangeRate exchangeRate = new ExchangeRate();
         exchangeRate.type = ExchangeType.RATE;
