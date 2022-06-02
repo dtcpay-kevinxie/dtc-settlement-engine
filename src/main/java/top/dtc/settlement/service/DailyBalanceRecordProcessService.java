@@ -38,10 +38,17 @@ public class DailyBalanceRecordProcessService {
         BigDecimal rateBTCToSGD = exchangeRateService.getRate(Currency.BTC, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
         BigDecimal rateETHToSGD = exchangeRateService.getRate(Currency.ETH, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
         BigDecimal rateTRXToSGD = exchangeRateService.getRate(Currency.TRX, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
+        LocalDate yesterday = LocalDate.now();
         List<WalletAccount> walletAccountList = walletAccountService.getByParams(null, null, null, null, null);
         walletAccountList.forEach(walletAccount -> {
-            DailyBalanceRecord dailyBalanceRecord = new DailyBalanceRecord();
-            dailyBalanceRecord.balanceDate = LocalDate.now().minusDays(1);
+            DailyBalanceRecord dailyBalanceRecord = dailyBalanceRecordService.getOneByClientIdAndCurrencyAndBalanceDate(
+                    walletAccount.clientId, walletAccount.currency, yesterday);
+            if (dailyBalanceRecord == null) {
+                dailyBalanceRecord = new DailyBalanceRecord();
+            } else {
+                return;
+            }
+            dailyBalanceRecord.balanceDate = yesterday;
             dailyBalanceRecord.amount = walletAccount.balance;
             dailyBalanceRecord.currency = walletAccount.currency;
             dailyBalanceRecord.clientId = walletAccount.clientId;
