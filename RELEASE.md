@@ -6,6 +6,7 @@
 * Update data-finance version
 * Standardize OTC Commission logic
 * Add daily balance record logic
+* Complete Self-Custodial Wallet payment settlement process
 
 [0.69.0] - 18 May 2022
 

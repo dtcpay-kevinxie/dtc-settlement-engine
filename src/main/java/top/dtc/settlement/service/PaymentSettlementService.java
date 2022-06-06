@@ -168,64 +168,7 @@ public class PaymentSettlementService {
                 return;
             }
         } else {
-            settlement = new Settlement();
-            settlement.status = SettlementStatus.PENDING;
-            settlement.scheduleType = settlementConfig.scheduleType;
-            settlement.currency = settlementConfig.currency;
-            settlement.merchantId = settlementConfig.merchantId;
-            settlement.cycleStartDate = cycleStart;
-            settlement.cycleEndDate = cycleEnd;
-            NonIndividual nonIndividual = nonIndividualService.getById(settlementConfig.merchantId);
-            settlement.merchantName = nonIndividual.fullName;
-            settlement.adjustmentAmount = BigDecimal.ZERO;
-            settlement.saleCount = 0;
-            settlement.refundCount = 0;
-            settlement.chargebackCount = 0;
-            settlement.saleAmount = BigDecimal.ZERO;
-            settlement.refundAmount = BigDecimal.ZERO;
-            settlement.chargebackAmount = BigDecimal.ZERO;
-            settlement.mdrFee = BigDecimal.ZERO;
-            settlement.saleProcessingFee = BigDecimal.ZERO;
-            settlement.refundProcessingFee = BigDecimal.ZERO;
-            settlement.chargebackProcessingFee = BigDecimal.ZERO;
-            settlement.monthlyFee = BigDecimal.ZERO;
-            settlement.annualFee = BigDecimal.ZERO;
-            settlement.totalFee = BigDecimal.ZERO;
-            settlement.vatAmount = BigDecimal.ZERO;
-            settlement.settleFinalAmount = BigDecimal.ZERO;
-            switch (settlement.scheduleType) {
-                case DAILY:
-                    settlement.settleDate = settlement.cycleEndDate.plusDays(1);
-                    break;
-                case WEEKLY_SUN:
-                    settlement.settleDate = settlement.cycleEndDate.with(DayOfWeek.SUNDAY); // Monday is start of week
-                    break;
-                case WEEKLY_MON:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.MONDAY);
-                    break;
-                case WEEKLY_TUE:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.TUESDAY);
-                    break;
-                case WEEKLY_WED:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.WEDNESDAY);
-                    break;
-                case WEEKLY_THU:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.THURSDAY);
-                    break;
-                case WEEKLY_FRI:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.FRIDAY);
-                    break;
-                case WEEKLY_SAT:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.SATURDAY);
-                    break;
-                case MONTHLY:
-                    settlement.settleDate = settlement.cycleEndDate.plusMonths(1).withDayOfMonth(1);
-                    break;
-                case FIXED_DATES:
-                case PER_REQUEST:
-                    settlement.settleDate = LocalDate.now().plusDays(1);
-                    break;
-            }
+            settlement = initNewSettlement(settlementConfig, cycleStart, cycleEnd);
         }
         boolean isSettlementUpdated = calculateTransaction(transactionList, settlementConfig, settlement);
         if (!isSettlementUpdated) {
@@ -233,10 +176,70 @@ public class PaymentSettlementService {
             return;
         }
         calculateFinalAmount(settlement);
-        Reserve reserve = calculateReserve(settlement);
+        calculateReserve(settlement);
         settlementService.updateById(settlement);
-        //TODO: Move Payable creation after settlement approved
-//        calculatePayable(settlement, reserve);
+    }
+
+    private Settlement initNewSettlement(SettlementConfig settlementConfig, LocalDate cycleStart, LocalDate cycleEnd) {
+        Settlement settlement = new Settlement();
+        settlement.status = SettlementStatus.PENDING;
+        settlement.scheduleType = settlementConfig.scheduleType;
+        settlement.currency = settlementConfig.currency;
+        settlement.merchantId = settlementConfig.merchantId;
+        settlement.cycleStartDate = cycleStart;
+        settlement.cycleEndDate = cycleEnd;
+        NonIndividual nonIndividual = nonIndividualService.getById(settlementConfig.merchantId);
+        settlement.merchantName = nonIndividual.fullName;
+        settlement.adjustmentAmount = BigDecimal.ZERO;
+        settlement.saleCount = 0;
+        settlement.refundCount = 0;
+        settlement.chargebackCount = 0;
+        settlement.saleAmount = BigDecimal.ZERO;
+        settlement.refundAmount = BigDecimal.ZERO;
+        settlement.chargebackAmount = BigDecimal.ZERO;
+        settlement.mdrFee = BigDecimal.ZERO;
+        settlement.saleProcessingFee = BigDecimal.ZERO;
+        settlement.refundProcessingFee = BigDecimal.ZERO;
+        settlement.chargebackProcessingFee = BigDecimal.ZERO;
+        settlement.monthlyFee = BigDecimal.ZERO;
+        settlement.annualFee = BigDecimal.ZERO;
+        settlement.totalFee = BigDecimal.ZERO;
+        settlement.vatAmount = BigDecimal.ZERO;
+        settlement.settleFinalAmount = BigDecimal.ZERO;
+        switch (settlement.scheduleType) {
+            case DAILY:
+                settlement.settleDate = settlement.cycleEndDate.plusDays(1);
+                break;
+            case WEEKLY_SUN:
+                settlement.settleDate = settlement.cycleEndDate.with(DayOfWeek.SUNDAY); // Monday is start of week
+                break;
+            case WEEKLY_MON:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.MONDAY);
+                break;
+            case WEEKLY_TUE:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.TUESDAY);
+                break;
+            case WEEKLY_WED:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.WEDNESDAY);
+                break;
+            case WEEKLY_THU:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.THURSDAY);
+                break;
+            case WEEKLY_FRI:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.FRIDAY);
+                break;
+            case WEEKLY_SAT:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.SATURDAY);
+                break;
+            case MONTHLY:
+                settlement.settleDate = settlement.cycleEndDate.plusMonths(1).withDayOfMonth(1);
+                break;
+            case FIXED_DATES:
+            case PER_REQUEST:
+                settlement.settleDate = LocalDate.now().plusDays(1);
+                break;
+        }
+        return settlement;
     }
 
     private boolean calculateTransaction(List<PaymentTransaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
@@ -289,13 +292,13 @@ public class PaymentSettlementService {
         return isSettlementUpdated;
     }
 
-    private Reserve calculateReserve(Settlement settlement) {
+    private void calculateReserve(Settlement settlement) {
         ReserveConfig reserveConfig = reserveConfigService.getOneByClientIdAndCurrency(settlement.merchantId, settlement.currency);
         if (reserveConfig == null
                 || reserveConfig.type == ReserveType.FIXED && reserveConfig.amount.compareTo(BigDecimal.ZERO) <= 0
                 || reserveConfig.type == ReserveType.ROLLING && reserveConfig.percentage.compareTo(BigDecimal.ZERO) <= 0
         ) {
-            return null;
+            return;
         }
         Reserve reserve;
         if (settlement.reserveId == null) {
@@ -341,7 +344,6 @@ public class PaymentSettlementService {
                 throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
         }
         reserveService.saveOrUpdate(reserve);
-        return reserve;
     }
 
     private void calculateFinalAmount(Settlement settlement) {

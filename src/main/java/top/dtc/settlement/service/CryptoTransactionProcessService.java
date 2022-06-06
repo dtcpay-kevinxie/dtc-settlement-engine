@@ -1,7 +1,6 @@
 package top.dtc.settlement.service;
 
 import com.alibaba.fastjson.JSON;
-import com.google.common.collect.Sets;
 import kong.unirest.GenericType;
 import kong.unirest.RequestBodyEntity;
 import kong.unirest.Unirest;
@@ -18,7 +17,6 @@ import top.dtc.common.model.crypto.*;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.common.util.crypto.CryptoEngineUtils;
 import top.dtc.data.core.enums.OtcStatus;
-import top.dtc.data.core.enums.OtcType;
 import top.dtc.data.core.model.CryptoTransaction;
 import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.model.Otc;
@@ -50,6 +48,7 @@ import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -512,36 +511,70 @@ public class CryptoTransactionProcessService {
 
     private void handleSelfCustodialSettle(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
         log.info("Settlement detected");
-        // Get PENDING CryptoTransaction data
-//        List<CryptoTransaction> pendingTxnList = cryptoTransactionService.getByParams(
-//                senderAddress.ownerId,
-//                CryptoTransactionState.PENDING,
-//                CryptoTransactionType.SETTLEMENT,
-//                senderAddress.id,
-//                recipientAddress.id,
-//                result.currency,
-//                result.mainNet,
-//                null,
-//                null
-//                );
-//
-//        // Get PENDING settlement OTC
-//        Otc settlementOtc = getPendingSettlementOtc(senderAddress.ownerId, result.currency, output.amount);
-//        if (settlementOtc == null) {
-//            return;
-//        } else {
-//            // Complete settlement OTC
-//            settlementOtc.status = OtcStatus.COMPLETED;
-//            settlementOtc.receivedTime = LocalDateTime.now();
-//            settlementOtc.completedTime = LocalDateTime.now();
-//            otcService.updateById(settlementOtc);
-//        }
-//        // Screen Blockchain transaction
-//        registerToChainalysis(cryptoTransaction);
-//        // Create Receivable and auto write-off
-//        createReceivable(cryptoTransaction, recipientAddress);
-//        // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED) to Wallet Frontend
-//        triggerSSE();
+        // Validate and complete CryptoTransaction
+        CryptoTransaction cryptoTransaction = cryptoTransactionService.getOneByTxnHash(result.id);
+        if (cryptoTransaction == null) {
+            log.error("Couldn't find Settlement cryptoTransaction with txnHash {} for client {}", result.id, senderAddress.ownerId);
+            return;
+        } else if (
+                cryptoTransaction.type != CryptoTransactionType.SETTLEMENT
+                || cryptoTransaction.state != CryptoTransactionState.PROCESSING
+                || !cryptoTransaction.clientId.equals(senderAddress.ownerId)
+                || !cryptoTransaction.clientId.equals(recipientAddress.subId)
+                || cryptoTransaction.amount.compareTo(output.amount) != 0
+                || cryptoTransaction.currency != result.currency
+                || cryptoTransaction.mainNet != result.mainNet
+        ) {
+            log.error("CryptoTransaction {} is invalid for settlement", cryptoTransaction);
+            return;
+        }
+        cryptoTransaction.state = CryptoTransactionState.COMPLETED;
+        cryptoTransaction.gasFee = result.fee;
+        // Screen Blockchain transaction
+        registerToChainalysis(cryptoTransaction);
+        cryptoTransactionService.updateById(cryptoTransaction);
+
+        // Validate and auto write-off Receivable
+        Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(cryptoTransaction.id, InvoiceType.PAYMENT);
+        Receivable receivable = receivableService.getById(receivableId);
+        switch (receivable.status) {
+            case NOT_RECEIVED:
+                receivable.receivedAmount = cryptoTransaction.amount;
+                break;
+            case PARTIAL:
+                receivable.receivedAmount = receivable.receivedAmount.add(cryptoTransaction.amount);
+                break;
+            default:
+                log.error("Invalid Receivable status {}", receivable);
+                return;
+        }
+        if (receivable.amount.compareTo(receivable.receivedAmount) == 0) {
+            receivable.status = ReceivableStatus.RECEIVED;
+            receivable.writeOffDate = LocalDate.now();
+            receivable.description = "System auto write-off";
+            receivableService.updateById(receivable);
+            // Complete Settlement OTC
+            completeSettlementOtc(cryptoTransaction);
+            notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
+        } else {
+            receivable.status = ReceivableStatus.PARTIAL;
+            receivableService.updateById(receivable);
+            log.error("Receivable {} Unexpected PARTIAL, need to manual resolve", receivable.id);
+        }
+    }
+
+    private void completeSettlementOtc(CryptoTransaction cryptoTransaction) {
+        // Identify settlement OTC by txnHash which is saved at referenceNo when initial settlement OTC
+        Otc settlementOtc = otcService.getOneByClientIdAndReferenceNo(cryptoTransaction.clientId, cryptoTransaction.txnHash);
+        if (settlementOtc != null) {
+            settlementOtc.status = OtcStatus.COMPLETED;
+            settlementOtc.completedTime = LocalDateTime.now();
+            settlementOtc.receivedTime = LocalDateTime.now();
+            otcService.updateById(settlementOtc);
+        } else {
+            // No OTC Settlement found means crypto payment deposit into crypto wallet account directly
+            log.info("Crypto payment Deposit crypto instead of OTC to fiat");
+        }
     }
 
     private void handleDeposit(CryptoTransactionResult result, KycWalletAddress recipientAddress, KycWalletAddress senderAddress, CryptoInOutResult output) {
@@ -607,24 +640,6 @@ public class CryptoTransactionProcessService {
         }
         cryptoAccount.balance = cryptoAccount.balance.add(creditAmount);
         walletAccountService.updateById(cryptoAccount);
-    }
-
-    private Otc getPendingSettlementOtc(Long clientId, Currency currency, BigDecimal amount) {
-        List<Otc> pendingOtcList = otcService.getByParams(
-                OtcType.SELLING,
-                OtcStatus.PENDING,
-                Sets.newHashSet(clientId),
-                currency,
-                null,
-                null
-                );
-        for (Otc pendingOtc : pendingOtcList) {
-            if (pendingOtc.cryptoAmount.equals(amount) && pendingOtc.referenceNo != null) {
-                log.debug("Settlement OTC currency and amount matched.");
-                return pendingOtc;
-            }
-        }
-        return null;
     }
 
     private String handleSweep(KycWalletAddress dtcAssignedAddress, Currency currency, BigDecimal amount) {
