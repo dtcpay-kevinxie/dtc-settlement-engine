@@ -93,6 +93,17 @@ public class PaymentSettlementService {
         transactionService.updateSettlementStatusByIdIn(SettlementStatus.SUBMITTED, transactionIds);
     }
 
+    // Update PayoutReconcile after received funds
+    public void updateReconcileStatusAfterReceived(Long receivableId) {
+        List<PayoutReconcile> payoutReconcileList = payoutReconcileService.getByReceivableId(receivableId);
+        payoutReconcileList.forEach(
+                payoutReconcile -> {
+                    payoutReconcile.status = ReconcileStatus.MATCHED;
+                    payoutReconcileService.updateById(payoutReconcile);
+                }
+        );
+    }
+
     // Retrieve settlement submission
     public void retrieveSubmission(Long settlementId) {
         Settlement settlement = settlementService.getById(settlementId);

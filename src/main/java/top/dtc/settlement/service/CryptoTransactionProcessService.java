@@ -108,6 +108,9 @@ public class CryptoTransactionProcessService {
     @Autowired
     CommonValidationService commonValidationService;
 
+    @Autowired
+    PaymentSettlementService paymentSettlementService;
+
     public void scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
         list.forEach(k -> {
@@ -555,10 +558,14 @@ public class CryptoTransactionProcessService {
             receivableService.updateById(receivable);
             // Complete Settlement OTC
             completeSettlementOtc(cryptoTransaction);
+            // Update PayoutReconcile to MATCHED
+            paymentSettlementService.updateReconcileStatusAfterReceived(receivableId);
             notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
         } else {
             receivable.status = ReceivableStatus.PARTIAL;
             receivableService.updateById(receivable);
+            // Update PayoutReconcile to MATCHED
+            paymentSettlementService.updateReconcileStatusAfterReceived(receivableId);
             log.error("Receivable {} Unexpected PARTIAL, need to manual resolve", receivable.id);
         }
     }
