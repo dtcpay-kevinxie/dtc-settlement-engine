@@ -2,6 +2,8 @@
 
 [0.70.0] - 
 
+* Add Usdc support to CryptoTransactionProcessService
+* Add Usdc support to DailyBalanceRecordProcessService
 * Add scheduled crypto exchange rate from FTX
 * Update data-finance version
 * Standardize OTC Commission logic
