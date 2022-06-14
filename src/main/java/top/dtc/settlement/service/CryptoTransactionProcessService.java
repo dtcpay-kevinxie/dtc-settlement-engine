@@ -167,7 +167,7 @@ public class CryptoTransactionProcessService {
             }
             if (response != null && response.resultList != null && response.resultList.size() > 0) {
                 List<CryptoBalance> balanceList = response.resultList;
-                count += autoSweep(senderAddress, balanceList, sweepingDetails ,sweepingDetails);
+                count += autoSweep(senderAddress, balanceList, sweepingDetails);
             }
         }
         log.info("Auto Sweep End");
@@ -708,7 +708,7 @@ public class CryptoTransactionProcessService {
         }
     }
 
-    private int autoSweep(KycWalletAddress senderAddress, List<CryptoBalance> balanceList, StringBuilder usdtDetails, StringBuilder usdcDetails) {
+    private int autoSweep(KycWalletAddress senderAddress, List<CryptoBalance> balanceList, StringBuilder usdtDetails) {
         int count = 0;
         for (CryptoBalance balance : balanceList) {
             String txnHash = this.handleSweep(senderAddress, balance.currency, balance.amount);
@@ -716,8 +716,8 @@ public class CryptoTransactionProcessService {
                 count++;
                 usdtDetails.append(String.format("Client[%s] Address[%s] %s Txn Hash [%s]\n",
                         senderAddress.subId, senderAddress.address, balance.amount, txnHash));
-                usdcDetails.append(String.format("Client[%s] Address[%s] %s Txn Hash [%s]\n",
-                        senderAddress.subId, senderAddress.address, balance.amount, txnHash));
+                /*usdcDetails.append(String.format("Client[%s] Address[%s] %s Txn Hash [%s]\n",
+                        senderAddress.subId, senderAddress.address, balance.amount, txnHash));*/
             }
         }
         return count;
