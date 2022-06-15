@@ -4,8 +4,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.SettlementStatus;
-import top.dtc.common.util.StringUtils;
-import top.dtc.data.core.enums.ClientStatus;
 import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.NonIndividualService;
@@ -81,81 +79,18 @@ public class PaymentSettlementService {
         }
     }
 
-    // Submit settlement to reviewer
-    public void submitSettlement(Long settlementId) {
-        Settlement settlement = settlementService.getById(settlementId);
-        if (settlement == null || settlement.status != SettlementStatus.PENDING) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.INVALID(settlementId));
-        }
-        settlement.status = SettlementStatus.SUBMITTED;
-        settlementService.updateById(settlement);
-        List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.SUBMITTED, transactionIds);
-    }
-
     // Update PayoutReconcile after received funds
     public void updateReconcileStatusAfterReceived(Long receivableId) {
         List<PayoutReconcile> payoutReconcileList = payoutReconcileService.getByReceivableId(receivableId);
         payoutReconcileList.forEach(
                 payoutReconcile -> {
+                    PaymentTransaction transaction = transactionService.getById(payoutReconcile.transactionId);
                     payoutReconcile.status = ReconcileStatus.MATCHED;
+                    payoutReconcile.receivedAmount = transaction.processingAmount;
+                    payoutReconcile.receivedCurrency = transaction.processingCurrency;
                     payoutReconcileService.updateById(payoutReconcile);
                 }
         );
-    }
-
-    // Retrieve settlement submission
-    public void retrieveSubmission(Long settlementId) {
-        Settlement settlement = settlementService.getById(settlementId);
-        if (settlement == null || settlement.status != SettlementStatus.SUBMITTED) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.RETRIEVE_FAILED + settlementId);
-        }
-        settlement.status = SettlementStatus.PENDING;
-        settlementService.updateById(settlement);
-        List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.PENDING, transactionIds);
-    }
-
-    // Reviewer approve settlement submitted
-    public void approve(Long settlementId) {
-        Settlement settlement = settlementService.getById(settlementId);
-        if (settlement == null || settlement.status != SettlementStatus.SUBMITTED) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.APPROVAL_FAILED + settlementId);
-        }
-        NonIndividual nonIndividual = nonIndividualService.getById(settlement.merchantId);
-        if (nonIndividual.status.id <= ClientStatus.ACTIVATED.id) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.STATUS_FAILED(nonIndividual.id, nonIndividual.status.desc));
-        }
-        settlement.status = SettlementStatus.APPROVED;
-        String prefix = getPrefix(settlement);
-        InvoiceNumber invoiceNumber = invoiceNumberService.getFirstByPrefix(prefix);
-        if (invoiceNumber == null) {
-            invoiceNumber = new InvoiceNumber();
-            invoiceNumber.type = InvoiceType.PAYMENT;
-            invoiceNumber.runningNumber = 1L;
-            invoiceNumber.prefix = prefix;
-            settlement.invoiceNumber = prefix + StringUtils.leftPad("1", 8, '0');
-        } else {
-            invoiceNumber.runningNumber++;
-            settlement.invoiceNumber = prefix + StringUtils.leftPad(String.valueOf(invoiceNumber.runningNumber + 1), 8, '0');
-        }
-        settlementService.updateById(settlement);
-        List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.APPROVED, transactionIds);
-        invoiceNumberService.saveOrUpdate(invoiceNumber);
-//        createPayable(settlement);
-    }
-
-    // Reviewer reject settlement submitted
-    public void reject(Long settlementId) {
-        Settlement settlement = settlementService.getById(settlementId);
-        if (settlement == null || settlement.status != SettlementStatus.SUBMITTED) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.REJECT_FAILED + settlementId);
-        }
-        settlement.status = SettlementStatus.REJECTED;
-        settlementService.updateById(settlement);
-        List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.REJECTED, transactionIds);
     }
 
     private void packTransactionByDate(SettlementConfig settlementConfig, LocalDate cycleStart, LocalDate cycleEnd) {
