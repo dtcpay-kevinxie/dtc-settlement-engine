@@ -7,6 +7,9 @@
 * Standardize OTC Commission logic
 * Add daily balance record logic
 * Complete Self-Custodial Wallet payment settlement process
+* Add USDC support
+* Code reformat in SilvergateApiService
+* Update USDC in CryptoTransactionProcessService
 
 [0.69.0] - 18 May 2022
 

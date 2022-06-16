@@ -660,6 +660,10 @@ public class CryptoTransactionProcessService {
                 threshold = defaultConfig.thresholdSweepUsdt;
                 transferAmount = amount;
                 break;
+            case USDC:
+                threshold = defaultConfig.thresholdSweepUsdc;
+                transferAmount = amount;
+                break;
             case ETH:
                 threshold = defaultConfig.thresholdSweepEth;
                 transferAmount = amount.subtract(defaultConfig.maxEthGas);
@@ -704,14 +708,14 @@ public class CryptoTransactionProcessService {
         }
     }
 
-    private int autoSweep(KycWalletAddress senderAddress, List<CryptoBalance> balanceList, StringBuilder usdtDetails) {
+    private int autoSweep(KycWalletAddress senderAddress, List<CryptoBalance> balanceList, StringBuilder txnDetails) {
         int count = 0;
         for (CryptoBalance balance : balanceList) {
             String txnHash = this.handleSweep(senderAddress, balance.currency, balance.amount);
             if (txnHash != null) {
                 count++;
-                usdtDetails.append(String.format("Client[%s] Address[%s] %s Txn Hash [%s]\n",
-                        senderAddress.subId, senderAddress.address, balance.amount, txnHash));
+                txnDetails.append(String.format("Client[%s] Address[%s] %s(%s) Txn Hash [%s]\n",
+                        senderAddress.subId, senderAddress.address, balance.amount, balance.currency, txnHash));
             }
         }
         return count;

@@ -35,6 +35,7 @@ public class DailyBalanceRecordProcessService {
     public void processDayEndBalance() {
         BigDecimal rateUSDToSGD = exchangeRateService.getRate(Currency.USD, Currency.SGD, ExchangeType.RATE);
         BigDecimal rateUSDTToSGD = exchangeRateService.getRate(Currency.USDT, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
+        BigDecimal rateUSDCToSGD = exchangeRateService.getRate(Currency.USDC, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
         BigDecimal rateBTCToSGD = exchangeRateService.getRate(Currency.BTC, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
         BigDecimal rateETHToSGD = exchangeRateService.getRate(Currency.ETH, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
         BigDecimal rateTRXToSGD = exchangeRateService.getRate(Currency.TRX, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
@@ -70,6 +71,9 @@ public class DailyBalanceRecordProcessService {
                     break;
                 case USDT:
                     dailyBalanceRecord.rateToSgd = rateUSDTToSGD;
+                    break;
+                case USDC:
+                    dailyBalanceRecord.rateToSgd = rateUSDCToSGD;
                     break;
                 default:
                     log.error("Invalid Currency Account {}", walletAccount);
