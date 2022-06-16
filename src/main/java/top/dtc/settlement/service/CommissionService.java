@@ -45,7 +45,7 @@ public class CommissionService {
     @Autowired
     ExchangeRateService exchangeRateService;
 
-    public void process(LocalDate date) {
+    public void process(LocalDate dateStart, LocalDate dateEnd) {
         Map<ReferralKey, List<Otc>> referralOtcMap = referralMappingService.list().stream()
                 .collect(Collectors.toMap(
                         o -> new ReferralKey(o.referrerId, o.referralMode, o.commissionRate),
@@ -54,8 +54,8 @@ public class CommissionService {
                                 OtcStatus.COMPLETED,
                                 Sets.newHashSet(x.clientId),
                                 null,
-                                date.atStartOfDay(),
-                                date.plusDays(1).atStartOfDay()
+                                dateStart.atStartOfDay(),
+                                dateEnd.plusDays(1).atStartOfDay()
                         ),
                         (left, right) -> {
                             left.addAll(right);
@@ -78,13 +78,15 @@ public class CommissionService {
         log.debug("generateOtcCommission: {}", key);
         otcList.forEach(
                 otc -> {
-                    BigDecimal profitRate = otc.costRate.multiply(otc.fiatConvertRate).subtract(otc.rate);
+                    OtcCommission otcCommission = commissionService.getOneByOtcId(otc.id);
+                    if (otcCommission == null) {
+                        otcCommission = new OtcCommission();
+                    } else if (otcCommission.status != CommissionStatus.PENDING) {
+                        log.debug("Skip commission is not in PENDING status {}", otcCommission);
+                        return;
+                    }
+                    BigDecimal profitRate = otc.costRate.subtract(otc.rate).multiply(otc.fiatConvertRate);
                     BigDecimal grossProfit = otc.fiatAmount.multiply(profitRate);
-//                    if (grossProfit.compareTo(BigDecimal.ZERO) <= 0) {
-//                        log.debug("grossProfit {} is lower than 0", grossProfit);
-//                        return;
-//                    }
-                    OtcCommission otcCommission = new OtcCommission();
                     otcCommission.referrerId = key.referrerId;
                     otcCommission.status = CommissionStatus.PENDING;
                     otcCommission.otcId = otc.id;
@@ -93,6 +95,7 @@ public class CommissionService {
                     otcCommission.commissionRate = key.commissionRate;
                     otcCommission.commissionCurrency = otc.fiatCurrency;
                     otcCommission.otcTime = otc.completedTime;
+                    otcCommission.grossProfitRate = profitRate;
                     if (key.referralMode == ReferralMode.PROFIT_BASE_FIXED) {
                         // PROFIT_BASE_FIXED commission is calculated from gross profit
                         otcCommission.commission = grossProfit.multiply(key.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
@@ -103,19 +106,9 @@ public class CommissionService {
                         otcCommission.commission = otcCommission.otcFiatAmount.multiply(otcCommission.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
                         log.debug("OTC Commission = {} {} * {} = {} {}",
                                 otcCommission.otcCurrency, otcCommission.otcFiatAmount, otcCommission.commissionRate, otcCommission.commissionCurrency, otcCommission.commission);
-//                        if (otcCommission.commissionRate.compareTo(profitRate) > 0) {
-//                            otcCommission.commission = otcCommission.otcFiatAmount.multiply(otcCommission.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
-//                            log.debug("OTC Commission = {} {} * {} * {} = {} {}",
-//                                    otcCommission.otcCurrency, otcCommission.otcFiatAmount, otcCommission.commissionRate, fiatExchangeRate, otcCommission.commissionCurrency, otcCommission.commission);
-//                        } else {
-//                            // profit rate is lower than commission rate
-//                            log.debug("profit rate {} is lower than commission rate {}", profitRate, otcCommission.commissionRate);
-//                            return;
-//                        }
                     }
-                    commissionService.save(otcCommission);
+                    commissionService.saveOrUpdate(otcCommission);
                 });
-
     }
 
     @Data

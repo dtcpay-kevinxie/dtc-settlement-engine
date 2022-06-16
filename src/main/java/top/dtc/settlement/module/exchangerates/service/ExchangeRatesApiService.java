@@ -1,83 +1,92 @@
 package top.dtc.settlement.module.exchangerates.service;
 
 import com.alibaba.fastjson.JSON;
-import kong.unirest.GetRequest;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
+import com.alibaba.fastjson.JSONObject;
+import kong.unirest.*;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.Currency;
+import top.dtc.common.enums.Institution;
+import top.dtc.common.exception.DtcRuntimeException;
+import top.dtc.common.integration.ftx_otc.domain.Quote;
+import top.dtc.common.integration.ftx_otc.domain.QuoteRequestReq;
+import top.dtc.common.model.api.ApiRequest;
+import top.dtc.common.model.api.ApiResponse;
 import top.dtc.data.core.enums.ExchangeType;
 import top.dtc.data.core.model.ExchangeRate;
 import top.dtc.data.core.service.ExchangeRateService;
-import top.dtc.settlement.module.exchangerates.core.ExchangeRatesProperties;
-import top.dtc.settlement.module.exchangerates.model.GetLatestRateResp;
+import top.dtc.settlement.core.properties.HttpProperties;
 
-import java.time.Instant;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
+
+import static top.dtc.common.enums.Currency.*;
 
 @Log4j2
 @Service
 public class ExchangeRatesApiService {
 
-    private static final String ACCESS_KEY = "access_key";
-    private static final String USD = "USD";
-    private static final String SGD = "SGD";
-
     @Autowired
-    ExchangeRatesProperties exchangeRatesProperties;
+    HttpProperties httpProperties;
 
     @Autowired
     ExchangeRateService exchangeRateService;
 
-    /**
-     * This endpoint, depending on your subscription plan will return real-time exchange rate data
-     * which gets updated every 60 minutes, every 10 minutes, or every 60 seconds.
-     */
-    public void getLatestRate() {
-        // USD -> SGD
-        Map<String, Object> routeMap = new HashMap<>();
-        routeMap.put("base", USD);
-        routeMap.put("symbols", SGD);
-        getForexRate(routeMap);
-        // SGD -> USD
-        Map<String, Object> queryMap = new HashMap<>();
-        queryMap.put("base", SGD);
-        queryMap.put("symbols", USD);
-        getForexRate(queryMap);
+    public void getCryptoRate() {
+        try {
+            // ETH -> USD
+            getCryptoOtcRateFromFTX(ETH);
+        } catch (Exception e) {
+            log.error("Failed to get daily ETH -> USD rate. \n {}", e.getMessage());
+        }
+        try {
+            // BTC -> USD
+            getCryptoOtcRateFromFTX(BTC);
+        } catch (Exception e) {
+            log.error("Failed to get daily BTC -> USD rate. \n {}", e.getMessage());
+        }
+        try {
+            // TRX -> USD
+            getCryptoOtcRateFromFTX(TRX);
+        } catch (Exception e) {
+            log.error("Failed to get daily TRX -> USD rate. \n {}", e.getMessage());
+        }
     }
 
-    private void getForexRate(Map<String, Object> routeMap) {
-        GetRequest request = Unirest.get(exchangeRatesProperties.apiUrlPrefix + "/v1/latest")
-                .queryString(ACCESS_KEY, exchangeRatesProperties.accessKey)
-                .queryString(routeMap);
-        HttpResponse<String> response = request
-                .asString()
-                .ifFailure(resp -> {
-                    String url = request.getUrl();
-                    log.error("ExchangeRate API request failed, path={}, status={}", url, resp.getStatus());
-                    resp.getParsingError().ifPresent(e -> log.error("ExchangeRate API request failed\n{}", url, e));
-                });
-        String resp = response.getBody();
-        log.debug("Response body: {}", resp);
-        GetLatestRateResp getLatestRateResp = JSON.parseObject(resp, GetLatestRateResp.class);
-        if (getLatestRateResp.success) {
-            ExchangeRate exchangeRate = new ExchangeRate();
-            exchangeRate.type = ExchangeType.RATE;
-            exchangeRate.buyCurrency = Currency.getByName(getLatestRateResp.base);
-            exchangeRate.sellCurrency = Currency.getByName((String)routeMap.get("symbols"));
-            exchangeRate.rateSource = "ExchangeRates API";
-            exchangeRate.exchangeRate = getLatestRateResp.rates.getBigDecimal((String) routeMap.get("symbols"));
-            String dateStr = Instant.ofEpochSecond(getLatestRateResp.timestamp).atZone(ZoneId.of("GMT+8"))
-                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            exchangeRate.rateTime = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            exchangeRateService.save(exchangeRate);
+    private void getCryptoOtcRateFromFTX(Currency cryptoCurrency) {
+        QuoteRequestReq quoteRequestReq = new QuoteRequestReq();
+        quoteRequestReq.baseCurrency = cryptoCurrency.name;
+        quoteRequestReq.quoteCurrency = USD.name;
+        quoteRequestReq.baseCurrencySize = BigDecimal.ONE;
+        quoteRequestReq.side = "sell";
+        RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.integrationEngineUrlPrefix
+                        + "/integration/ftx-otc/quote/request")
+                .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
+                .body(new ApiRequest<>(quoteRequestReq));
+        log.debug("Request url: {}", requestBodyEntity.getUrl());
+        ApiResponse<Quote> requestQuoteResp = requestBodyEntity.asObject(
+                new GenericType<ApiResponse<Quote>>() {
+                }).getBody();
+        log.debug("Request body: {}", JSON.toJSONString(quoteRequestReq));
+        if (requestQuoteResp == null || requestQuoteResp.header == null) {
+            throw new DtcRuntimeException("Error when connecting integration-engine");
+        } else if (!requestQuoteResp.header.success) {
+            throw new DtcRuntimeException(requestQuoteResp.header.errMsg);
         }
+        log.debug("Request result: {}", requestQuoteResp.result);
+        Quote quote = JSONObject.parseObject(JSONObject.toJSONString(requestQuoteResp.result), Quote.class);
+        if (quote.price == null || quote.expiry == null) {
+            throw new DtcRuntimeException("Can not get price at the moment, please try again");
+        }
+        ExchangeRate exchangeRate = new ExchangeRate();
+        exchangeRate.type = ExchangeType.RATE;
+        exchangeRate.buyCurrency = USD;
+        exchangeRate.sellCurrency = cryptoCurrency;
+        exchangeRate.rateSource = Institution.FTX_OTC.desc;
+        exchangeRate.exchangeRate = quote.price;
+        exchangeRate.rateTime = LocalDateTime.now();
+        exchangeRateService.save(exchangeRate);
     }
 
 }

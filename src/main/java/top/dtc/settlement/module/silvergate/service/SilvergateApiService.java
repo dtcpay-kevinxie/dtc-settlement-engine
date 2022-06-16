@@ -41,7 +41,7 @@ public class SilvergateApiService {
 
     @Autowired
     private SilvergateProperties silvergateProperties;
-    
+
     private UnirestInstance unirest;
     
     @PostConstruct

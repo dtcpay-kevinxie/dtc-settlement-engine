@@ -1,5 +1,16 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.70.0] - 16 Jun 2022
+
+* Add scheduled crypto exchange rate from FTX
+* Update data-finance version
+* Standardize OTC Commission logic
+* Add daily balance record logic
+* Complete Self-Custodial Wallet payment settlement process
+* Add USDC support
+* Code reformat in SilvergateApiService
+* Update USDC in CryptoTransactionProcessService
+
 [0.69.0] - 18 May 2022
 
 * Add OTC commission scheduled API

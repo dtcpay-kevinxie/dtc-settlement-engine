@@ -20,4 +20,7 @@ public class HttpProperties {
     // Payment Engine http URL
     public String paymentEngineUrlPrefix;
 
+    // Integration Engine http URL
+    public String integrationEngineUrlPrefix;
+
 }

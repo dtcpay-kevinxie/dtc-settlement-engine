@@ -4,8 +4,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.common.enums.SettlementStatus;
-import top.dtc.common.util.StringUtils;
-import top.dtc.data.core.enums.ClientStatus;
 import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.NonIndividualService;
@@ -81,70 +79,18 @@ public class PaymentSettlementService {
         }
     }
 
-    // Submit settlement to reviewer
-    public void submitSettlement(Long settlementId) {
-        Settlement settlement = settlementService.getById(settlementId);
-        if (settlement == null || settlement.status != SettlementStatus.PENDING) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.INVALID(settlementId));
-        }
-        settlement.status = SettlementStatus.SUBMITTED;
-        settlementService.updateById(settlement);
-        List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.SUBMITTED, transactionIds);
-    }
-
-    // Retrieve settlement submission
-    public void retrieveSubmission(Long settlementId) {
-        Settlement settlement = settlementService.getById(settlementId);
-        if (settlement == null || settlement.status != SettlementStatus.SUBMITTED) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.RETRIEVE_FAILED + settlementId);
-        }
-        settlement.status = SettlementStatus.PENDING;
-        settlementService.updateById(settlement);
-        List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.PENDING, transactionIds);
-    }
-
-    // Reviewer approve settlement submitted
-    public void approve(Long settlementId) {
-        Settlement settlement = settlementService.getById(settlementId);
-        if (settlement == null || settlement.status != SettlementStatus.SUBMITTED) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.APPROVAL_FAILED + settlementId);
-        }
-        NonIndividual nonIndividual = nonIndividualService.getById(settlement.merchantId);
-        if (nonIndividual.status.id <= ClientStatus.ACTIVATED.id) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.STATUS_FAILED(nonIndividual.id, nonIndividual.status.desc));
-        }
-        settlement.status = SettlementStatus.APPROVED;
-        String prefix = getPrefix(settlement);
-        InvoiceNumber invoiceNumber = invoiceNumberService.getFirstByPrefix(prefix);
-        if (invoiceNumber == null) {
-            invoiceNumber = new InvoiceNumber();
-            invoiceNumber.type = InvoiceType.PAYMENT;
-            invoiceNumber.runningNumber = 1L;
-            invoiceNumber.prefix = prefix;
-            settlement.invoiceNumber = prefix + StringUtils.leftPad("1", 8, '0');
-        } else {
-            invoiceNumber.runningNumber++;
-            settlement.invoiceNumber = prefix + StringUtils.leftPad(String.valueOf(invoiceNumber.runningNumber + 1), 8, '0');
-        }
-        settlementService.updateById(settlement);
-        List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.APPROVED, transactionIds);
-        invoiceNumberService.saveOrUpdate(invoiceNumber);
-//        createPayable(settlement);
-    }
-
-    // Reviewer reject settlement submitted
-    public void reject(Long settlementId) {
-        Settlement settlement = settlementService.getById(settlementId);
-        if (settlement == null || settlement.status != SettlementStatus.SUBMITTED) {
-            throw new SettlementException(ErrorMessage.SETTLEMENT.REJECT_FAILED + settlementId);
-        }
-        settlement.status = SettlementStatus.REJECTED;
-        settlementService.updateById(settlement);
-        List<Long> transactionIds = payoutReconcileService.getTransactionIdBySettlementId(settlementId);
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.REJECTED, transactionIds);
+    // Update PayoutReconcile after received funds
+    public void updateReconcileStatusAfterReceived(Long receivableId) {
+        List<PayoutReconcile> payoutReconcileList = payoutReconcileService.getByReceivableId(receivableId);
+        payoutReconcileList.forEach(
+                payoutReconcile -> {
+                    PaymentTransaction transaction = transactionService.getById(payoutReconcile.transactionId);
+                    payoutReconcile.status = ReconcileStatus.MATCHED;
+                    payoutReconcile.receivedAmount = transaction.processingAmount;
+                    payoutReconcile.receivedCurrency = transaction.processingCurrency;
+                    payoutReconcileService.updateById(payoutReconcile);
+                }
+        );
     }
 
     private void packTransactionByDate(SettlementConfig settlementConfig, LocalDate cycleStart, LocalDate cycleEnd) {
@@ -168,64 +114,7 @@ public class PaymentSettlementService {
                 return;
             }
         } else {
-            settlement = new Settlement();
-            settlement.status = SettlementStatus.PENDING;
-            settlement.scheduleType = settlementConfig.scheduleType;
-            settlement.currency = settlementConfig.currency;
-            settlement.merchantId = settlementConfig.merchantId;
-            settlement.cycleStartDate = cycleStart;
-            settlement.cycleEndDate = cycleEnd;
-            NonIndividual nonIndividual = nonIndividualService.getById(settlementConfig.merchantId);
-            settlement.merchantName = nonIndividual.fullName;
-            settlement.adjustmentAmount = BigDecimal.ZERO;
-            settlement.saleCount = 0;
-            settlement.refundCount = 0;
-            settlement.chargebackCount = 0;
-            settlement.saleAmount = BigDecimal.ZERO;
-            settlement.refundAmount = BigDecimal.ZERO;
-            settlement.chargebackAmount = BigDecimal.ZERO;
-            settlement.mdrFee = BigDecimal.ZERO;
-            settlement.saleProcessingFee = BigDecimal.ZERO;
-            settlement.refundProcessingFee = BigDecimal.ZERO;
-            settlement.chargebackProcessingFee = BigDecimal.ZERO;
-            settlement.monthlyFee = BigDecimal.ZERO;
-            settlement.annualFee = BigDecimal.ZERO;
-            settlement.totalFee = BigDecimal.ZERO;
-            settlement.vatAmount = BigDecimal.ZERO;
-            settlement.settleFinalAmount = BigDecimal.ZERO;
-            switch (settlement.scheduleType) {
-                case DAILY:
-                    settlement.settleDate = settlement.cycleEndDate.plusDays(1);
-                    break;
-                case WEEKLY_SUN:
-                    settlement.settleDate = settlement.cycleEndDate.with(DayOfWeek.SUNDAY); // Monday is start of week
-                    break;
-                case WEEKLY_MON:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.MONDAY);
-                    break;
-                case WEEKLY_TUE:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.TUESDAY);
-                    break;
-                case WEEKLY_WED:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.WEDNESDAY);
-                    break;
-                case WEEKLY_THU:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.THURSDAY);
-                    break;
-                case WEEKLY_FRI:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.FRIDAY);
-                    break;
-                case WEEKLY_SAT:
-                    settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.SATURDAY);
-                    break;
-                case MONTHLY:
-                    settlement.settleDate = settlement.cycleEndDate.plusMonths(1).withDayOfMonth(1);
-                    break;
-                case FIXED_DATES:
-                case PER_REQUEST:
-                    settlement.settleDate = LocalDate.now().plusDays(1);
-                    break;
-            }
+            settlement = initNewSettlement(settlementConfig, cycleStart, cycleEnd);
         }
         boolean isSettlementUpdated = calculateTransaction(transactionList, settlementConfig, settlement);
         if (!isSettlementUpdated) {
@@ -233,10 +122,70 @@ public class PaymentSettlementService {
             return;
         }
         calculateFinalAmount(settlement);
-        Reserve reserve = calculateReserve(settlement);
+        calculateReserve(settlement);
         settlementService.updateById(settlement);
-        //TODO: Move Payable creation after settlement approved
-//        calculatePayable(settlement, reserve);
+    }
+
+    private Settlement initNewSettlement(SettlementConfig settlementConfig, LocalDate cycleStart, LocalDate cycleEnd) {
+        Settlement settlement = new Settlement();
+        settlement.status = SettlementStatus.PENDING;
+        settlement.scheduleType = settlementConfig.scheduleType;
+        settlement.currency = settlementConfig.currency;
+        settlement.merchantId = settlementConfig.merchantId;
+        settlement.cycleStartDate = cycleStart;
+        settlement.cycleEndDate = cycleEnd;
+        NonIndividual nonIndividual = nonIndividualService.getById(settlementConfig.merchantId);
+        settlement.merchantName = nonIndividual.fullName;
+        settlement.adjustmentAmount = BigDecimal.ZERO;
+        settlement.saleCount = 0;
+        settlement.refundCount = 0;
+        settlement.chargebackCount = 0;
+        settlement.saleAmount = BigDecimal.ZERO;
+        settlement.refundAmount = BigDecimal.ZERO;
+        settlement.chargebackAmount = BigDecimal.ZERO;
+        settlement.mdrFee = BigDecimal.ZERO;
+        settlement.saleProcessingFee = BigDecimal.ZERO;
+        settlement.refundProcessingFee = BigDecimal.ZERO;
+        settlement.chargebackProcessingFee = BigDecimal.ZERO;
+        settlement.monthlyFee = BigDecimal.ZERO;
+        settlement.annualFee = BigDecimal.ZERO;
+        settlement.totalFee = BigDecimal.ZERO;
+        settlement.vatAmount = BigDecimal.ZERO;
+        settlement.settleFinalAmount = BigDecimal.ZERO;
+        switch (settlement.scheduleType) {
+            case DAILY:
+                settlement.settleDate = settlement.cycleEndDate.plusDays(1);
+                break;
+            case WEEKLY_SUN:
+                settlement.settleDate = settlement.cycleEndDate.with(DayOfWeek.SUNDAY); // Monday is start of week
+                break;
+            case WEEKLY_MON:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.MONDAY);
+                break;
+            case WEEKLY_TUE:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.TUESDAY);
+                break;
+            case WEEKLY_WED:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.WEDNESDAY);
+                break;
+            case WEEKLY_THU:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.THURSDAY);
+                break;
+            case WEEKLY_FRI:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.FRIDAY);
+                break;
+            case WEEKLY_SAT:
+                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.SATURDAY);
+                break;
+            case MONTHLY:
+                settlement.settleDate = settlement.cycleEndDate.plusMonths(1).withDayOfMonth(1);
+                break;
+            case FIXED_DATES:
+            case PER_REQUEST:
+                settlement.settleDate = LocalDate.now().plusDays(1);
+                break;
+        }
+        return settlement;
     }
 
     private boolean calculateTransaction(List<PaymentTransaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
@@ -289,13 +238,13 @@ public class PaymentSettlementService {
         return isSettlementUpdated;
     }
 
-    private Reserve calculateReserve(Settlement settlement) {
+    private void calculateReserve(Settlement settlement) {
         ReserveConfig reserveConfig = reserveConfigService.getOneByClientIdAndCurrency(settlement.merchantId, settlement.currency);
         if (reserveConfig == null
                 || reserveConfig.type == ReserveType.FIXED && reserveConfig.amount.compareTo(BigDecimal.ZERO) <= 0
                 || reserveConfig.type == ReserveType.ROLLING && reserveConfig.percentage.compareTo(BigDecimal.ZERO) <= 0
         ) {
-            return null;
+            return;
         }
         Reserve reserve;
         if (settlement.reserveId == null) {
@@ -341,7 +290,6 @@ public class PaymentSettlementService {
                 throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
         }
         reserveService.saveOrUpdate(reserve);
-        return reserve;
     }
 
     private void calculateFinalAmount(Settlement settlement) {
