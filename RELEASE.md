@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.70.0] - 
+[0.70.0] - 16 Jun 2022
 
 * Add scheduled crypto exchange rate from FTX
 * Update data-finance version
