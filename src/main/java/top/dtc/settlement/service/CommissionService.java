@@ -85,7 +85,7 @@ public class CommissionService {
                         log.debug("Skip commission is not in PENDING status {}", otcCommission);
                         return;
                     }
-                    BigDecimal profitRate = otc.costRate.subtract(otc.rate).multiply(otc.fiatConvertRate);
+                    BigDecimal profitRate = otc.costRate.subtract(otc.rate.multiply(otc.fiatConvertRate));
                     BigDecimal grossProfit = otc.fiatAmount.multiply(profitRate);
                     otcCommission.referrerId = key.referrerId;
                     otcCommission.status = CommissionStatus.PENDING;

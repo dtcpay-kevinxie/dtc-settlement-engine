@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.71.0] - 16 Jun 2022
+
+* Hotfix commission calculation bug when fiatConverting applied
+
 [0.70.0] - 16 Jun 2022
 
 * Add scheduled crypto exchange rate from FTX
