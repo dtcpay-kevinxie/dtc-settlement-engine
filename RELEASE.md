@@ -1,8 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.72.0] - 16 Jun 202
+[0.72.0] - 
 
 * Move OTC Settlement crypto received logic to txnHash exists case
+* Fix otc commission calculation
 
 [0.71.0] - 16 Jun 2022
 
