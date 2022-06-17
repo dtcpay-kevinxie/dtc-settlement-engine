@@ -302,6 +302,8 @@ public class CryptoTransactionProcessService {
             return;
         }
 
+        CryptoInOutResult output = CryptoEngineUtils.findInOutByAddress(result.outputs, recipientAddress.address);
+
         // 2. Check whether txnHash exists
         CryptoTransaction existingTxn = cryptoTransactionService.getOneByTxnHash(result.id);
         if (existingTxn != null) {
@@ -310,7 +312,7 @@ public class CryptoTransactionProcessService {
             switch (existingTxn.state) {
                 case AUTHORIZED:
                 case PROCESSING:
-                    // Only AUTHORIZED transaction from DTC_OPS to CLIENT_OWN has txnHash (Crypto Withdrawal case)
+                    // DTC_OPS to CLIENT_OWN has txnHash (Crypto Withdrawal case)
                     if (recipientAddress.type == WalletAddressType.CLIENT_OWN
                             && recipientAddress.id.equals(existingTxn.recipientAddressId)
                             && senderAddress != null
@@ -338,6 +340,13 @@ public class CryptoTransactionProcessService {
                         payableProcessService.writeOff(originalPayable, "System auto write-off", existingTxn.txnHash);
                         WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(existingTxn.clientId, existingTxn.currency);
                         notifyCompleteWithdrawal(existingTxn, recipientAddress, cryptoAccount);
+                    } else if (recipientAddress.type == WalletAddressType.DTC_CLIENT_WALLET
+                            && recipientAddress.id.equals(existingTxn.recipientAddressId)
+                            && senderAddress != null
+                            && senderAddress.type == WalletAddressType.SELF_CUSTODIAL
+                    ) {
+                        // Settlement OTC transfers crypto from SELF_CUSTODIAL wallet to DTC_CLIENT_WALLET, txnHash is saved when triggered.
+                        this.handleSelfCustodialSettle(result, recipientAddress, senderAddress, output);
                     } else {
                         alertMsg = String.format("Invalid Recipient address(%s) or Sender address(%s) for Crypto Withdrawal Transaction(%s)",
                                 recipientAddress.id, senderAddress == null ? "null" : senderAddress.id, existingTxn.id);
@@ -360,8 +369,6 @@ public class CryptoTransactionProcessService {
                     return;
             }
         }
-
-        CryptoInOutResult output = CryptoEngineUtils.findInOutByAddress(result.outputs, recipientAddress.address);
 
         // 3. Check recipient address type: CLIENT_OWN, DTC_CLIENT_WALLET, DTC_GAS, DTC_OPS, SELF_CUSTODIAL
         switch (recipientAddress.type) {
@@ -398,17 +405,7 @@ public class CryptoTransactionProcessService {
                         this.handleDeposit(result, recipientAddress, senderAddress, output);
                     }
                     return;
-                } else if (senderAddress != null && senderAddress.type == WalletAddressType.SELF_CUSTODIAL) {
-                    if (!senderAddress.ownerId.equals(clientId)) {
-                        alertMsg = String.format("Whitelist address owner %s is different from Recipient address owner %s", senderAddress.ownerId, clientId);
-                        log.error(alertMsg);
-                        sendAlert(notificationProperties.complianceRecipient, alertMsg);
-                    } else {
-                        // Deposit, sender address is enabled already
-                        this.handleSelfCustodialSettle(result, recipientAddress, senderAddress, output);
-                    }
-                    return;
-                }  else if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
+                } else if (senderAddress != null && senderAddress.type == WalletAddressType.DTC_GAS) {
                     log.info("Gas filled to DTC_CLIENT_WALLET address [{}]", recipientAddress.address);
                     internalTransferCompleted(result.id, InternalTransferReason.GAS, result.fee);
                 } else if (senderAddress == null) {

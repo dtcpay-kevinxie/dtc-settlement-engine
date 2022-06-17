@@ -85,8 +85,6 @@ public class CommissionService {
                         log.debug("Skip commission is not in PENDING status {}", otcCommission);
                         return;
                     }
-                    BigDecimal profitRate = otc.costRate.subtract(otc.rate.divide(otc.fiatConvertRate, otcCommission.commissionCurrency.exponent, RoundingMode.DOWN));
-                    BigDecimal grossProfit = otc.fiatAmount.multiply(profitRate);
                     otcCommission.referrerId = key.referrerId;
                     otcCommission.status = CommissionStatus.PENDING;
                     otcCommission.otcId = otc.id;
@@ -95,12 +93,13 @@ public class CommissionService {
                     otcCommission.commissionRate = key.commissionRate;
                     otcCommission.commissionCurrency = otc.fiatCurrency;
                     otcCommission.otcTime = otc.completedTime;
-                    otcCommission.grossProfitRate = profitRate;
+                    otcCommission.grossProfitRate = otc.costRate.subtract(otc.rate.divide(otc.fiatConvertRate, otcCommission.commissionCurrency.exponent, RoundingMode.DOWN));
+                    BigDecimal grossProfit = otcCommission.otcFiatAmount.multiply(otcCommission.grossProfitRate);
                     if (key.referralMode == ReferralMode.PROFIT_BASE_FIXED) {
                         // PROFIT_BASE_FIXED commission is calculated from gross profit
-                        otcCommission.commission = grossProfit.multiply(key.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
+                        otcCommission.commission = grossProfit.multiply(otcCommission.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
                         log.debug("OTC Commission = {} ({} * {}) * {} = {} {}",
-                                otcCommission.otcCurrency, otcCommission.otcFiatAmount, profitRate, otcCommission.commissionRate, otcCommission.commissionCurrency, otcCommission.commission);
+                                otcCommission.otcCurrency, otcCommission.otcFiatAmount, otcCommission.grossProfitRate, otcCommission.commissionRate, otcCommission.commissionCurrency, otcCommission.commission);
                     } else if (key.referralMode == ReferralMode.VOLUME_BASE_FIXED) {
                         // VOLUME_BASE_FIXED commission is calculated from OTC amount
                         otcCommission.commission = otcCommission.otcFiatAmount.multiply(otcCommission.commissionRate).setScale(otcCommission.commissionCurrency.exponent, RoundingMode.DOWN);
