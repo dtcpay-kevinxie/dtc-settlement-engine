@@ -1,6 +1,6 @@
 package top.dtc.settlement.constant;
 
-public class SettlementEngineRedisConstant {
+public class RedisConstant {
 
     public static final class DB {
         public static final class SETTLEMENT_ENGINE {
@@ -20,4 +20,5 @@ public class SettlementEngineRedisConstant {
             }
         }
     }
+
 }
