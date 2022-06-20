@@ -93,7 +93,7 @@ public class CommissionService {
                     otcCommission.commissionRate = key.commissionRate;
                     otcCommission.commissionCurrency = otc.fiatCurrency;
                     otcCommission.otcTime = otc.completedTime;
-                    otcCommission.grossProfitRate = otc.costRate.subtract(otc.rate.divide(otc.fiatConvertRate, otcCommission.commissionCurrency.exponent, RoundingMode.DOWN));
+                    otcCommission.grossProfitRate = otc.costRate.subtract(otc.rate.divide(otc.fiatConvertRate));
                     BigDecimal grossProfit = otcCommission.otcFiatAmount.multiply(otcCommission.grossProfitRate);
                     if (key.referralMode == ReferralMode.PROFIT_BASE_FIXED) {
                         // PROFIT_BASE_FIXED commission is calculated from gross profit
