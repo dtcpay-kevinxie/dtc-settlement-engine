@@ -7,19 +7,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import top.dtc.common.core.data.CommonCacheConfig;
-import top.dtc.settlement.constant.SettlementEngineRedisConstant;
+import top.dtc.settlement.constant.RedisConstant;
 
 @Getter
 @Configuration
-public class CacheSettlementEngineConfig extends CommonCacheConfig {
+public class CacheConfig extends CommonCacheConfig {
 
-    @Bean(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.CONNECTION_FACTORY)
+    @Bean(RedisConstant.DB.SETTLEMENT_ENGINE.CONNECTION_FACTORY)
     RedisConnectionFactory settlementEngineConnectionFactory() {
-        return defaultConnectionFactory(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.INDEX);
+        return defaultConnectionFactory(RedisConstant.DB.SETTLEMENT_ENGINE.INDEX);
     }
 
-    @Bean(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.REDIS_TEMPLATE)
-    RedisTemplate<?, ?> portalRedisTemplate(@Qualifier(SettlementEngineRedisConstant.DB.SETTLEMENT_ENGINE.CONNECTION_FACTORY) RedisConnectionFactory registerConnectionFactory) {
+    @Bean(RedisConstant.DB.SETTLEMENT_ENGINE.REDIS_TEMPLATE)
+    RedisTemplate<?, ?> portalRedisTemplate(@Qualifier(RedisConstant.DB.SETTLEMENT_ENGINE.CONNECTION_FACTORY) RedisConnectionFactory registerConnectionFactory) {
         return redisTemplate(registerConnectionFactory);
     }
+
 }
