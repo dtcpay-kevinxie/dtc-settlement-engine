@@ -112,12 +112,10 @@ public class ReceivableProcessService {
     }
 
     private void processGlobalPaymentReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList) {
-        //TODO : Add GP settlement cycle and generate Receivable
-        List<Long> ids = new ArrayList<>();
         transactionList.forEach(transaction -> {
-            ids.add(transaction.id);
+            transaction.settlementStatus = SettlementStatus.ACQ_SETTLED; // GP is PSP mode, no settlement needed
+            transactionService.updateById(transaction);
         });
-        transactionService.updateSettlementStatusByIdIn(SettlementStatus.ACQ_SETTLED, ids);
     }
 
     private void calculateReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList, LocalDate receivableDate) {

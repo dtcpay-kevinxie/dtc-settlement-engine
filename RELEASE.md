@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.74.0] - 
+
+* Update GP transaction SettlementStatus
+
 [0.73.0] - 20 Jun 2022
 
 * Fix otc commission calculation
