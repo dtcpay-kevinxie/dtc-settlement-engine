@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.74.0] - 
+[0.74.0] - 27 Jun 2022
 
 * Update GP transaction SettlementStatus
 
