@@ -3,7 +3,7 @@
 [0.75.0] - 28 Jun 2022
 
 * Update dtc-parent and data-finance
-* Save InternalTransfer writeOffDate
+* Save InternalTransfer writeOffDate 
 
 [0.74.0] - 27 Jun 2022
 
