@@ -8,10 +8,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import top.dtc.common.enums.CryptoTransactionState;
-import top.dtc.common.enums.CryptoTransactionType;
-import top.dtc.common.enums.Currency;
-import top.dtc.common.enums.MainNet;
+import top.dtc.common.enums.*;
 import top.dtc.common.exception.ValidationException;
 import top.dtc.common.model.crypto.*;
 import top.dtc.common.util.NotificationSender;
@@ -687,15 +684,17 @@ public class CryptoTransactionProcessService {
             String txnHash = transfer(currency, transferAmount, dtcAssignedAddress, dtcOpsAddress);
             if (txnHash != null) {
                 InternalTransfer internalTransfer = new InternalTransfer();
-                internalTransfer.type = InternalTransferType.CRYPTO;
+                internalTransfer.senderAccountType = AccountType.CRYPTO;
                 internalTransfer.reason = InternalTransferReason.SWEEP;
                 internalTransfer.status = InternalTransferStatus.INIT;
                 internalTransfer.amount = transferAmount;
                 internalTransfer.currency = currency;
                 internalTransfer.feeCurrency = dtcAssignedAddress.mainNet.feeCurrency;
+                internalTransfer.recipientAccountType = AccountType.CRYPTO;
                 internalTransfer.recipientAccountId = dtcOpsAddress.id;
                 internalTransfer.senderAccountId = dtcAssignedAddress.id;
                 internalTransfer.referenceNo = txnHash;
+                internalTransfer.writeOffDate = LocalDate.now();
                 internalTransfer.remark = "Auto-sweep to DTC_OPS";
                 internalTransferService.save(internalTransfer);
             }
@@ -866,6 +865,7 @@ public class CryptoTransactionProcessService {
         } else {
             internalTransfer.status = InternalTransferStatus.COMPLETED;
             internalTransfer.fee = fee;
+            internalTransfer.writeOffDate = LocalDate.now();
             internalTransferService.updateById(internalTransfer);
         }
     }
@@ -877,6 +877,7 @@ public class CryptoTransactionProcessService {
         } else {
             internalTransfer.status = InternalTransferStatus.CANCELLED;
             internalTransfer.fee = fee;
+            internalTransfer.writeOffDate = LocalDate.now();
             internalTransferService.updateById(internalTransfer);
         }
     }
