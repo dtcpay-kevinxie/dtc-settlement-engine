@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.76.0] -
+[0.76.0] - 01 Jul 2022
 
 * /balance/scheduled report
 
