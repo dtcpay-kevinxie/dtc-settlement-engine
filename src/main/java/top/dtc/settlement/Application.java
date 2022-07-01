@@ -26,6 +26,7 @@ import top.dtc.data.wallet.core.config.EnableDataWalletAws;
 @EnableAsync
 @EnableNotificationSender
 @EnableScheduling
+@EnableSchedulerReporter
 public class Application {
 
     public static void main(String[] args) {
