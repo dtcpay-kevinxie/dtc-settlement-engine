@@ -2,11 +2,9 @@ package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import top.dtc.common.constant.DateTime;
+import top.dtc.common.util.SchedulerUtils;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.PaymentSettlementService;
@@ -22,15 +20,16 @@ public class SettlementController {
     private PaymentSettlementService paymentSettlementService;
 
     @GetMapping(value = "/scheduled")
-    public ApiResponse<?> scheduled() {
-        try {
-            log.debug("/scheduled");
+    public String scheduled(
+            @RequestParam("group") String group,
+            @RequestParam("name") String name,
+            @RequestParam("async") boolean async
+    ) {
+        log.debug("/scheduled");
+        return SchedulerUtils.executeTask(group, name, async, () -> {
             paymentSettlementService.processSettlement(LocalDate.now());
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
-        } catch (Exception e) {
-            log.error("Cannot process scheduled settlement", e);
-            return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
-        }
+            return null;
+        });
     }
 
     @GetMapping(value = "/process/{processDate}")

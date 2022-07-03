@@ -2,11 +2,9 @@ package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import top.dtc.common.constant.DateTime;
+import top.dtc.common.util.SchedulerUtils;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.CommissionService;
@@ -37,15 +35,16 @@ public class CommissionController {
     }
 
     @GetMapping(value = "/otc/scheduled")
-    public ApiResponse<?> processOtcCommission() {
-        try {
-            log.debug("[GET] /otc/scheduled");
-            commissionService.process(LocalDate.now(), LocalDate.now()); // Process for today OTC
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
-        } catch (Exception e) {
-            log.error("Cannot process otc commission", e);
-            return new ApiResponse<>(ApiHeaderConstant.RECEIVABLE.OTHER_ERROR(e.getMessage()));
-        }
+    public String processOtcCommission(
+            @RequestParam("group") String group,
+            @RequestParam("name") String name,
+            @RequestParam("async") boolean async
+    ) {
+        log.debug("[GET] /otc/scheduled");
+        return SchedulerUtils.executeTask(group, name, async, () -> {
+            commissionService.process(LocalDate.now(), LocalDate.now());
+            return null;
+        });
     }
 
 }

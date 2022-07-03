@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.77.0] -
+
+* Update parent
+* SchedulerTasks execution optimize
+
 [0.76.0] - 01 Jul 2022
 
 * /balance/scheduled report

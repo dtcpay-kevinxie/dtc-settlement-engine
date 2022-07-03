@@ -108,7 +108,7 @@ public class CryptoTransactionProcessService {
     @Autowired
     PaymentSettlementService paymentSettlementService;
 
-    public void scheduledStatusChecker() {
+    public String scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
         list.forEach(k -> {
             if (k.state == CryptoTransactionState.AUTHORIZED
@@ -123,6 +123,7 @@ public class CryptoTransactionProcessService {
                 }
             }
         });
+        return null;
     }
 
     /**
@@ -132,7 +133,7 @@ public class CryptoTransactionProcessService {
      * 3.Compare the balances with each currency of its threshold
      * 4.Transfer balance to DTC_OPS address
      */
-    public void scheduledAutoSweep() {
+    public String scheduledAutoSweep() {
         List<KycWalletAddress> dtcAssignedAddressList = kycWalletAddressService.getByParams(
                 1L,
                 null,
@@ -176,6 +177,7 @@ public class CryptoTransactionProcessService {
                         "details", sweepingDetails + "\n"
                 ))
                 .send();
+        return null;
     }
 
     /**
