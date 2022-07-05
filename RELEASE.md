@@ -2,8 +2,9 @@
 
 [0.77.0] -
 
-* Update parent
+* Update parent, data-wallet
 * SchedulerTasks execution optimize
+* WalletBalanceHistory related
 
 [0.76.0] - 01 Jul 2022
 

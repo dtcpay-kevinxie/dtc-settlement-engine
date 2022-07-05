@@ -435,7 +435,7 @@ public class CryptoTransactionProcessService {
                                 //Satoshi Test received, credit satoshi amount to crypto account
                                 WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
                                 cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
-                                walletAccountService.updateById(cryptoAccount);
+                                walletAccountService.updateById(cryptoAccount, ActivityType.CRYPTO_DEPOSIT, satoshiTest.id);
                                 // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED)
                                 triggerSSE();
                                 registerToChainalysis(satoshiTest);
@@ -588,7 +588,7 @@ public class CryptoTransactionProcessService {
         // Create Receivable and auto write-off
         createReceivable(cryptoTransaction, recipientAddress);
         // Credit deposit amount to crypto account
-        creditCryptoAmount(senderAddress.ownerId, cryptoTransaction.amount, cryptoTransaction.currency);
+        creditCryptoAmount(senderAddress.ownerId, cryptoTransaction);
         // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED) to Wallet Frontend
         triggerSSE();
     }
@@ -635,14 +635,14 @@ public class CryptoTransactionProcessService {
         notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
     }
 
-    private void creditCryptoAmount(Long clientId, BigDecimal creditAmount, Currency creditCurrency) {
-        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(clientId, creditCurrency);
+    private void creditCryptoAmount(Long clientId, CryptoTransaction cryptoTransaction) {
+        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(clientId, cryptoTransaction.currency);
         if (cryptoAccount == null) {
             log.error("Wallet account is not activated.");
             return;
         }
-        cryptoAccount.balance = cryptoAccount.balance.add(creditAmount);
-        walletAccountService.updateById(cryptoAccount);
+        cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
+        walletAccountService.updateById(cryptoAccount, ActivityType.CRYPTO_DEPOSIT, cryptoTransaction.id);
     }
 
     private String handleSweep(KycWalletAddress dtcAssignedAddress, Currency currency, BigDecimal amount) {
