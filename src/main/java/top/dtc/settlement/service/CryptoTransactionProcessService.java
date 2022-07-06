@@ -435,7 +435,12 @@ public class CryptoTransactionProcessService {
                                 //Satoshi Test received, credit satoshi amount to crypto account
                                 WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
                                 cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
-                                walletAccountService.updateById(cryptoAccount, ActivityType.CRYPTO_DEPOSIT, satoshiTest.id);
+                                walletAccountService.updateById(
+                                        cryptoAccount,
+                                        ActivityType.CRYPTO_DEPOSIT,
+                                        satoshiTest.id,
+                                        satoshiTest.amount
+                                );
                                 // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED)
                                 triggerSSE();
                                 registerToChainalysis(satoshiTest);
@@ -642,7 +647,12 @@ public class CryptoTransactionProcessService {
             return;
         }
         cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
-        walletAccountService.updateById(cryptoAccount, ActivityType.CRYPTO_DEPOSIT, cryptoTransaction.id);
+        walletAccountService.updateById(
+                cryptoAccount,
+                ActivityType.CRYPTO_DEPOSIT,
+                cryptoTransaction.id,
+                cryptoTransaction.amount
+        );
     }
 
     private String handleSweep(KycWalletAddress dtcAssignedAddress, Currency currency, BigDecimal amount) {
