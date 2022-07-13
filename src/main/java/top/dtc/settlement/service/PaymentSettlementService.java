@@ -3,12 +3,16 @@ package top.dtc.settlement.service;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.dtc.common.enums.ActivityType;
 import top.dtc.common.enums.SettlementStatus;
 import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.NonIndividualService;
 import top.dtc.data.core.service.PaymentTransactionService;
-import top.dtc.data.finance.enums.*;
+import top.dtc.data.finance.enums.PayableStatus;
+import top.dtc.data.finance.enums.ReconcileStatus;
+import top.dtc.data.finance.enums.ReserveStatus;
+import top.dtc.data.finance.enums.ReserveType;
 import top.dtc.data.finance.model.*;
 import top.dtc.data.finance.service.*;
 import top.dtc.settlement.constant.ErrorMessage;
@@ -326,7 +330,7 @@ public class PaymentSettlementService {
             throw new SettlementException(PAYABLE_WROTE_OFF);
         }
         settlementPayable.status = PayableStatus.UNPAID;
-        settlementPayable.type = InvoiceType.PAYMENT;
+        settlementPayable.type = ActivityType.PAYMENT;
         settlementPayable.currency = settlement.currency;
         settlementPayable.beneficiary = settlement.merchantName;
         settlementPayable.recipientAccountId = settlement.recipientAccountId;
@@ -339,7 +343,7 @@ public class PaymentSettlementService {
                 throw new SettlementException(PAYABLE_WROTE_OFF);
             }
             reservePayable.status = PayableStatus.UNPAID;
-            reservePayable.type = InvoiceType.RESERVE;
+            reservePayable.type = ActivityType.RESERVE;
             reservePayable.currency = reserve.currency;
             reservePayable.amount = reserve.totalAmount;
             reservePayable.recipientAccountId = settlement.recipientAccountId;

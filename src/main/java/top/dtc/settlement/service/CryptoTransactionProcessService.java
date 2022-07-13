@@ -20,7 +20,10 @@ import top.dtc.data.core.model.Otc;
 import top.dtc.data.core.service.CryptoTransactionService;
 import top.dtc.data.core.service.DefaultConfigService;
 import top.dtc.data.core.service.OtcService;
-import top.dtc.data.finance.enums.*;
+import top.dtc.data.finance.enums.InternalTransferReason;
+import top.dtc.data.finance.enums.InternalTransferStatus;
+import top.dtc.data.finance.enums.PayableStatus;
+import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.model.InternalTransfer;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.Receivable;
@@ -539,7 +542,7 @@ public class CryptoTransactionProcessService {
         cryptoTransactionService.updateById(cryptoTransaction);
 
         // Validate and auto write-off Receivable
-        Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(cryptoTransaction.id, InvoiceType.PAYMENT);
+        Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(cryptoTransaction.id, ActivityType.PAYMENT);
         Receivable receivable = receivableService.getById(receivableId);
         switch (receivable.status) {
             case NOT_RECEIVED:
@@ -621,7 +624,7 @@ public class CryptoTransactionProcessService {
         notifyDepositCompleted(cryptoTransaction, recipientAddress);
         Receivable receivable = new Receivable();
         receivable.status = ReceivableStatus.RECEIVED;
-        receivable.type = InvoiceType.CRYPTO_DEPOSIT;
+        receivable.type = ActivityType.CRYPTO_DEPOSIT;
         receivable.receivedAmount = receivable.amount = cryptoTransaction.amount;
         receivable.currency = cryptoTransaction.currency;
         receivable.bankName = cryptoTransaction.mainNet.desc;
@@ -635,7 +638,7 @@ public class CryptoTransactionProcessService {
         ReceivableSub receivableSub = new ReceivableSub();
         receivableSub.receivableId = receivable.id;
         receivableSub.subId = cryptoTransaction.id;
-        receivableSub.type = InvoiceType.CRYPTO_DEPOSIT;
+        receivableSub.type = ActivityType.CRYPTO_DEPOSIT;
         receivableSubService.save(receivableSub);
         notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
     }
