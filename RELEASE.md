@@ -1,8 +1,8 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.77.0] -
+[0.77.0] - 13 Jul 2022
 
-* Update parent, data-wallet
+* Update parent, data-wallet, data-finance, data-core
 * SchedulerTasks execution optimize
 * WalletBalanceHistory related
 
