@@ -32,7 +32,7 @@ public class DailyBalanceRecordProcessService {
     @Autowired
     NotificationProperties notificationProperties;
 
-    public void processDayEndBalance() {
+    public String processDayEndBalance() {
         BigDecimal rateUSDToSGD = exchangeRateService.getRate(Currency.USD, Currency.SGD, ExchangeType.RATE);
         BigDecimal rateUSDTToSGD = exchangeRateService.getRate(Currency.USDT, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
         BigDecimal rateUSDCToSGD = exchangeRateService.getRate(Currency.USDC, Currency.USD, ExchangeType.RATE).multiply(rateUSDToSGD);
@@ -81,6 +81,7 @@ public class DailyBalanceRecordProcessService {
             }
             dailyBalanceRecordService.save(dailyBalanceRecord);
         });
+        return null;
     }
 
 }

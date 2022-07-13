@@ -20,7 +20,10 @@ import top.dtc.data.core.model.Otc;
 import top.dtc.data.core.service.CryptoTransactionService;
 import top.dtc.data.core.service.DefaultConfigService;
 import top.dtc.data.core.service.OtcService;
-import top.dtc.data.finance.enums.*;
+import top.dtc.data.finance.enums.InternalTransferReason;
+import top.dtc.data.finance.enums.InternalTransferStatus;
+import top.dtc.data.finance.enums.PayableStatus;
+import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.model.InternalTransfer;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.Receivable;
@@ -108,7 +111,7 @@ public class CryptoTransactionProcessService {
     @Autowired
     PaymentSettlementService paymentSettlementService;
 
-    public void scheduledStatusChecker() {
+    public String scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
         list.forEach(k -> {
             if (k.state == CryptoTransactionState.AUTHORIZED
@@ -123,6 +126,7 @@ public class CryptoTransactionProcessService {
                 }
             }
         });
+        return null;
     }
 
     /**
@@ -132,7 +136,7 @@ public class CryptoTransactionProcessService {
      * 3.Compare the balances with each currency of its threshold
      * 4.Transfer balance to DTC_OPS address
      */
-    public void scheduledAutoSweep() {
+    public String scheduledAutoSweep() {
         List<KycWalletAddress> dtcAssignedAddressList = kycWalletAddressService.getByParams(
                 1L,
                 null,
@@ -176,6 +180,7 @@ public class CryptoTransactionProcessService {
                         "details", sweepingDetails + "\n"
                 ))
                 .send();
+        return null;
     }
 
     /**
@@ -433,7 +438,12 @@ public class CryptoTransactionProcessService {
                                 //Satoshi Test received, credit satoshi amount to crypto account
                                 WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(satoshiTest.clientId, satoshiTest.currency);
                                 cryptoAccount.balance = cryptoAccount.balance.add(satoshiTest.amount);
-                                walletAccountService.updateById(cryptoAccount);
+                                walletAccountService.updateById(
+                                        cryptoAccount,
+                                        ActivityType.CRYPTO_DEPOSIT,
+                                        satoshiTest.id,
+                                        satoshiTest.amount
+                                );
                                 // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED)
                                 triggerSSE();
                                 registerToChainalysis(satoshiTest);
@@ -532,7 +542,7 @@ public class CryptoTransactionProcessService {
         cryptoTransactionService.updateById(cryptoTransaction);
 
         // Validate and auto write-off Receivable
-        Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(cryptoTransaction.id, InvoiceType.PAYMENT);
+        Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(cryptoTransaction.id, ActivityType.PAYMENT);
         Receivable receivable = receivableService.getById(receivableId);
         switch (receivable.status) {
             case NOT_RECEIVED:
@@ -586,7 +596,7 @@ public class CryptoTransactionProcessService {
         // Create Receivable and auto write-off
         createReceivable(cryptoTransaction, recipientAddress);
         // Credit deposit amount to crypto account
-        creditCryptoAmount(senderAddress.ownerId, cryptoTransaction.amount, cryptoTransaction.currency);
+        creditCryptoAmount(senderAddress.ownerId, cryptoTransaction);
         // Trigger SSE (MSG: WALLET_ACCOUNT_UPDATED) to Wallet Frontend
         triggerSSE();
     }
@@ -614,7 +624,7 @@ public class CryptoTransactionProcessService {
         notifyDepositCompleted(cryptoTransaction, recipientAddress);
         Receivable receivable = new Receivable();
         receivable.status = ReceivableStatus.RECEIVED;
-        receivable.type = InvoiceType.CRYPTO_DEPOSIT;
+        receivable.type = ActivityType.CRYPTO_DEPOSIT;
         receivable.receivedAmount = receivable.amount = cryptoTransaction.amount;
         receivable.currency = cryptoTransaction.currency;
         receivable.bankName = cryptoTransaction.mainNet.desc;
@@ -628,19 +638,24 @@ public class CryptoTransactionProcessService {
         ReceivableSub receivableSub = new ReceivableSub();
         receivableSub.receivableId = receivable.id;
         receivableSub.subId = cryptoTransaction.id;
-        receivableSub.type = InvoiceType.CRYPTO_DEPOSIT;
+        receivableSub.type = ActivityType.CRYPTO_DEPOSIT;
         receivableSubService.save(receivableSub);
         notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
     }
 
-    private void creditCryptoAmount(Long clientId, BigDecimal creditAmount, Currency creditCurrency) {
-        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(clientId, creditCurrency);
+    private void creditCryptoAmount(Long clientId, CryptoTransaction cryptoTransaction) {
+        WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(clientId, cryptoTransaction.currency);
         if (cryptoAccount == null) {
             log.error("Wallet account is not activated.");
             return;
         }
-        cryptoAccount.balance = cryptoAccount.balance.add(creditAmount);
-        walletAccountService.updateById(cryptoAccount);
+        cryptoAccount.balance = cryptoAccount.balance.add(cryptoTransaction.amount);
+        walletAccountService.updateById(
+                cryptoAccount,
+                ActivityType.CRYPTO_DEPOSIT,
+                cryptoTransaction.id,
+                cryptoTransaction.amount
+        );
     }
 
     private String handleSweep(KycWalletAddress dtcAssignedAddress, Currency currency, BigDecimal amount) {
