@@ -704,7 +704,7 @@ public class CryptoTransactionProcessService {
                 internalTransfer.status = InternalTransferStatus.INIT;
                 internalTransfer.amount = transferAmount;
                 internalTransfer.currency = currency;
-                internalTransfer.feeCurrency = dtcAssignedAddress.mainNet.feeCurrency;
+                internalTransfer.feeCurrency = dtcAssignedAddress.mainNet.nativeCurrency;
                 internalTransfer.recipientAccountType = AccountType.CRYPTO;
                 internalTransfer.recipientAccountId = dtcOpsAddress.id;
                 internalTransfer.senderAccountId = dtcAssignedAddress.id;
@@ -899,12 +899,14 @@ public class CryptoTransactionProcessService {
 
     private Long getDefaultAutoSweepAddress(DefaultConfig defaultConfig, MainNet mainNet) {
         switch (mainNet) {
-            case BTC:
+            case BITCOIN:
                 return defaultConfig.defaultAutoSweepBtcAddress;
-            case ERC20:
+            case ETHEREUM:
                 return defaultConfig.defaultAutoSweepErcAddress;
-            case TRC20:
+            case TRON:
                 return defaultConfig.defaultAutoSweepTrcAddress;
+            case POLYGON:
+                // TODO default auto sweep polygon address;
             default:
                 return null;
         }

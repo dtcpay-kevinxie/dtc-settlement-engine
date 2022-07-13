@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.78.0] -
+
+* Update parent
+
 [0.77.0] - 13 Jul 2022
 
 * Update parent, data-wallet, data-finance, data-core
