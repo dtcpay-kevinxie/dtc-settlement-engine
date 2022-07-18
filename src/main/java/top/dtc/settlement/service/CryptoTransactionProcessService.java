@@ -43,6 +43,7 @@ import top.dtc.settlement.constant.NotificationConstant;
 import top.dtc.settlement.constant.SseConstant;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
+import top.dtc.settlement.core.properties.TransactionProperties;
 import top.dtc.settlement.handler.PdfGenerator;
 import top.dtc.settlement.model.api.ApiResponse;
 
@@ -110,6 +111,9 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     PaymentSettlementService paymentSettlementService;
+
+    @Autowired
+    TransactionProperties transactionProperties;
 
     public String scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
@@ -310,6 +314,18 @@ public class CryptoTransactionProcessService {
         CryptoTransaction existingTxn = cryptoTransactionService.getOneByTxnHash(result.id);
         if (existingTxn != null) {
             log.debug("Transaction is linked to {}", JSON.toJSONString(existingTxn, true));
+            if (existingTxn.currency == Currency.USDT && existingTxn.amount.compareTo(transactionProperties.usdtThreshold) <= 0) {
+                log.debug("Anti-dust detected, Currency: {}, Amount: {}", existingTxn.currency, existingTxn.amount);
+                return;
+            }
+            if (existingTxn.currency == Currency.ETH && existingTxn.amount.compareTo(transactionProperties.ethThreshold) <= 0) {
+                log.debug("Anti-dust detected, Currency: {}, Amount: {}", existingTxn.currency, existingTxn.amount);
+                return;
+            }
+            if (existingTxn.currency == Currency.BTC && existingTxn.amount.compareTo(transactionProperties.btcThreshold) <= 0) {
+                log.debug("Anti-dust detected, Currency: {}, Amount: {}", existingTxn.currency, existingTxn.amount);
+                return;
+            }
             // 2a. Check Transaction State: PENDING, COMPLETED, REJECTED, CLOSED
             switch (existingTxn.state) {
                 case AUTHORIZED:
@@ -404,6 +420,18 @@ public class CryptoTransactionProcessService {
                         sendAlert(notificationProperties.complianceRecipient, alertMsg);
                     } else {
                         // Deposit, sender address is enabled already
+                        if (result.currency == Currency.USDT && output.amount.compareTo(transactionProperties.usdtThreshold) <= 0) {
+                            log.debug("Anti-dust detected, Currency: {}, Amount: {}", result.currency, output.amount);
+                            return;
+                        }
+                        if (result.currency == Currency.BTC && output.amount.compareTo(transactionProperties.btcThreshold) <= 0) {
+                            log.debug("Anti-dust detected, Currency: {}, Amount: {}", result.currency, output.amount);
+                            return;
+                        }
+                        if (result.currency == Currency.ETH && output.amount.compareTo(transactionProperties.ethThreshold) <= 0) {
+                            log.debug("Anti-dust detected, Currency: {}, Amount: {}", result.currency, output.amount);
+                            return;
+                        }
                         this.handleDeposit(result, recipientAddress, senderAddress, output);
                     }
                     return;
