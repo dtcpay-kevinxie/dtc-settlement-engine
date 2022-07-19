@@ -24,7 +24,7 @@ public class ExchangeRatesController {
             @RequestParam("name") String name,
             @RequestParam("async") boolean async
     ) {
-        log.debug("[POST] /scheduled/get-crypto-rate");
+        log.debug("[GET] /scheduled/get-crypto-rate");
         return SchedulerUtils.executeTask(group, name, async, () -> {
             exchangeRatesApiService.getCryptoRate();
             return null;
