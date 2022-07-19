@@ -1,9 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.78.0] - 
+[0.78.0] - 19 Jul 2022
 
 * Update parent
 * Anti-dust feature support
+* log4j2-spring-local.xml
 
 [0.77.0] - 13 Jul 2022
 
