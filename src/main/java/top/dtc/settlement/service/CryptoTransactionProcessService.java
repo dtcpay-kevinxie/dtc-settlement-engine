@@ -43,6 +43,7 @@ import top.dtc.settlement.constant.NotificationConstant;
 import top.dtc.settlement.constant.SseConstant;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
+import top.dtc.settlement.core.properties.TransactionProperties;
 import top.dtc.settlement.handler.PdfGenerator;
 import top.dtc.settlement.model.api.ApiResponse;
 
@@ -110,6 +111,9 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     PaymentSettlementService paymentSettlementService;
+
+    @Autowired
+    TransactionProperties transactionProperties;
 
     public String scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
@@ -454,11 +458,19 @@ public class CryptoTransactionProcessService {
                         }
                     }
                     // Transaction is not for satoshi test
+                    if (isDustTxn(result.currency, output.amount)) {
+                        log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
+                        return;
+                    }
                     alertMsg = String.format("Transaction [%s] sent from undefined address(es) [%s] to address [%s] which is assigned Client(%s).",
                             result.id, inputAddresses, recipientAddress.address, clientId);
                     log.error(alertMsg);
                     sendAlert(notificationProperties.complianceRecipient, alertMsg);
                 } else {
+                    if (isDustTxn(result.currency, output.amount)) {
+                        log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
+                        return;
+                    }
                     alertMsg = String.format("Unexpected transaction [%s] sent from %s (id=%s)[%s] to address [%s] which is assigned Client(%s)",
                             result.id, senderAddress.type.desc, senderAddress.id, senderAddress.address, recipientAddress.address, clientId);
                     log.error(alertMsg);
@@ -471,6 +483,10 @@ public class CryptoTransactionProcessService {
                     log.info("Gas filled to DTC_GAS address [{}]", recipientAddress.address);
                     internalTransferCompleted(result.id, InternalTransferReason.GAS, result.fee);
                 } else {
+                    if (isDustTxn(result.currency, output.amount)) {
+                        log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
+                        return;
+                    }
                     alertMsg = String.format("Transaction [%s] sent from undefined address(es) [%s] to DTC_GAS address [%s].", result.id, inputAddresses, recipientAddress.address);
                     log.error(alertMsg);
                     sendAlert(notificationProperties.opsRecipient, alertMsg);
@@ -494,6 +510,10 @@ public class CryptoTransactionProcessService {
                             return;
                     }
                 } else {
+                    if (isDustTxn(result.currency, output.amount)) {
+                        log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
+                        return;
+                    }
                     alertMsg = String.format("Transaction [%s] sent from undefined address(es) [%s] to DTC_OPS address [%s].", result.id, inputAddresses, recipientAddress.address);
                     log.error(alertMsg);
                     sendAlert(notificationProperties.opsRecipient, alertMsg);
@@ -504,6 +524,10 @@ public class CryptoTransactionProcessService {
                     log.info("Sweep from [{}] to [{}] completed", senderAddress.address, recipientAddress.address);
                     internalTransferCompleted(result.id, InternalTransferReason.SWEEP, result.fee);
                 } else {
+                    if (isDustTxn(result.currency, output.amount)) {
+                        log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
+                        return;
+                    }
                     alertMsg = String.format("Transaction [%s] sent from undefined address(es) [%s] to DTC_FINANCE address [%s].", result.id, inputAddresses, recipientAddress.address);
                     log.error(alertMsg);
                     sendAlert(notificationProperties.opsRecipient, alertMsg);
@@ -908,6 +932,12 @@ public class CryptoTransactionProcessService {
             default:
                 return null;
         }
+    }
+
+    private boolean isDustTxn(Currency currency, BigDecimal amount) {
+        return currency == Currency.USDT && amount.compareTo(transactionProperties.usdtThreshold) <= 0
+                || currency == Currency.ETH && amount.compareTo(transactionProperties.ethThreshold) <= 0
+                || currency == Currency.BTC && amount.compareTo(transactionProperties.btcThreshold) <= 0;
     }
 
     private void triggerSSE() {

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration strict="true" name="ApplicationConfig">
+
+    <Properties>
+        <Property name="app">dtc-crypto-engine</Property>
+        <Property name="logpattern">%d{yyyy-MM-dd HH:mm:ss,SSS XX} %5p %c{1.} - %m%n</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="STDOUT">
+            <PatternLayout pattern="${logpattern}"/>
+        </Console>
+        <RollingFile name="ErrorFile" fileName="logs/${app}.err.log"
+                     filePattern="logs/${app}.err.log.%d{yyyyMMdd}.gz"
+                     ignoreExceptions="false" append="true">
+            <PatternLayout>
+                <Pattern>${logpattern}</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy maxRandomDelay="120"/>
+            </Policies>
+            <Filter type="ThresholdFilter" level="error"/>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="org.springframework" level="INFO"/>
+        <Logger name="top.dtc" level="TRACE"/>
+        <Logger name="org.apache.commons.pool" level="TRACE"/>
+
+        <Root>
+            <AppenderRef ref="STDOUT"/>
+        </Root>
+    </Loggers>
+
+</Configuration>
