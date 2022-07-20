@@ -41,10 +41,10 @@ import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.data.wallet.service.WalletUserService;
 import top.dtc.settlement.constant.NotificationConstant;
 import top.dtc.settlement.constant.SseConstant;
+import top.dtc.settlement.core.properties.CryptoTransactionProperties;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
-import top.dtc.settlement.core.properties.TransactionProperties;
-import top.dtc.settlement.handler.pdf.PdfGenerator;
+import top.dtc.settlement.handler.PdfGenerator;
 import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
@@ -113,7 +113,7 @@ public class CryptoTransactionProcessService {
     PaymentSettlementService paymentSettlementService;
 
     @Autowired
-    TransactionProperties transactionProperties;
+    CryptoTransactionProperties transactionProperties;
 
     public String scheduledStatusChecker() {
         List<CryptoTransaction> list = cryptoTransactionService.list();
