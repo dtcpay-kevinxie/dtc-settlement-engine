@@ -10,6 +10,7 @@ import top.dtc.common.integration.binance.domain.QueryUserUnSettleReq;
 import top.dtc.common.integration.binance.domain.QueryUserUnSettleResp;
 import top.dtc.common.integration.binance.domain.SettleCreditOrderResp;
 import top.dtc.common.integration.binance.domain.SettleCreditOrdersReq;
+import top.dtc.common.model.api.ApiRequest;
 import top.dtc.common.model.api.ApiResponse;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.settlement.core.properties.HttpProperties;
@@ -36,7 +37,7 @@ public class BinanceSettleService {
         RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.integrationEngineUrlPrefix
                         + "/api/integration/binance/query-user-unsettle")
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
-                .body(queryUserUnSettleReq);
+                .body(new ApiRequest<>(queryUserUnSettleReq));
         log.debug("Request url: {}", requestBodyEntity.getUrl());
         ApiResponse<QueryUserUnSettleResp> queryUserUnSettleResp = requestBodyEntity.asObject(
                 new GenericType<ApiResponse<QueryUserUnSettleResp>>() {
@@ -64,7 +65,7 @@ public class BinanceSettleService {
         RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.integrationEngineUrlPrefix
                         + "/api/integration/binance/settle-credit-orders")
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
-                .body(settleCreditOrdersReq);
+                .body(new ApiRequest<>(settleCreditOrdersReq));
         log.debug("Request url: {}", requestBodyEntity.getUrl());
         ApiResponse<SettleCreditOrderResp> settleCreditOrderResp = requestBodyEntity.asObject(
                 new GenericType<ApiResponse<SettleCreditOrderResp>>() {
