@@ -34,7 +34,7 @@ public class BinanceSettleService {
         QueryUserUnSettleReq queryUserUnSettleReq = new QueryUserUnSettleReq();
         queryUserUnSettleReq.endTime = System.currentTimeMillis();
         RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.integrationEngineUrlPrefix
-                        + "/integration/binance//query-user-unsettle")
+                        + "/api/integration/binance/query-user-unsettle")
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .body(queryUserUnSettleReq);
         log.debug("Request url: {}", requestBodyEntity.getUrl());
@@ -47,10 +47,7 @@ public class BinanceSettleService {
                 || queryUserUnSettleResp.result.DetailList == null
                 || queryUserUnSettleResp.result.DetailList.size() < 1) {
             log.error("User Unsettle Query API Failed {}", JSON.toJSONString(queryUserUnSettleResp, true));
-        }
-        if (queryUserUnSettleResp != null
-                && queryUserUnSettleResp.result.DetailList != null
-                && queryUserUnSettleResp.result.DetailList.size() > 0) {
+        } else {
             NotificationSender
                     .by(QUERY_USER_UNSETTLE)
                     .to(notificationProperties.complianceRecipient)
@@ -65,7 +62,7 @@ public class BinanceSettleService {
         SettleCreditOrdersReq settleCreditOrdersReq = new SettleCreditOrdersReq();
         settleCreditOrdersReq.endTime = System.currentTimeMillis();
         RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.integrationEngineUrlPrefix
-                        + "/integration/binance/settle-credit-orders")
+                        + "/api/integration/binance/settle-credit-orders")
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .body(settleCreditOrdersReq);
         log.debug("Request url: {}", requestBodyEntity.getUrl());

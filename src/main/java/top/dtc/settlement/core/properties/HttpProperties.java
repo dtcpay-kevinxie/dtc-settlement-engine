@@ -1,12 +1,10 @@
 package top.dtc.settlement.core.properties;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@Getter
-@Setter
+@Data
 @Component
 @ConfigurationProperties(prefix = "http")
 public class HttpProperties {
