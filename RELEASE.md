@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.78.0] - 19 Jul 2022
+[0.78.0] - 20 Jul 2022
 
 * Update parent
 * Anti-dust feature support
