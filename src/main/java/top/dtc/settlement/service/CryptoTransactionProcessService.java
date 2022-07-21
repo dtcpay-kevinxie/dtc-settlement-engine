@@ -44,7 +44,7 @@ import top.dtc.settlement.constant.SseConstant;
 import top.dtc.settlement.core.properties.CryptoTransactionProperties;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
-import top.dtc.settlement.handler.pdf.PdfGenerator;
+import top.dtc.settlement.handler.PdfGenerator;
 import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
