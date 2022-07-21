@@ -44,7 +44,7 @@ import top.dtc.settlement.constant.SseConstant;
 import top.dtc.settlement.core.properties.CryptoTransactionProperties;
 import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
-import top.dtc.settlement.handler.PdfGenerator;
+import top.dtc.settlement.handler.pdf.PdfGenerator;
 import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
@@ -936,8 +936,10 @@ public class CryptoTransactionProcessService {
 
     private boolean isDustTxn(Currency currency, BigDecimal amount) {
         return currency == Currency.USDT && amount.compareTo(transactionProperties.usdtThreshold) <= 0
+                || currency == Currency.USDC && amount.compareTo(transactionProperties.usdtThreshold) <= 0 // USDC and USDT using same threshold
                 || currency == Currency.ETH && amount.compareTo(transactionProperties.ethThreshold) <= 0
-                || currency == Currency.BTC && amount.compareTo(transactionProperties.btcThreshold) <= 0;
+                || currency == Currency.BTC && amount.compareTo(transactionProperties.btcThreshold) <= 0
+                || currency == Currency.TRX && amount.compareTo(transactionProperties.trxThreshold) <= 0;
     }
 
     private void triggerSSE() {
