@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.80.0] - 22 Jul 2022
+
+* Update data-wallet
+
 [0.79.0] - 21 Jul 2022
 
 * Add TRX anti-dust amount
