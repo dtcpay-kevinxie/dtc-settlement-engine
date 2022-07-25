@@ -42,4 +42,5 @@ transaction:
   anti-dust:
     btc-threshold: ${ANTI_DUST_BTC_THRESHOLD}
     eth-threshold: ${ANTI_DUST_ETH_THRESHOLD}
+    trx-threshold: ${ANTI_DUST_TRX_THRESHOLD}
     usdt-threshold: ${ANTI_DUST_USDT_THRESHOLD}

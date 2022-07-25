@@ -13,6 +13,7 @@ public class CryptoTransactionProperties {
 
     public BigDecimal btcThreshold; // anti-dust default value: 0.0005 BTC
     public BigDecimal ethThreshold; // anti-dust default value: 0.001 ETH
-    public BigDecimal usdtThreshold; // anti-dust default value: 10.00 USDT
+    public BigDecimal usdtThreshold; // anti-dust default value: 10.00 USDT and USDC
+    public BigDecimal trxThreshold; // anti-dust default value: 10.00 TRX
 
 }

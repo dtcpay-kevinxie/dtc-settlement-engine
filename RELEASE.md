@@ -1,8 +1,8 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.79.0] -
+[0.79.0] - 21 Jul 2022
 
-* Update parent
+* Add TRX anti-dust amount
 
 [0.78.0] - 20 Jul 2022
 
