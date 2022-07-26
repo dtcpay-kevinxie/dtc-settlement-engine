@@ -7,6 +7,10 @@ EXPOSE 8443
 # Set the directory where we will add and run the binary
 WORKDIR /app
 
+RUN apt-get update && \
+    apt-get install -y ttf-dejavu libfreetype6 fontconfig && \
+    apt-get clean
+
 # Add non-root user which will be used when running the java app
 RUN adduser --disabled-login --disabled-password --gecos GECOS dtcuser && \
   chown -R dtcuser:dtcuser /app

@@ -3,6 +3,7 @@
 [0.81.0] -
 
 * Update parent & date-* & poi
+* Dockerfile install font libs
 
 [0.80.0] - 22 Jul 2022
 
