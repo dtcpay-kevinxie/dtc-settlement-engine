@@ -23,4 +23,7 @@ import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
 })
 public class FiatTransactionReport extends FiatTransaction {
 
+    @RecordField(order = 7, title = "Rate to SGD")
+    public String rateToSGD;
+
 }
