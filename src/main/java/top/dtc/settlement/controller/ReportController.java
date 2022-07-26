@@ -2,10 +2,8 @@ package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import top.dtc.common.util.SchedulerUtils;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.ReportingService;
@@ -22,21 +20,16 @@ public class ReportController {
     ReportingService reportingService;
 
     @GetMapping(value = "/mas/monthly")
-    public ApiResponse<?> processMasReportScheduled() {
-        try {
-            log.debug("[GET] /mas/scheduled/");
-//            LocalDate startDate = LocalDate.parse(dateStart, DateTimeFormatter.ofPattern("yyyyMMdd"));
-//            LocalDate endDate = LocalDate.parse(dateEnd, DateTimeFormatter.ofPattern("yyyyMMdd"));
-            reportingService.masReport2A(
-                    LocalDate.parse("20220701", DateTimeFormatter.ofPattern("yyyyMMdd")),
-                    LocalDate.now(),
-                    null
-            );
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
-        } catch (Exception e) {
-            log.error("Cannot process otc commission", e);
-            return new ApiResponse<>(ApiHeaderConstant.RECEIVABLE.OTHER_ERROR(e.getMessage()));
-        }
+    public String processMasReportScheduled(
+            @RequestParam("group") String group,
+            @RequestParam("name") String name,
+            @RequestParam("async") boolean async
+    ) {
+        log.debug("[GET] /mas/monthly");
+        return SchedulerUtils.executeTask(group, name, async, () -> {
+            reportingService.processMonthlyReport();
+            return null;
+        });
     }
 
     @GetMapping(value = "/mas/{reportType}/{dateStart}/{dateEnd}")

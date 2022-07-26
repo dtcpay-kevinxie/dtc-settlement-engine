@@ -10,10 +10,7 @@ import top.dtc.common.enums.FiatTransactionState;
 import top.dtc.common.enums.PoboTransactionState;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.data.core.enums.ClientStatus;
-import top.dtc.data.core.model.FiatTransaction;
-import top.dtc.data.core.model.Individual;
-import top.dtc.data.core.model.MonitoringMatrix;
-import top.dtc.data.core.model.NonIndividual;
+import top.dtc.data.core.model.*;
 import top.dtc.data.core.service.*;
 import top.dtc.data.finance.model.RemitInfo;
 import top.dtc.data.finance.service.RemitInfoService;
@@ -29,6 +26,7 @@ import top.dtc.settlement.report_processor.vo.PoboTransactionReport;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,11 +78,26 @@ public class ReportingService {
                     dateRateToSGD.put(Currency.SGD, BigDecimal.ONE);
                     continue;
                 }
-                dateRateToSGD.put(sellCurrency, exchangeRateService.getRateByDate(sellCurrency, Currency.SGD, rateDate).exchangeRate);
+                ExchangeRate exchangeRate = exchangeRateService.getRateByDate(sellCurrency, Currency.SGD, rateDate);
+                if (exchangeRate != null) {
+                    dateRateToSGD.put(sellCurrency, exchangeRate.exchangeRate);
+                }
             }
             ratesMap.put(rateDate, dateRateToSGD);
         }
         return ratesMap;
+    }
+
+    public void processMonthlyReport() {
+        try {
+            masReport2A(
+                    LocalDate.parse("20220701", DateTimeFormatter.ofPattern("yyyyMMdd")),
+                    LocalDate.now(),
+                    null
+            );
+        } catch (Exception e) {
+            log.error("Report Failed", e);
+        }
     }
 
     private void masReport1A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
