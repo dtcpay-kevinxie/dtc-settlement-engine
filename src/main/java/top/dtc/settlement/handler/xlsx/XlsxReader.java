@@ -1,7 +1,9 @@
-package top.dtc.settlement.handler;
+package top.dtc.settlement.handler.xlsx;
 
 import org.apache.poi.ss.usermodel.*;
 import top.dtc.common.util.StringUtils;
+import top.dtc.settlement.handler.RecordField;
+import top.dtc.settlement.handler.XlsxReaderStore;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -13,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class XlsxHandler {
+public class XlsxReader {
 
     private static final DataFormatter dataFormatter = new DataFormatter();
     private static final BigDecimal BD_100 = new BigDecimal(100);
@@ -37,8 +39,8 @@ public class XlsxHandler {
             return null;
         }
         T object = clazz.getDeclaredConstructor().newInstance();
-        for (Field field : HandlerStore.getFieldList(clazz)) {
-            RecordField recordField = HandlerStore.getRecordField(clazz, field);
+        for (Field field : XlsxReaderStore.getFieldList(clazz)) {
+            RecordField recordField = XlsxReaderStore.getRecordField(clazz, field);
             if (!recordField.ignoredFromExcel()) {
                 String data = recordField.fixedValue();
                 if (data.isEmpty()) {
@@ -78,7 +80,7 @@ public class XlsxHandler {
         } else if (String.class == field.getType()) {
             field.set(object, data);
         } else if (Date.class == field.getType()) {
-            SimpleDateFormat dateFormat = HandlerStore.getDateFormat(recordField.format());
+            SimpleDateFormat dateFormat = XlsxReaderStore.getDateFormat(recordField.format());
             if (dateFormat != null) {
                 field.set(object, dateFormat.parse(data));
             }

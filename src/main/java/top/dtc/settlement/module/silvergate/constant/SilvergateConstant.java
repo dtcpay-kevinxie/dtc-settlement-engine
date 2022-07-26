@@ -2,7 +2,6 @@ package top.dtc.settlement.module.silvergate.constant;
 
 public class SilvergateConstant {
 
-    public final static String TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
     public final static String ACCOUNTS_SPLITTER = ",";
     public final static String ACCOUNT_INFO_SPLITTER = ":";
 
