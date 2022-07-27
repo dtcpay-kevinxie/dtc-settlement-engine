@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.81.0] -
+[0.81.0] - 27 Jul 2022
 
 * Update parent & date-* & poi
 * Dockerfile install font libs
