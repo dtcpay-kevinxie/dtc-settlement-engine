@@ -13,6 +13,7 @@ import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.RemitInfo;
 import top.dtc.data.finance.service.PayableService;
 import top.dtc.data.finance.service.RemitInfoService;
+import top.dtc.settlement.constant.DateConstant;
 import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.module.silvergate.constant.SilvergateConstant;
@@ -63,8 +64,8 @@ public class SilvergateProcessService {
         //TODO: Differentiate Receivable and Payable by account number
         AccountHistoryReq accountHistoryReq = new AccountHistoryReq();
         accountHistoryReq.accountNumber = notificationPost.accountNumber;
-        accountHistoryReq.beginDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        accountHistoryReq.endDate = LocalDate.now().plusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        accountHistoryReq.beginDate = LocalDate.now().format(DateTimeFormatter.ofPattern(DateConstant.SILVERGATE.DATE));
+        accountHistoryReq.endDate = LocalDate.now().plusDays(1).format(DateTimeFormatter.ofPattern(DateConstant.SILVERGATE.DATE));
         log.info("AccountHistoryReq {}", accountHistoryReq);
         AccountHistoryResp historyResp = silvergateApiService.getAccountHistory(accountHistoryReq);
         StringBuilder transactionDetails = new StringBuilder();

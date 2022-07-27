@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class HandlerStore {
+public class XlsxReaderStore {
 
     private static final Map<Class<?>, List<Field>> fieldMap = new HashMap<>();
     private static final Map<String, SimpleDateFormat> dateFormatMap = new HashMap<>();
@@ -33,18 +33,18 @@ public class HandlerStore {
         fieldMap.put(clazz, fieldList);
     }
 
-    protected static List<Field> getFieldList(Class<?> clazz) {
+    public static List<Field> getFieldList(Class<?> clazz) {
         if (!fieldMap.containsKey(clazz)) {
             init(clazz);
         }
         return fieldMap.get(clazz);
     }
 
-    protected static RecordField getRecordField(Class<?> clazz, Field field) {
+    public static RecordField getRecordField(Class<?> clazz, Field field) {
         return recordFieldMap.get(clazz).get(field);
     }
 
-    protected static SimpleDateFormat getDateFormat(String format) {
+    public static SimpleDateFormat getDateFormat(String format) {
         return dateFormatMap.get(format);
     }
 

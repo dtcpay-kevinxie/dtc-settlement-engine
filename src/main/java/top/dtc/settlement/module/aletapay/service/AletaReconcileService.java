@@ -17,7 +17,7 @@ import top.dtc.data.finance.service.ReceivableService;
 import top.dtc.settlement.constant.ErrorMessage;
 import top.dtc.settlement.constant.SettlementConstant;
 import top.dtc.settlement.exception.ReceivableException;
-import top.dtc.settlement.handler.XlsxHandler;
+import top.dtc.settlement.handler.xlsx.XlsxReader;
 import top.dtc.settlement.module.aletapay.core.properties.AletaProperties;
 import top.dtc.settlement.module.aletapay.model.AletaSettlementReport;
 
@@ -63,7 +63,7 @@ public class AletaReconcileService {
             Workbook workbook = WorkbookFactory.create(file);
             Sheet sheet = workbook.getSheetAt(0);
             AletaSettlementReport aletaSettlementReport = new AletaSettlementReport();
-            aletaSettlementReport.records = XlsxHandler.readListFromSheet(sheet, AletaSettlementReport.Record.class, 5);
+            aletaSettlementReport.records = XlsxReader.readListFromSheet(sheet, AletaSettlementReport.Record.class, 5);
             this.processReceivableReconcile(aletaSettlementReport, receivable);
             this.moveToDoneFolder(file);
             return true;

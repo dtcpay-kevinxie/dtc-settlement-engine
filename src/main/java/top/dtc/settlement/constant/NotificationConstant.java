@@ -14,6 +14,7 @@ public class NotificationConstant {
         public static final String SILVERGATE_PAY_INITIAL = "SILVERGATE_PAY_INITIAL";
         public static final String SILVERGATE_BALANCE_CHANGED = "SILVERGATE_BALANCE_CHANGED";
         public static final String QUERY_USER_UNSETTLE = "QUERY_USER_UNSETTLE";
+        public static final String MAS_REPORT = "MAS_REPORT";
     }
 
 }

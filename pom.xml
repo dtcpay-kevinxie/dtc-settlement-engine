@@ -6,7 +6,7 @@
     <parent>
         <groupId>top.dtc</groupId>
         <artifactId>dtc-parent</artifactId>
-        <version>0.47.0</version>
+        <version>0.48.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
@@ -21,7 +21,7 @@
         <amazonaws.version>1.11.142</amazonaws.version>
         <jsch.version>0.1.55</jsch.version>
         <netty.version>4.1.42.Final</netty.version>
-        <poi.version>4.1.1</poi.version>
+        <poi.version>5.2.2</poi.version>
     </properties>
 
     <dependencies>
@@ -36,17 +36,17 @@
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-core</artifactId>
-            <version>0.62.0</version>
+            <version>0.63.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-finance</artifactId>
-            <version>0.33.0</version>
+            <version>0.39.0</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-risk</artifactId>
-            <version>0.58.0</version>
+            <version>0.59.0</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
