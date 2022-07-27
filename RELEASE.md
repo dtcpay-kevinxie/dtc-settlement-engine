@@ -4,6 +4,7 @@
 
 * Update parent & date-* & poi
 * Dockerfile install font libs
+* Add MAS Reporting module
 
 [0.80.0] - 22 Jul 2022
 

@@ -23,10 +23,7 @@ import top.dtc.data.risk.model.RiskMatrix;
 import top.dtc.data.wallet.model.WalletBalanceHistory;
 import top.dtc.settlement.handler.FieldValue;
 import top.dtc.settlement.handler.xlsx.XlsxGenerator;
-import top.dtc.settlement.report_processor.vo.AccountIssuedReport;
-import top.dtc.settlement.report_processor.vo.FiatTransactionReport;
-import top.dtc.settlement.report_processor.vo.PoboTransactionReport;
-import top.dtc.settlement.report_processor.vo.RiskMatrixReport;
+import top.dtc.settlement.report_processor.vo.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,10 +32,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.math.BigDecimal.ZERO;
@@ -102,7 +96,7 @@ public class MasReportXlsxProcessor {
 
     private static void generateFiatTransactionSheet(
             MasReportXlsxProcessor processor,
-            List<FiatTransaction> fiatTransactionList,
+            List<FiatTransactionReport> fiatTransactionList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IllegalAccessException {
         /*
@@ -111,9 +105,9 @@ public class MasReportXlsxProcessor {
         XlsxGenerator
                 .records(processor.workbook, fiatTransactionList, FiatTransactionReport.class)
                 .valueHandler((key, record) -> {
-                    FiatTransaction fiatTransaction = (FiatTransaction) record;
+                    FiatTransactionReport fiatTransactionReport = (FiatTransactionReport) record;
                     if ("rateToSGD".equals(key)) {
-                        return new FieldValue<>(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap));
+                        return new FieldValue<>(getRateToSGD(fiatTransactionReport.currency, fiatTransactionReport.completedTime, ratesMap));
                     }
                     return FieldValue.empty();
                 })
@@ -130,6 +124,13 @@ public class MasReportXlsxProcessor {
          */
         XlsxGenerator
                 .records(processor.workbook, poboTransactionList, PoboTransactionReport.class)
+                .valueHandler((key, record) -> {
+                    PoboTransactionReport poboTransactionReport = (PoboTransactionReport) record;
+                    if ("rateToSGD".equals(key)) {
+                        return new FieldValue<>(getRateToSGD(poboTransactionReport.recipientCurrency, poboTransactionReport.approvedTime, ratesMap));
+                    }
+                    return FieldValue.empty();
+                })
                 .genSheet("Payment-on-behalf-of Transaction");
     }
 
@@ -253,7 +254,7 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate2a(
             LocalDate startDate,
             LocalDate endDate,
-            List<FiatTransaction> fiatTransactionList,
+            List<FiatTransactionReport> fiatTransactionList,
             List<PoboTransactionReport> poboTransactionList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
@@ -285,7 +286,7 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate2b(
             LocalDate startDate,
             LocalDate endDate,
-            List<FiatTransaction> fiatTransactionList,
+            List<FiatTransactionReport> fiatTransactionList,
             List<PoboTransactionReport> poboTransactionList,
             Set<Long> clientInSGP,
             List<RiskMatrix> riskMatrixList,
@@ -398,7 +399,7 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate3a(
             LocalDate startDate,
             LocalDate endDate,
-            List<FiatTransaction> fiatTransactionList,
+            List<FiatTransactionReport> fiatTransactionList,
             List<PoboTransactionReport> poboTransactionList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
@@ -449,7 +450,7 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate3b(
             LocalDate startDate,
             LocalDate endDate,
-            List<FiatTransaction> fiatTransactionList,
+            List<FiatTransactionReport> fiatTransactionList,
             List<PoboTransactionReport> poboTransactionList,
             Set<Long> clientInSGP,
             Set<Long> fiClient,
@@ -642,13 +643,65 @@ public class MasReportXlsxProcessor {
             }
         }
 
-//        List<TotalCountByCountry> totalCountByCountryList =
-//                outwardCountByRecipientCountry
-//                        .values()
-//                        .stream()
-//                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalCountByCountry::getTotalCount)))
-//                        .limit(10)
-//                        .collect(Collectors.toList());
+        // All POBO transactions are outward
+        HashMap<String, TotalSortingObject> outwardCountByCountry = poboTransactionList.stream()
+                .collect(Collectors.toMap(
+                        o -> o.recipientCountry,
+                        x -> new TotalSortingObject(null, x.recipientCountry, null),
+                        (left, right) -> {
+                            left.totalCount++;
+                            return left;
+                        },
+                        HashMap::new
+                ));
+
+        // Only fiat withdrawal transactions are outward
+        HashMap<String, TotalSortingObject> outwardFiatCountByCountry = fiatTransactionList.stream()
+                .filter(fiatTransactionReport -> fiatTransactionReport.type == FiatTransactionType.WITHDRAW)
+                .collect(Collectors.toMap(
+                        o -> o.recipientCountry,
+                        x -> new TotalSortingObject(null, x.recipientCountry, null),
+                        (left, right) -> {
+                            left.totalCount++;
+                            return left;
+                        },
+                        HashMap::new
+                ));
+        outwardCountByCountry.forEach(
+                (k, v) -> outwardFiatCountByCountry.merge(k, v, (totalSortingObject, totalSortingObject2) -> {
+                    totalSortingObject.totalCount = totalSortingObject.totalCount + totalSortingObject2.totalCount;
+                    return totalSortingObject;
+                })
+        );
+
+        List<TotalSortingObject> totalOutwardCountByCountryList =
+                outwardCountByCountry
+                        .values()
+                        .stream()
+                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                        .limit(10)
+                        .collect(Collectors.toList());
+
+        // Only fiat deposit is inward
+        HashMap<String, TotalSortingObject> inwardFiatCountByCountry = fiatTransactionList.stream()
+                .filter(fiatTransactionReport -> fiatTransactionReport.type == FiatTransactionType.DEPOSIT)
+                .collect(Collectors.toMap(
+                        o -> o.recipientCountry,
+                        x -> new TotalSortingObject(null, x.recipientCountry, null),
+                        (left, right) -> {
+                            left.totalCount++;
+                            return left;
+                        },
+                        HashMap::new
+                ));
+
+        List<TotalSortingObject> totalInwardCountByCountryList =
+                inwardFiatCountByCountry
+                        .values()
+                        .stream()
+                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                        .limit(10)
+                        .collect(Collectors.toList());
 
         // Form 3B-1 Outward in Singapore
         processor.getCellByPos(sheet0, "B7").setCellValue(totalOutwardAmountFiInSGP.toString()); // 3B-1 (a)
@@ -698,13 +751,18 @@ public class MasReportXlsxProcessor {
         processor.getCellByPos(sheet0, "B39").setCellValue("0.00"); // 3B-6 (d)
         processor.getCellByPos(sheet0, "D39").setCellValue(0);
         processor.getCellByPos(sheet0, "E39").setCellValue("NA");
-        // Form 3B-7 (a)
-//        for (int i = 0; i < totalCountByCountryList.size(); i++) {
-//            int row = 42 + i;
-//            processor.getCellByPos(sheet0, "C" + row).setCellValue(totalCountByCountryList.get(i).country);
-//            processor.getCellByPos(sheet0, "D" + row).setCellValue(totalCountByCountryList.get(i).totalCount);
-//        }
-        // Form 3B-7 (b) No outward cross-border funds
+        // Form 3B-7 (a) Outward counts by country
+        for (int i = 0; i < totalOutwardCountByCountryList.size(); i++) {
+            int row = 42 + i;
+            processor.getCellByPos(sheet0, "C" + row).setCellValue(totalOutwardCountByCountryList.get(i).country);
+            processor.getCellByPos(sheet0, "D" + row).setCellValue(totalOutwardCountByCountryList.get(i).totalCount);
+        }
+        // Form 3B-7 (b) Inward counts by country
+        for (int i = 0; i < totalInwardCountByCountryList.size(); i++) {
+            int row = 53 + i;
+            processor.getCellByPos(sheet0, "C" + row).setCellValue(totalInwardCountByCountryList.get(i).country);
+            processor.getCellByPos(sheet0, "D" + row).setCellValue(totalInwardCountByCountryList.get(i).totalCount);
+        }
 
         // Form 3B-8
         processor.getCellByPos(sheet0, "B65").setCellValue(totalAmountHighRisk.toString()); // 3B-6 (a)
@@ -717,28 +775,17 @@ public class MasReportXlsxProcessor {
         processor.getCellByPos(sheet0, "B70").setCellValue("0.00"); // 3B-9 (c)
         processor.getCellByPos(sheet0, "D70").setCellValue(0);
         processor.getCellByPos(sheet0, "E70").setCellValue("NA");
-//        /*
-//                SHEET 1 Cross-border Transfer Transaction
-//         */
-//                        generateFiatTransactionSheet(processor);
-//        /*
-//                SHEET 2 Non-individual Client
-//         */
-//        XlsxGenerator
-//                .records(workbook, nonIndividualList, NonIndividualReport.class)
-//                .genSheet("Non-individual Client");
-//        /*
-//                SHEET 3 Individual Client
-//         */
-//        XlsxGenerator
-//                .records(workbook, individualList, IndividualReport.class)
-//                .genSheet("Individual Client");
-//        /*
-//                SHEET 4 Risk Matrix
-//         */
-//        XlsxGenerator
-//                .records(workbook, riskMatrixList, RiskMatrixReport.class)
-//                .genSheet("Risk Matrix");
+        // Form 3B-10 No agent used
+        processor.getCellByPos(sheet0, "C73").setCellValue("NA");
+        processor.getCellByPos(sheet0, "C84").setCellValue("NA");
+        /*
+                SHEET 1 Cross-border Transfer Transaction
+         */
+        generateFiatTransactionSheet(processor, fiatTransactionList, ratesMap);
+        /*
+                SHEET 3 Risk Matrix
+         */
+        generateRiskMatrixSheet(processor, riskMatrixList);
         return processor;
     }
 

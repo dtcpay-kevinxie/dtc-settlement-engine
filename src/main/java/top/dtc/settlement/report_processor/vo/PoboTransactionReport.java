@@ -4,6 +4,8 @@ import top.dtc.data.core.model.PoboTransaction;
 import top.dtc.settlement.handler.Record;
 import top.dtc.settlement.handler.RecordField;
 
+import java.math.BigDecimal;
+
 import static top.dtc.settlement.constant.DateConstant.FORMAT.DATETIME;
 import static top.dtc.settlement.handler.RecordFieldType.*;
 
@@ -26,6 +28,9 @@ public class PoboTransactionReport extends PoboTransaction {
 
     @RecordField(order = 12, title = "Country")
     public String recipientCountry;
+
+    @RecordField(order = 13, title = "Rate to SGD")
+    public BigDecimal rateToSGD;
 
 }
 

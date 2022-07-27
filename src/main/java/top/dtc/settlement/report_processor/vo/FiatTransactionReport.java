@@ -26,4 +26,7 @@ public class FiatTransactionReport extends FiatTransaction {
     @RecordField(order = 7, title = "Rate to SGD")
     public String rateToSGD;
 
+    @RecordField(order = 8, title = "Country")
+    public String recipientCountry;
+
 }

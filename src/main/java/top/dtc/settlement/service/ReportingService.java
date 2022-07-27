@@ -4,15 +4,14 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.enums.ClientType;
-import top.dtc.common.enums.Currency;
-import top.dtc.common.enums.FiatTransactionState;
-import top.dtc.common.enums.PoboTransactionState;
+import top.dtc.common.enums.*;
 import top.dtc.common.util.NotificationSender;
 import top.dtc.data.core.enums.ClientStatus;
-import top.dtc.data.core.model.*;
+import top.dtc.data.core.model.ExchangeRate;
+import top.dtc.data.core.model.Individual;
+import top.dtc.data.core.model.MonitoringMatrix;
+import top.dtc.data.core.model.NonIndividual;
 import top.dtc.data.core.service.*;
-import top.dtc.data.finance.model.RemitInfo;
 import top.dtc.data.finance.service.RemitInfoService;
 import top.dtc.data.risk.enums.RiskLevel;
 import top.dtc.data.risk.model.RiskMatrix;
@@ -21,6 +20,7 @@ import top.dtc.data.wallet.model.WalletBalanceHistory;
 import top.dtc.data.wallet.service.WalletBalanceHistoryService;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.report_processor.MasReportXlsxProcessor;
+import top.dtc.settlement.report_processor.vo.FiatTransactionReport;
 import top.dtc.settlement.report_processor.vo.PoboTransactionReport;
 
 import java.io.IOException;
@@ -119,7 +119,8 @@ public class ReportingService {
                 startDate.atStartOfDay(),
                 endDate.plusDays(1).atStartOfDay()
         );
-        byte[] reportByte = MasReportXlsxProcessor.generate1a(startDate, endDate, monitoringMatrixList, walletBalanceHistoryList, ratesMap).toByteArray();
+        byte[] reportByte = MasReportXlsxProcessor.generate1a(
+                startDate, endDate, monitoringMatrixList, walletBalanceHistoryList, ratesMap).toByteArray();
         sendReportEmail("1A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -134,9 +135,9 @@ public class ReportingService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<PoboTransactionReport> poboTransactionList = getDomesticPoboList(startDate, endDate);
-        log.debug("pobo report {}", poboTransactionList);
-        List<FiatTransaction> fiatTransactionList = getDomesticFiatList(startDate, endDate);
-        byte[] reportByte = MasReportXlsxProcessor.generate2a(startDate, endDate, fiatTransactionList, poboTransactionList, ratesMap).toByteArray();
+        List<FiatTransactionReport> fiatTransactionList = getDomesticFiatList(startDate, endDate);
+        byte[] reportByte = MasReportXlsxProcessor.generate2a(
+                startDate, endDate, fiatTransactionList, poboTransactionList, ratesMap).toByteArray();
         sendReportEmail("2A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -145,11 +146,12 @@ public class ReportingService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<PoboTransactionReport> poboTransactionList = getDomesticPoboList(startDate, endDate);
-        List<FiatTransaction> fiatTransactionList = getDomesticFiatList(startDate, endDate);
+        List<FiatTransactionReport> fiatTransactionList = getDomesticFiatList(startDate, endDate);
         List<RiskMatrix> highRiskList = getHighRiskList();
         Set<Long> clientInSGP = getIndividualIdListInSGP();
         clientInSGP.addAll(getNonIndividualIdListInSGP());
-        byte[] reportByte = MasReportXlsxProcessor.generate2b(startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, highRiskList, ratesMap).toByteArray();
+        byte[] reportByte = MasReportXlsxProcessor.generate2b(
+                startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, highRiskList, ratesMap).toByteArray();
         sendReportEmail("2B", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -158,8 +160,9 @@ public class ReportingService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<PoboTransactionReport> poboTransactionList = getCrossBorderPoboList(startDate, endDate);
-        List<FiatTransaction> fiatTransactionList = getCrossBorderFiatList(startDate, endDate);
-        byte[] reportByte = MasReportXlsxProcessor.generate3a(startDate, endDate, fiatTransactionList, poboTransactionList, ratesMap).toByteArray();
+        List<FiatTransactionReport> fiatTransactionList = getCrossBorderFiatList(startDate, endDate);
+        byte[] reportByte = MasReportXlsxProcessor.generate3a(
+                startDate, endDate, fiatTransactionList, poboTransactionList, ratesMap).toByteArray();
         sendReportEmail("3A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -168,12 +171,13 @@ public class ReportingService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<PoboTransactionReport> poboTransactionList = getCrossBorderPoboList(startDate, endDate);
-        List<FiatTransaction> fiatTransactionList = getCrossBorderFiatList(startDate, endDate);
+        List<FiatTransactionReport> fiatTransactionList = getCrossBorderFiatList(startDate, endDate);
         Set<Long> clientInSGP = getIndividualIdListInSGP();
         clientInSGP.addAll(getNonIndividualIdListInSGP());
         Set<Long> fiClient = getFiIdList();
         List<RiskMatrix> highRiskList = getHighRiskList();
-        byte[] reportByte = MasReportXlsxProcessor.generate3b(startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, fiClient, highRiskList, ratesMap).toByteArray();
+        byte[] reportByte = MasReportXlsxProcessor.generate3b(
+                startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, fiClient, highRiskList, ratesMap).toByteArray();
         sendReportEmail("3B", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -228,30 +232,13 @@ public class ReportingService {
 
     private List<PoboTransactionReport> getDomesticPoboList(LocalDate startDate, LocalDate endDate) {
         return getPoboReportList(startDate, endDate).stream()
-                .filter(poboTransactionReport -> !"SGP".equals(poboTransactionReport.recipientCountry))
-                .collect(Collectors.toList());
-    }
-
-    private List<FiatTransaction> getDomesticFiatList(LocalDate startDate, LocalDate endDate) {
-        return fiatTransactionService.getByParams(
-                        FiatTransactionState.COMPLETED,
-                        null,
-                        null,
-                        null,
-                        null,
-                        startDate.atStartOfDay(),
-                        endDate.plusDays(1).atStartOfDay()
-                ).stream()
-                .filter(fiatTransaction -> {
-                    RemitInfo remitInfo = remitInfoService.getById(fiatTransaction.remitInfoId);
-                    return remitInfo.beneficiaryBankCountry.equals("SGP");
-                })
+                .filter(poboTransactionReport -> "SGP".equals(poboTransactionReport.recipientCountry))
                 .collect(Collectors.toList());
     }
 
     private List<PoboTransactionReport> getCrossBorderPoboList(LocalDate startDate, LocalDate endDate) {
         return getPoboReportList(startDate, endDate).stream()
-                .filter(poboTransactionReport -> "SGP".equals(poboTransactionReport.recipientCountry))
+                .filter(poboTransactionReport -> !"SGP".equals(poboTransactionReport.recipientCountry))
                 .collect(Collectors.toList());
     }
 
@@ -275,7 +262,25 @@ public class ReportingService {
                 .collect(Collectors.toList());
     }
 
-    private List<FiatTransaction> getCrossBorderFiatList(LocalDate startDate, LocalDate endDate) {
+    private List<FiatTransactionReport> getDomesticFiatList(LocalDate startDate, LocalDate endDate) {
+        return getFiatReportList(startDate, endDate).stream()
+                .filter(fiatTransactionReport -> // For DEPOSIT fiat transaction, no originator info, only can differentiate by currency, SGD account in SGP, the rest outside SGP
+                        fiatTransactionReport.type == FiatTransactionType.WITHDRAW && "SGP".equals(fiatTransactionReport.recipientCountry)
+                                || fiatTransactionReport.type == FiatTransactionType.DEPOSIT && fiatTransactionReport.currency == Currency.SGD
+                )
+                .collect(Collectors.toList());
+    }
+
+    private List<FiatTransactionReport> getCrossBorderFiatList(LocalDate startDate, LocalDate endDate) {
+        return getFiatReportList(startDate, endDate).stream()
+                .filter(fiatTransactionReport -> // For DEPOSIT fiat transaction, no originator info, only can differentiate by currency, SGD account in SGP, the rest outside SGP
+                    fiatTransactionReport.type == FiatTransactionType.WITHDRAW && !"SGP".equals(fiatTransactionReport.recipientCountry)
+                            || fiatTransactionReport.type == FiatTransactionType.DEPOSIT && fiatTransactionReport.currency != Currency.SGD
+                )
+                .collect(Collectors.toList());
+    }
+
+    private List<FiatTransactionReport> getFiatReportList(LocalDate startDate, LocalDate endDate) {
         return fiatTransactionService.getByParams(
                         FiatTransactionState.COMPLETED,
                         null,
@@ -285,9 +290,11 @@ public class ReportingService {
                         startDate.atStartOfDay(),
                         endDate.plusDays(1).atStartOfDay()
                 ).stream()
-                .filter(fiatTransaction -> {
-                    RemitInfo remitInfo = remitInfoService.getById(fiatTransaction.remitInfoId);
-                    return !remitInfo.beneficiaryBankCountry.equals("SGP");
+                .map(fiatTransaction -> {
+                    FiatTransactionReport fiatTransactionReport = new FiatTransactionReport();
+                    BeanUtils.copyProperties(fiatTransaction, fiatTransactionReport);
+                    fiatTransactionReport.recipientCountry = remitInfoService.getById(fiatTransaction.remitInfoId).beneficiaryBankCountry;
+                    return fiatTransactionReport;
                 })
                 .collect(Collectors.toList());
     }
@@ -301,7 +308,7 @@ public class ReportingService {
                             "date_start", startDate,
                             "date_end", endDate
                     ))
-                    .attachment("PSN04-Report-" + reportType + "-" + startDate + "-" + endDate + ".pdf", reportByte)
+                    .attachment("PSN04-Report-" + reportType + "-" + startDate + "-" + endDate + ".xlsx", reportByte)
                     .send();
         } catch (Exception e) {
             log.error("Notification Error", e);
