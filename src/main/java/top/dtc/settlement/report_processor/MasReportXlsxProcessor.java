@@ -36,6 +36,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.*;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.math.BigDecimal.ZERO;
+import static top.dtc.common.enums.Currency.SGD;
 
 @Log4j2
 public class MasReportXlsxProcessor {
@@ -1054,17 +1056,46 @@ public class MasReportXlsxProcessor {
         processor.getCellByPos(sheet0, "D24").setCellValue(dptClientOutsideSGP.size());
         processor.getCellByPos(sheet0, "D25").setCellValue(countNonFaceToFace);
         // Form 6B-4
-        // TODO: To calculate average balance
-        processor.getCellByPos(sheet0, "D28").setCellValue("");
+        {
+            Map<Integer, BigDecimal> lengthOfMonths = new HashMap<>();
+            for (LocalDate d = startDate; d.isBefore(endDate); d = d.plusMonths(1)) {
+                lengthOfMonths.put(d.getMonthValue(), new BigDecimal(YearMonth.from(d).lengthOfMonth()));
+            }
+            BigDecimal averageBalance = dailyBalanceRecordList.stream()
+                    // Every client summing balances per month
+                    .collect(Collectors.groupingBy(
+                            r -> r.balanceDate.getMonthValue(),
+                            Collectors.toMap(
+                                    r -> r.clientId,
+                                    r -> r.currency == SGD ? r.amount : r.amount.multiply(r.rateToSgd),
+                                    BigDecimal::add
+                            )
+                    )).entrySet().stream()
+                    .map(entry -> entry.getValue().values().stream()
+                            .sorted()
+                            // Skip bottom 10%
+                            .skip((long) (entry.getValue().size() * 0.1))
+                            // Middle 80% (skip top 10%)
+                            .limit((long) (entry.getValue().size() * 0.8))
+                            .reduce(ZERO, BigDecimal::add)
+                            // Daily
+                            .divide(lengthOfMonths.get(entry.getKey()), RoundingMode.HALF_UP)
+                    )
+                    .reduce(ZERO, BigDecimal::add)
+                    // Average monthly
+                    .divide(new BigDecimal(lengthOfMonths.size()), RoundingMode.HALF_UP);
+
+            processor.getCellByPos(sheet0, "D28").setCellValue(averageBalance.toString());
+        }
         // Form 6B-5 (a)
         printTop5ByAmountIn6B(processor, sheet0, otcList, 32);
         printTop5ByCountIn6B(processor, sheet0, otcList, 37);
         // Form 6B-5 (b)
-        List<OtcReport> otcInSGDList = otcList.stream().filter(otc -> otc.fiatCurrency == Currency.SGD).collect(Collectors.toList());
+        List<OtcReport> otcInSGDList = otcList.stream().filter(otc -> otc.fiatCurrency == SGD).collect(Collectors.toList());
         printTop5ByAmountIn6B(processor, sheet0, otcInSGDList, 43);
         printTop5ByCountIn6B(processor, sheet0, otcInSGDList, 48);
         // Form 6B-5 (c)
-        List<OtcReport> otcNotSGDList = otcList.stream().filter(otc -> otc.fiatCurrency != Currency.SGD).collect(Collectors.toList());
+        List<OtcReport> otcNotSGDList = otcList.stream().filter(otc -> otc.fiatCurrency != SGD).collect(Collectors.toList());
         printTop5ByAmountIn6B(processor, sheet0, otcNotSGDList, 54);
         printTop5ByCountIn6B(processor, sheet0, otcNotSGDList, 59);
         // Form 6B-5 (d)
