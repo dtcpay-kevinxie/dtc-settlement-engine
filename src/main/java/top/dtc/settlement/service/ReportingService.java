@@ -295,7 +295,8 @@ public class ReportingService {
         }
         // Get DPT enabled activated clients' daily balance record
         List<DailyBalanceRecord> dailyBalanceRecordList = dailyBalanceRecordService.list().stream()
-                .filter(dailyBalanceRecord -> dptClientOutsideSGP.contains(dailyBalanceRecord.clientId) || dptClientInSGP.contains(dailyBalanceRecord.clientId))
+                .filter(dailyBalanceRecord -> dailyBalanceRecord.currency.isCrypto()
+                        && (dptClientOutsideSGP.contains(dailyBalanceRecord.clientId) || dptClientInSGP.contains(dailyBalanceRecord.clientId)))
                 .collect(Collectors.toList());
         // Get DPT enabled activated RiskMatrix
         List<RiskMatrix> riskMatrixList = riskMatrixService.list().stream()
