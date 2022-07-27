@@ -13,13 +13,18 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.FiatTransactionType;
 import top.dtc.common.util.ClientTypeUtils;
-import top.dtc.data.core.model.FiatTransaction;
-import top.dtc.data.core.model.MonitoringMatrix;
-import top.dtc.data.core.model.PoboTransaction;
+import top.dtc.data.core.enums.OtcType;
+import top.dtc.data.core.enums.TerminalType;
+import top.dtc.data.core.model.*;
+import top.dtc.data.finance.model.DailyBalanceRecord;
+import top.dtc.data.risk.enums.RiskLevel;
+import top.dtc.data.risk.enums.VerificationType;
 import top.dtc.data.risk.model.RiskMatrix;
+import top.dtc.data.wallet.model.WalletAccount;
 import top.dtc.data.wallet.model.WalletBalanceHistory;
 import top.dtc.settlement.handler.FieldValue;
 import top.dtc.settlement.handler.xlsx.XlsxGenerator;
@@ -28,12 +33,14 @@ import top.dtc.settlement.report_processor.vo.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.math.BigDecimal.ZERO;
 
@@ -104,13 +111,6 @@ public class MasReportXlsxProcessor {
          */
         XlsxGenerator
                 .records(processor.workbook, fiatTransactionList, FiatTransactionReport.class)
-                .valueHandler((key, record) -> {
-                    FiatTransactionReport fiatTransactionReport = (FiatTransactionReport) record;
-                    if ("rateToSGD".equals(key)) {
-                        return new FieldValue<>(getRateToSGD(fiatTransactionReport.currency, fiatTransactionReport.completedTime, ratesMap));
-                    }
-                    return FieldValue.empty();
-                })
                 .genSheet("Fiat Transaction");
     }
 
@@ -124,14 +124,58 @@ public class MasReportXlsxProcessor {
          */
         XlsxGenerator
                 .records(processor.workbook, poboTransactionList, PoboTransactionReport.class)
-                .valueHandler((key, record) -> {
-                    PoboTransactionReport poboTransactionReport = (PoboTransactionReport) record;
-                    if ("rateToSGD".equals(key)) {
-                        return new FieldValue<>(getRateToSGD(poboTransactionReport.recipientCurrency, poboTransactionReport.approvedTime, ratesMap));
-                    }
-                    return FieldValue.empty();
-                })
                 .genSheet("Payment-on-behalf-of Transaction");
+    }
+
+    private static void generateMerchantAcquisitionTransactionSheet(
+            MasReportXlsxProcessor processor,
+            List<PaymentTransactionReport> paymentTransactionList,
+            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+    ) throws IllegalAccessException {
+        /*
+               SHEET Merchant Acquisition Transaction
+         */
+        XlsxGenerator
+                .records(processor.workbook, paymentTransactionList, PaymentTransactionReport.class)
+                .genSheet("MA Transactions");
+    }
+
+    private static void generateOtcSheet(
+            MasReportXlsxProcessor processor,
+            List<OtcReport> otcList,
+            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+    ) throws IllegalAccessException {
+        /*
+               SHEET OTC Transaction
+         */
+        XlsxGenerator
+                .records(processor.workbook, otcList, OtcReport.class)
+                .genSheet("OTC Transactions");
+    }
+
+    private static void generateCryptoTransactionSheet(
+            MasReportXlsxProcessor processor,
+            List<CryptoTransactionReport> cryptoTransactionList,
+            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+    ) throws IllegalAccessException {
+        /*
+               SHEET Crypto Transaction
+         */
+        XlsxGenerator
+                .records(processor.workbook, cryptoTransactionList, OtcReport.class)
+                .genSheet("Crypto Transactions");
+    }
+
+    private static void generateMerchantSheet(
+            MasReportXlsxProcessor processor,
+            List<NonIndividual> nonIndividualList
+    ) throws IllegalAccessException {
+        /*
+                SHEET Merchant
+         */
+        XlsxGenerator
+                .records(processor.workbook, nonIndividualList, NonIndividualReport.class)
+                .genSheet("Merchant List");
     }
 
     private static void generateRiskMatrixSheet(
@@ -150,15 +194,48 @@ public class MasReportXlsxProcessor {
         return ratesMap.get(txnTime.toLocalDate()).get(currency);
     }
 
-    private BigDecimal addPoboAmount(PoboTransactionReport poboTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        BigDecimal rateToSGD = getRateToSGD(poboTransactionReport.recipientCurrency, poboTransactionReport.approvedTime, ratesMap);
-        BigDecimal amountChanged = poboTransactionReport.recipientAmount.multiply(rateToSGD);
+    private static BigDecimal getPoboAmount(PoboTransactionReport poboTransactionReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        return poboTransactionReport.recipientAmount.multiply(getRateToSGD(poboTransactionReport.recipientCurrency, poboTransactionReport.approvedTime, ratesMap));
+    }
+
+    private static BigDecimal addPoboAmount(PoboTransactionReport poboTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        BigDecimal amountChanged = getPoboAmount(poboTransactionReport, ratesMap);
         return amountBefore.add(amountChanged);
     }
 
-    private BigDecimal addFiatTransferAmount(FiatTransactionReport fiatTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        BigDecimal rateToSGD = getRateToSGD(fiatTransactionReport.currency, fiatTransactionReport.completedTime, ratesMap);
-        BigDecimal amountChanged = fiatTransactionReport.amount.multiply(rateToSGD);
+    private static BigDecimal getFiatTransferAmount(FiatTransactionReport fiatTransactionReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        return fiatTransactionReport.amount.multiply(getRateToSGD(fiatTransactionReport.currency, fiatTransactionReport.completedTime, ratesMap));
+    }
+
+    private static BigDecimal addFiatTransferAmount(FiatTransactionReport fiatTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        BigDecimal amountChanged = getFiatTransferAmount(fiatTransactionReport, ratesMap);
+        return amountBefore.add(amountChanged);
+    }
+
+    private static BigDecimal getPaymentAmount(PaymentTransactionReport paymentTransactionReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        return paymentTransactionReport.totalAmount.multiply(getRateToSGD(paymentTransactionReport.requestCurrency, paymentTransactionReport.dtcTimestamp, ratesMap));
+    }
+
+    private static BigDecimal addPaymentAmount(PaymentTransactionReport paymentTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        BigDecimal amountChanged = getPaymentAmount(paymentTransactionReport, ratesMap);
+        return amountBefore.add(amountChanged);
+    }
+
+    private static BigDecimal getOtcAmount(OtcReport otcReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        return otcReport.fiatAmount.multiply(getRateToSGD(otcReport.fiatCurrency, otcReport.completedTime, ratesMap));
+    }
+
+    private static BigDecimal addOtcAmount(OtcReport otcReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        BigDecimal amountChanged = getOtcAmount(otcReport, ratesMap);
+        return amountBefore.add(amountChanged);
+    }
+
+    private static BigDecimal getCryptoTransactionAmount(CryptoTransactionReport cryptoTransactionReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        return cryptoTransactionReport.amount.multiply(getRateToSGD(cryptoTransactionReport.currency, cryptoTransactionReport.requestTimestamp, ratesMap));
+    }
+
+    private static BigDecimal addCryptoTransactionAmount(CryptoTransactionReport cryptoTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        BigDecimal amountChanged = getCryptoTransactionAmount(cryptoTransactionReport, ratesMap);
         return amountBefore.add(amountChanged);
     }
 
@@ -195,7 +272,7 @@ public class MasReportXlsxProcessor {
         }
         processor.getCellByPos(sheet0, "B10").setCellValue(valueOfPlacement.toString()); // 2-a
         processor.getCellByPos(sheet0, "C10").setCellValue(countOfPlacement);
-        processor.getCellByPos(sheet0, "B11").setCellValue(valueOfWithdrawal.toString()); // 2-b
+        processor.getCellByPos(sheet0, "B11").setCellValue(valueOfWithdrawal.negate().toString()); // 2-b
         processor.getCellByPos(sheet0, "C11").setCellValue(countOfWithdrawal);
         // Form 1A-3
         int countDomestic = 0;
@@ -265,10 +342,10 @@ public class MasReportXlsxProcessor {
         XSSFSheet sheet0 = initSummarySheet(processor, startDate, endDate, "2A");
         // Form 2A-1
         BigDecimal fiatAmount = fiatTransactionList.stream()
-                .map(fiatTransaction -> fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)))
+                .map(fiatTransaction -> getFiatTransferAmount(fiatTransaction, ratesMap))
                 .reduce(ZERO, BigDecimal::add);
         BigDecimal poboAmount = poboTransactionList.stream()
-                .map(poboTransaction -> poboTransaction.recipientAmount.multiply(getRateToSGD(poboTransaction.recipientCurrency, poboTransaction.approvedTime, ratesMap)))
+                .map(poboTransaction -> getPoboAmount(poboTransaction, ratesMap))
                 .reduce(ZERO, BigDecimal::add);
         processor.getCellByPos(sheet0, "B6").setCellValue(fiatAmount.add(poboAmount).toString());
         processor.getCellByPos(sheet0, "C6").setCellValue(fiatTransactionList.size() + poboTransactionList.size());
@@ -311,61 +388,51 @@ public class MasReportXlsxProcessor {
                 .map(RiskMatrix::getClientId)
                 .collect(Collectors.toSet());
         // Calculate POBO Transaction
-        for (PoboTransaction poboTransaction : poboTransactionList) {
+        for (PoboTransactionReport poboTransaction : poboTransactionList) {
             if (ClientTypeUtils.isIndividual(poboTransaction.clientId)) {
                 if (clientInSGP.contains(poboTransaction.clientId)) {
                     countIndividualInSGP++;
-                    totalAmountIndividualInSGP = totalAmountIndividualInSGP.add(
-                            poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                    totalAmountIndividualInSGP = addPoboAmount(poboTransaction, totalAmountIndividualInSGP, ratesMap);
                 } else {
                     countIndividualOutSGP++;
-                    totalAmountIndividualOutSGP = totalAmountIndividualOutSGP.add(
-                            poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                    totalAmountIndividualOutSGP = addPoboAmount(poboTransaction, totalAmountIndividualOutSGP, ratesMap);
                 }
             } else {
                 if (clientInSGP.contains(poboTransaction.clientId)) {
                     countNonIndividualInSGP++;
-                    totalAmountNonIndividualInSGP = totalAmountNonIndividualInSGP.add(
-                            poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                    totalAmountNonIndividualInSGP = addPoboAmount(poboTransaction, totalAmountNonIndividualInSGP, ratesMap);
                 } else {
                     countNonIndividualOutSGP++;
-                    totalAmountNonIndividualOutSGP = totalAmountNonIndividualOutSGP.add(
-                            poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                    totalAmountNonIndividualOutSGP = addPoboAmount(poboTransaction, totalAmountNonIndividualOutSGP, ratesMap);
                 }
             }
             if (highRiskClient.contains(poboTransaction.clientId)) {
                 countHighRisk++;
-                totalAmountHighRisk = totalAmountHighRisk.add(
-                        poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                totalAmountHighRisk = addPoboAmount(poboTransaction, totalAmountHighRisk, ratesMap);
             }
         }
         // Calculate Fiat Transaction
-        for (FiatTransaction fiatTransaction : fiatTransactionList) {
+        for (FiatTransactionReport fiatTransaction : fiatTransactionList) {
             if (ClientTypeUtils.isIndividual(fiatTransaction.clientId)) {
                 if (clientInSGP.contains(fiatTransaction.clientId)) {
                     countIndividualInSGP++;
-                    totalAmountIndividualInSGP = totalAmountIndividualInSGP.add(
-                            fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                    totalAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalAmountIndividualInSGP, ratesMap);
                 } else {
                     countIndividualOutSGP++;
-                    totalAmountIndividualOutSGP = totalAmountIndividualOutSGP.add(
-                            fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                    totalAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalAmountIndividualOutSGP, ratesMap);
                 }
             } else {
                 if (clientInSGP.contains(fiatTransaction.clientId)) {
                     countNonIndividualInSGP++;
-                    totalAmountNonIndividualInSGP = totalAmountNonIndividualInSGP.add(
-                            fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                    totalAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalAmountNonIndividualInSGP, ratesMap);
                 } else {
                     countNonIndividualOutSGP++;
-                    totalAmountNonIndividualOutSGP = totalAmountNonIndividualOutSGP.add(
-                            fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                    totalAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalAmountNonIndividualOutSGP, ratesMap);
                 }
             }
             if (highRiskClient.contains(fiatTransaction.clientId)) {
                 countHighRisk++;
-                totalAmountHighRisk = totalAmountHighRisk.add(
-                        fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk, ratesMap);
             }
         }
         // Form 2B-1
@@ -504,142 +571,118 @@ public class MasReportXlsxProcessor {
                 .collect(Collectors.toSet());
 
         // POBO transactions are all outward
-        for (PoboTransaction poboTransaction : poboTransactionList) {
+        for (PoboTransactionReport poboTransaction : poboTransactionList) {
             if (ClientTypeUtils.isIndividual(poboTransaction.clientId)) {
                 // Individual client will not contains FI
                 if (clientInSGP.contains(poboTransaction.clientId)) {
                     countOutwardIndividualInSGP++;
-                    totalOutwardAmountIndividualInSGP = totalOutwardAmountIndividualInSGP.add(
-                            poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                    totalOutwardAmountIndividualInSGP = addPoboAmount(poboTransaction, totalOutwardAmountIndividualInSGP, ratesMap);
                 } else {
                     countOutwardIndividualOutSGP++;
-                    totalOutwardAmountIndividualOutSGP = totalOutwardAmountIndividualOutSGP.add(
-                            poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                    totalOutwardAmountIndividualOutSGP = addPoboAmount(poboTransaction, totalOutwardAmountIndividualOutSGP, ratesMap);
                 }
             } else {
                 // Non-individual includes FI
                 if (clientInSGP.contains(poboTransaction.clientId)) {
                     if (fiClient.contains(poboTransaction.clientId)) {
                         countOutwardFiInSGP++;
-                        totalOutwardAmountFiInSGP = totalOutwardAmountFiInSGP.add(
-                                poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                        totalOutwardAmountFiInSGP = addPoboAmount(poboTransaction, totalOutwardAmountFiInSGP, ratesMap);
                     } else {
                         countOutwardNonIndividualInSGP++;
-                        totalOutwardAmountNonIndividualInSGP = totalOutwardAmountNonIndividualInSGP.add(
-                                poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                        totalOutwardAmountNonIndividualInSGP = addPoboAmount(poboTransaction, totalOutwardAmountNonIndividualInSGP, ratesMap);
                     }
                 } else {
                     if (fiClient.contains(poboTransaction.clientId)) {
                         countOutwardFiOutSGP++;
-                        totalOutwardAmountFiOutSGP = totalOutwardAmountFiOutSGP.add(
-                                poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                        totalOutwardAmountFiOutSGP = addPoboAmount(poboTransaction, totalOutwardAmountFiOutSGP, ratesMap);
                     } else {
                         countOutwardNonIndividualOutSGP++;
-                        totalOutwardAmountNonIndividualOutSGP = totalOutwardAmountNonIndividualOutSGP.add(
-                                poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                        totalOutwardAmountNonIndividualOutSGP = addPoboAmount(poboTransaction, totalOutwardAmountNonIndividualOutSGP, ratesMap);
                     }
                 }
             }
             if (highRiskClient.contains(poboTransaction.clientId)) {
                 countHighRisk++;
-                totalAmountHighRisk = totalAmountHighRisk.add(
-                        poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+                totalAmountHighRisk = addPoboAmount(poboTransaction, totalAmountHighRisk, ratesMap);
             }
             countOutwardToBank++;
-            totalOutwardAmountToBank = totalOutwardAmountToBank.add(
-                    poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+            totalOutwardAmountToBank = addPoboAmount(poboTransaction, totalOutwardAmountToBank, ratesMap);
         }
 
         // fiatTransaction.type DEPOSIT for inward, fiatTransaction.type WITHDRAWAL for outward
-        for (FiatTransaction fiatTransaction : fiatTransactionList) {
+        for (FiatTransactionReport fiatTransaction : fiatTransactionList) {
             if (fiatTransaction.type == FiatTransactionType.DEPOSIT) {
                 if (ClientTypeUtils.isIndividual(fiatTransaction.clientId)) {
                     // Individual client will not contains FI
                     if (clientInSGP.contains(fiatTransaction.clientId)) {
                         countInwardIndividualInSGP++;
-                        totalInwardAmountIndividualInSGP = totalInwardAmountIndividualInSGP.add(
-                                fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                        totalInwardAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountIndividualInSGP, ratesMap);
                     } else {
                         countInwardIndividualOutSGP++;
-                        totalInwardAmountIndividualOutSGP = totalInwardAmountIndividualOutSGP.add(
-                                fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                        totalInwardAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountIndividualOutSGP, ratesMap);
                     }
                 } else {
                     // Non-individual includes FI
                     if (clientInSGP.contains(fiatTransaction.clientId)) {
                         if (fiClient.contains(fiatTransaction.clientId)) {
                             countInwardFiInSGP++;
-                            totalInwardAmountFiInSGP = totalInwardAmountFiInSGP.add(
-                                    fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                            totalInwardAmountFiInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountFiInSGP, ratesMap);
                         } else {
                             countInwardNonIndividualInSGP++;
-                            totalInwardAmountNonIndividualInSGP = totalInwardAmountNonIndividualInSGP.add(
-                                    fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                            totalInwardAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountNonIndividualInSGP, ratesMap);
                         }
                     } else {
                         if (fiClient.contains(fiatTransaction.clientId)) {
                             countInwardFiOutSGP++;
-                            totalInwardAmountFiOutSGP = totalInwardAmountFiOutSGP.add(
-                                    fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                            totalInwardAmountFiOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountFiOutSGP, ratesMap);
                         } else {
                             countInwardNonIndividualOutSGP++;
-                            totalInwardAmountNonIndividualOutSGP = totalInwardAmountNonIndividualOutSGP.add(
-                                    fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                            totalInwardAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountNonIndividualOutSGP, ratesMap);
                         }
                     }
                 }
                 if (highRiskClient.contains(fiatTransaction.clientId)) {
                     countHighRisk++;
-                    totalAmountHighRisk = totalAmountHighRisk.add(
-                            fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                    totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk, ratesMap);
                 }
                 countInwardToBank++;
-                totalInwardAmountToBank = totalOutwardAmountToBank.add(
-                        fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                totalInwardAmountToBank = addFiatTransferAmount(fiatTransaction, totalOutwardAmountToBank, ratesMap);
             } else {
                 if (ClientTypeUtils.isIndividual(fiatTransaction.clientId)) {
                     // Individual client will not contains FI
                     if (clientInSGP.contains(fiatTransaction.clientId)) {
                         countOutwardIndividualInSGP++;
-                        totalOutwardAmountIndividualInSGP = totalOutwardAmountIndividualInSGP.add(
-                                fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                        totalOutwardAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountIndividualInSGP, ratesMap);
                     } else {
                         countOutwardIndividualOutSGP++;
-                        totalOutwardAmountIndividualOutSGP = totalOutwardAmountIndividualOutSGP.add(
-                                fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                        totalOutwardAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountIndividualOutSGP, ratesMap);
                     }
                 } else {
                     // Non-individual includes FI
                     if (clientInSGP.contains(fiatTransaction.clientId)) {
                         if (fiClient.contains(fiatTransaction.clientId)) {
                             countOutwardFiInSGP++;
-                            totalOutwardAmountFiInSGP = totalOutwardAmountFiInSGP.add(
-                                    fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                            totalOutwardAmountFiInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountFiInSGP, ratesMap);
                         } else {
                             countOutwardNonIndividualInSGP++;
-                            totalOutwardAmountNonIndividualInSGP = totalOutwardAmountNonIndividualInSGP.add(
-                                    fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                            totalOutwardAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountNonIndividualInSGP, ratesMap);
                         }
                     } else {
                         if (fiClient.contains(fiatTransaction.clientId)) {
                             countOutwardFiOutSGP++;
-                            totalOutwardAmountFiOutSGP = totalOutwardAmountFiOutSGP.add(
-                                    fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                            totalOutwardAmountFiOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountFiOutSGP, ratesMap);
                         } else {
                             countOutwardNonIndividualOutSGP++;
-                            totalOutwardAmountNonIndividualOutSGP = totalOutwardAmountNonIndividualOutSGP.add(
-                                    fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                            totalOutwardAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountNonIndividualOutSGP, ratesMap);
                         }
                     }
                 }
                 if (highRiskClient.contains(fiatTransaction.clientId)) {
                     countHighRisk++;
-                    totalAmountHighRisk = totalAmountHighRisk.add(
-                            fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                    totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk, ratesMap);
                 }
                 countOutwardToBank++;
-                totalOutwardAmountToBank = totalOutwardAmountToBank.add(
-                        fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                totalOutwardAmountToBank = addFiatTransferAmount(fiatTransaction, totalOutwardAmountToBank, ratesMap);
             }
         }
 
@@ -783,104 +826,358 @@ public class MasReportXlsxProcessor {
          */
         generateFiatTransactionSheet(processor, fiatTransactionList, ratesMap);
         /*
+                SHEET 2 Cross-border Pobo Transaction
+         */
+        generatePoboTransactionSheet(processor, poboTransactionList, ratesMap);
+        /*
                 SHEET 3 Risk Matrix
          */
         generateRiskMatrixSheet(processor, riskMatrixList);
         return processor;
     }
 
-//    public static MasReportXlsxProcessor generate4a(
-//            LocalDate startDate,
-//            LocalDate endDate,
-//            List<PaymentTransaction> paymentTransactionList,
-//            HashMap<Currency, BigDecimal> currentRateToSGD
-//    ) throws IOException, IllegalAccessException {
-//        MasReportXlsxProcessor processor = new MasReportXlsxProcessor();
-//        processor.workbook = new XSSFWorkbook(MasReportXlsxProcessor.class.getResourceAsStream("/xlsx-templates/mas-report-4a.xlsx"));
-//        processor.paymentTransactionList = paymentTransactionList;
-//        processor.startDate = startDate;
-//        processor.endDate = endDate;
-//        processor.setCurrentRates(currentRateToSGD);
-//        processor.fill4a();
-//        return processor;
-//    }
-//
-//    public static MasReportXlsxProcessor generate4b(
-//            LocalDate startDate,
-//            LocalDate endDate,
-//            List<PaymentTransaction> paymentTransactionList,
-//            List<NonIndividual> nonIndividualList,
-//            List<Terminal> terminalList,
-//            HashMap<Currency, BigDecimal> currentRateToSGD
-//    ) throws IOException, IllegalAccessException {
-//        MasReportXlsxProcessor processor = new MasReportXlsxProcessor();
-//        processor.workbook = new XSSFWorkbook(MasReportXlsxProcessor.class.getResourceAsStream("/xlsx-templates/mas-report-4b.xlsx"));
-//        processor.paymentTransactionList = paymentTransactionList;
-//        processor.nonIndividualList = nonIndividualList;
-//        processor.terminalList = terminalList;
-//        processor.startDate = startDate;
-//        processor.endDate = endDate;
-//        processor.setCurrentRates(currentRateToSGD);
-//        processor.fill4b();
-//        return processor;
-//    }
-//
-//    public static MasReportXlsxProcessor generate5(
-//            LocalDate startDate,
-//            LocalDate endDate
-//    ) throws IOException, IllegalAccessException {
-//        MasReportXlsxProcessor processor = new MasReportXlsxProcessor();
-//        processor.workbook = new XSSFWorkbook(MasReportXlsxProcessor.class.getResourceAsStream("/xlsx-templates/mas-report-5.xlsx"));
-//        processor.startDate = startDate;
-//        processor.endDate = endDate;
-//        processor.fill5();
-//        return processor;
-//    }
-//
-//    public static MasReportXlsxProcessor generate6a(
-//            LocalDate startDate,
-//            LocalDate endDate,
-//            List<Otc> otcList,
-//            HashMap<Currency, BigDecimal> currentRateToSGD
-//    ) throws IOException, IllegalAccessException {
-//        MasReportXlsxProcessor processor = new MasReportXlsxProcessor();
-//        processor.workbook = new XSSFWorkbook(MasReportXlsxProcessor.class.getResourceAsStream("/xlsx-templates/mas-report-6a.xlsx"));
-//        processor.otcList = otcList;
-//        processor.startDate = startDate;
-//        processor.endDate = endDate;
-//        processor.setCurrentRates(currentRateToSGD);
-//        processor.fill6a();
-//        return processor;
-//    }
-//
-//    public static MasReportXlsxProcessor generate6b(
-//            LocalDate startDate,
-//            LocalDate endDate,
-//            List<Otc> otcList,
-//            List<CryptoTransaction> cryptoTransactionList,
-//            List<RiskMatrix> riskMatrixList,
-//            List<Individual> individualList,
-//            List<NonIndividual> nonIndividualList,
-//            List<WalletAccount> cryptoAccountList,
-//            Set<Long> highRiskCountryClientIds,
-//            HashMap<Currency, BigDecimal> currentRateToSGD
-//    ) throws IOException, IllegalAccessException {
-//        MasReportXlsxProcessor processor = new MasReportXlsxProcessor();
-//        processor.workbook = new XSSFWorkbook(MasReportXlsxProcessor.class.getResourceAsStream("/xlsx-templates/mas-report-6b.xlsx"));
-//        processor.otcList = otcList;
-//        processor.cryptoTransactionList = cryptoTransactionList;
-//        processor.riskMatrixList = riskMatrixList;
-//        processor.individualList = individualList;
-//        processor.nonIndividualList = nonIndividualList;
-//        processor.cryptoAccountList = cryptoAccountList;
-//        processor.highRiskCountryClientIds = highRiskCountryClientIds;
-//        processor.startDate = startDate;
-//        processor.endDate = endDate;
-//        processor.setCurrentRates(currentRateToSGD);
-//        processor.fill6b();
-//        return processor;
-//    }
-//
+    public static MasReportXlsxProcessor generate4a(
+            LocalDate startDate,
+            LocalDate endDate,
+            List<PaymentTransactionReport> paymentTransactionList,
+            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+    ) throws IOException, IllegalAccessException {
+        // Initial report processor
+        MasReportXlsxProcessor processor = initReportWorkbook("4A");
+        // Initial Summary Sheet with Title
+        XSSFSheet sheet0 = initSummarySheet(processor, startDate, endDate, "4A");
+        // Form 4A-1
+        BigDecimal totalAmountInSGP = ZERO;
+        int countInSGP = 0;
+        BigDecimal totalAmountOutSGP = ZERO;
+        int countOutSGP = 0;
+        for (PaymentTransactionReport paymentTransaction : paymentTransactionList) {
+            if ("SGP".equals(paymentTransaction.country)) {
+                countInSGP++;
+                totalAmountInSGP = addPaymentAmount(paymentTransaction, totalAmountInSGP, ratesMap);
+            } else {
+                countOutSGP++;
+                totalAmountOutSGP = addPaymentAmount(paymentTransaction, totalAmountOutSGP, ratesMap);
+            }
+        }
+        processor.getCellByPos(sheet0, "B6").setCellValue(totalAmountInSGP.toString());
+        processor.getCellByPos(sheet0, "C6").setCellValue(countInSGP);
+        processor.getCellByPos(sheet0, "B7").setCellValue(totalAmountOutSGP.toString());
+        processor.getCellByPos(sheet0, "C7").setCellValue(countOutSGP);
+        /*
+                SHEET 1 Merchant Acquisition Transaction
+         */
+        generateMerchantAcquisitionTransactionSheet(processor, paymentTransactionList, ratesMap);
+        return processor;
+    }
+
+    public static MasReportXlsxProcessor generate4b(
+            LocalDate startDate,
+            LocalDate endDate,
+            List<PaymentTransactionReport> paymentTransactionList,
+            List<NonIndividual> nonIndividualList,
+            List<Terminal> terminalList,
+            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+    ) throws IOException, IllegalAccessException {
+        // Initial report processor
+        MasReportXlsxProcessor processor = initReportWorkbook("4B");
+        // Initial Summary Sheet with Title
+        XSSFSheet sheet0 = initSummarySheet(processor, startDate, endDate, "4B");
+        // Form 4B-1
+        long countPOS = terminalList.stream().filter(terminal -> terminal.type == TerminalType.POS).count();
+        processor.getCellByPos(sheet0, "B6").setCellValue(countPOS);
+        processor.getCellByPos(sheet0, "B7").setCellValue(countPOS);
+        // Form 4B-2
+        long countNonIndividualInSGP = 0;
+        long countNonIndividualOutSGP = 0;
+        for (NonIndividual nonIndividual : nonIndividualList) {
+            if ("SGP".equals(nonIndividual.country)) {
+                countNonIndividualInSGP++;
+            } else {
+                countNonIndividualOutSGP++;
+            }
+        }
+        processor.getCellByPos(sheet0, "B10").setCellValue(countNonIndividualInSGP);
+        processor.getCellByPos(sheet0, "B11").setCellValue(countNonIndividualOutSGP);
+        // Form 4B-3
+        List<TotalSortingObject> totalCountByMerchantList =
+                paymentTransactionList.stream()
+                        .collect(Collectors.toMap(
+                                PaymentTransaction::getCountry,
+                                x -> {
+                                    TotalSortingObject totalCountByMerchant = new TotalSortingObject(x.merchantId, null, null);
+                                    totalCountByMerchant.clientName = x.merchantName;
+                                    return totalCountByMerchant;
+                                },
+                                (left, right) -> {
+                                    left.totalCount++;
+                                    return left;
+                                },
+                                HashMap::new
+                        ))
+                        .values()
+                        .stream()
+                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                        .limit(10)
+                        .collect(Collectors.toList());
+        for (int i = 0; i < totalCountByMerchantList.size(); i++) {
+            int row = 14 + i;
+            processor.getCellByPos(sheet0, "C" + row).setCellValue(totalCountByMerchantList.get(i).clientName);
+            processor.getCellByPos(sheet0, "E" + row).setCellValue(totalCountByMerchantList.get(i).totalCount);
+        }
+        /*
+                SHEET 1 Merchant Acquisition Transaction
+         */
+        generateMerchantAcquisitionTransactionSheet(processor, paymentTransactionList, ratesMap);
+        /*
+                SHEET 2 Merchant List
+         */
+        generateMerchantSheet(processor, nonIndividualList);
+        return processor;
+    }
+
+    public static MasReportXlsxProcessor generate5(
+            LocalDate startDate,
+            LocalDate endDate
+    ) throws IOException {
+        // Initial report processor
+        MasReportXlsxProcessor processor = initReportWorkbook("5");
+        // Initial Summary Sheet with Title
+        XSSFSheet sheet0 = initSummarySheet(processor, startDate, endDate, "5");
+        // Form 5
+        processor.getCellByPos(sheet0, "B6").setCellValue("0.00");
+        return processor;
+    }
+
+    public static MasReportXlsxProcessor generate6a(
+            LocalDate startDate,
+            LocalDate endDate,
+            List<OtcReport> otcList,
+            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+    ) throws IOException, IllegalAccessException {
+        // Initial report processor
+        MasReportXlsxProcessor processor = initReportWorkbook("6A");
+        // Initial Summary Sheet with Title
+        XSSFSheet sheet0 = initSummarySheet(processor, startDate, endDate, "6A");
+        // Form 6A-1
+        BigDecimal totalBuyTokenAmount = ZERO;
+        int countBuy = 0;
+        BigDecimal totalSellTokenAmount = ZERO;
+        int countSell = 0;
+        for (OtcReport otc : otcList) {
+            if (otc.type == OtcType.BUYING) {
+                countBuy++;
+                totalBuyTokenAmount = addOtcAmount(otc, totalBuyTokenAmount, ratesMap);
+            } else {
+                countSell++;
+                totalSellTokenAmount = addOtcAmount(otc, totalSellTokenAmount, ratesMap);
+            }
+        }
+        processor.getCellByPos(sheet0, "B6").setCellValue(totalBuyTokenAmount.toString()); // 6A-1 (a)
+        processor.getCellByPos(sheet0, "C6").setCellValue(countBuy);
+        processor.getCellByPos(sheet0, "B7").setCellValue(totalSellTokenAmount.toString()); // 6A-1 (b)
+        processor.getCellByPos(sheet0, "C7").setCellValue(countSell);
+        processor.getCellByPos(sheet0, "B8").setCellValue("0.00"); // 6A-1 (c) Don't have exchange between tokens
+        processor.getCellByPos(sheet0, "C8").setCellValue(0);
+        /*
+                SHEET 1 OTC Transaction
+         */
+        generateOtcSheet(processor, otcList, ratesMap);
+        return processor;
+    }
+
+    public static MasReportXlsxProcessor generate6b(
+            LocalDate startDate,
+            LocalDate endDate,
+            List<OtcReport> otcList,
+            List<CryptoTransactionReport> cryptoTransactionList,
+            List<DailyBalanceRecord> dailyBalanceRecordList,
+            List<RiskMatrix> riskMatrixList,
+            Set<Long> dptClientInSGP,
+            Set<Long> dptClientOutsideSGP,
+            List<WalletAccount> cryptoAccountList,
+            Set<Long> highRiskCountryClientIds,
+            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+    ) throws IOException, IllegalAccessException {
+        // Initial report processor
+        MasReportXlsxProcessor processor = initReportWorkbook("6B");
+        // Initial Summary Sheet with Title
+        XSSFSheet sheet0 = initSummarySheet(processor, startDate, endDate, "6B");
+        // Form 6B-1 (a)
+        BigDecimal totalBuyTokenAmount = ZERO;
+        int countBuy = 0;
+        BigDecimal totalSellTokenAmount = ZERO;
+        int countSell = 0;
+        for (OtcReport otc : otcList) {
+            if (otc.type == OtcType.BUYING) {
+                countBuy++;
+                totalBuyTokenAmount = addOtcAmount(otc, totalBuyTokenAmount, ratesMap);
+            } else {
+                countSell++;
+                totalSellTokenAmount = addOtcAmount(otc, totalSellTokenAmount, ratesMap);
+            }
+        }
+        // Form 6B-1 (a) Dealing DPT BUY and SELL, no EXCHANGE between tokens
+        processor.getCellByPos(sheet0, "B7").setCellValue(totalBuyTokenAmount.toString());
+        processor.getCellByPos(sheet0, "E7").setCellValue(countBuy);
+        processor.getCellByPos(sheet0, "B8").setCellValue(totalSellTokenAmount.toString());
+        processor.getCellByPos(sheet0, "E8").setCellValue(countSell);
+        processor.getCellByPos(sheet0, "B9").setCellValue("0.00");
+        processor.getCellByPos(sheet0, "C9").setCellValue(0);
+        // Form 6B-1 (b) Not facilitating exchange of DPT on platform
+        processor.getCellByPos(sheet0, "B11").setCellValue("0.00");
+        processor.getCellByPos(sheet0, "E11").setCellValue(0);
+        processor.getCellByPos(sheet0, "B12").setCellValue("0.00");
+        processor.getCellByPos(sheet0, "E12").setCellValue(0);
+        processor.getCellByPos(sheet0, "B13").setCellValue("0.00");
+        processor.getCellByPos(sheet0, "E13").setCellValue(0);
+        // Form 6B-2 (a) Not allowed to transfer within platform
+        processor.getCellByPos(sheet0, "B16").setCellValue("0.00");
+        processor.getCellByPos(sheet0, "E16").setCellValue(0);
+        // Form 6B-2 (b) All crypto transfer out to cold wallet
+        BigDecimal totalWithdrawalAmount = cryptoTransactionList.stream()
+                .filter(cryptoTransaction -> cryptoTransaction.type == CryptoTransactionType.WITHDRAW)
+                .map(cryptoTransaction -> getCryptoTransactionAmount(cryptoTransaction, ratesMap))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        processor.getCellByPos(sheet0, "B18").setCellValue("0.00"); // 6B-2 (b) (i) licensed platform hosted wallet address
+        processor.getCellByPos(sheet0, "E18").setCellValue(0);
+        processor.getCellByPos(sheet0, "B19").setCellValue("0.00"); // 6B-2 (b) (ii) unlicensed platform hosted wallet address
+        processor.getCellByPos(sheet0, "E19").setCellValue(0);
+        processor.getCellByPos(sheet0, "B20").setCellValue(totalWithdrawalAmount.setScale(2, RoundingMode.HALF_UP).toString());  // 6B-2 (b) (iii) Unhosted wallet address
+        processor.getCellByPos(sheet0, "E20").setCellValue(cryptoTransactionList.size());
+        // Form 6B-3
+        long countNonFaceToFace = riskMatrixList.stream()
+                .filter(riskMatrix -> riskMatrix.verificationType == VerificationType.NON_FACE_TO_FACE)
+                .map(RiskMatrix::getClientId)
+                .count();
+        processor.getCellByPos(sheet0, "D23").setCellValue(dptClientInSGP.size());
+        processor.getCellByPos(sheet0, "D24").setCellValue(dptClientOutsideSGP.size());
+        processor.getCellByPos(sheet0, "D25").setCellValue(countNonFaceToFace);
+        // Form 6B-4
+        // TODO: To calculate average balance
+        processor.getCellByPos(sheet0, "D28").setCellValue("");
+        // Form 6B-5 (a)
+        printTop5ByAmountIn6B(processor, sheet0, otcList, 32);
+        printTop5ByCountIn6B(processor, sheet0, otcList, 37);
+        // Form 6B-5 (b)
+        List<OtcReport> otcInSGDList = otcList.stream().filter(otc -> otc.fiatCurrency == Currency.SGD).collect(Collectors.toList());
+        printTop5ByAmountIn6B(processor, sheet0, otcInSGDList, 43);
+        printTop5ByCountIn6B(processor, sheet0, otcInSGDList, 48);
+        // Form 6B-5 (c)
+        List<OtcReport> otcNotSGDList = otcList.stream().filter(otc -> otc.fiatCurrency != Currency.SGD).collect(Collectors.toList());
+        printTop5ByAmountIn6B(processor, sheet0, otcNotSGDList, 54);
+        printTop5ByCountIn6B(processor, sheet0, otcNotSGDList, 59);
+        // Form 6B-5 (d)
+        Set<Long> highRiskIds = riskMatrixList.stream().filter(riskMatrix -> riskMatrix.riskLevel == RiskLevel.HIGH).map(RiskMatrix::getClientId).collect(Collectors.toSet());
+        List<OtcReport> otcHighRiskList = otcList.stream().filter(otc -> highRiskIds.contains(otc.clientId)).collect(Collectors.toList());
+        printTop5ByCountIn6B(processor, sheet0, otcHighRiskList, 64); // Need to update when listed trading crypto is more than 5
+        // Form 6B-5 (e)
+        List<TotalSortingObject> top5HeldDPT = cryptoAccountList.stream()
+                .filter(walletAccount -> walletAccount.currency.isCrypto())
+                .collect(Collectors.toMap(
+                        WalletAccount::getCurrency,
+                        x -> {
+                            TotalSortingObject totalByCurrency = new TotalSortingObject(null, null, x.currency);
+                            totalByCurrency.totalAmountInSGD = x.balance.multiply(ratesMap.get(endDate).get(x.currency));
+                            return totalByCurrency;
+                        },
+                        (left, right) -> {
+                            left.totalAmountInSGD = left.totalAmountInSGD.add(right.totalAmountInSGD);
+                            return left;
+                        },
+                        HashMap::new
+                ))
+                .values()
+                .stream()
+                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
+                .limit(5)
+                .collect(Collectors.toList());
+        for (int i = 0; i < top5HeldDPT.size(); i++) {
+            int row = 70 + i;
+            processor.getCellByPos(sheet0, "C" + row).setCellValue(top5HeldDPT.get(i).currency.name);
+            processor.getCellByPos(sheet0, "D" + row).setCellValue(top5HeldDPT.get(i).totalAmountInSGD.toString());
+        }
+        // Form 6B-5 (f)
+        BigDecimal totalAmountHeldDPT = cryptoAccountList.stream()
+                .filter(walletAccount -> walletAccount.currency.isCrypto())
+                .map(walletAccount -> walletAccount.balance.multiply(ratesMap.get(endDate).get(walletAccount.currency)))
+                .reduce(ZERO, BigDecimal::add);
+        processor.getCellByPos(sheet0, "D75").setCellValue(totalAmountHeldDPT.toString());
+        // Form 6B-5 (g)
+        List<TotalSortingObject> heldByHighRiskDPT = cryptoAccountList.stream()
+                .filter(walletAccount -> highRiskIds.contains(walletAccount.clientId))
+                .collect(Collectors.toMap(
+                        WalletAccount::getCurrency,
+                        x -> {
+                            TotalSortingObject totalByCurrency = new TotalSortingObject(null, null, x.currency);
+                            totalByCurrency.totalAmountInSGD = x.balance.multiply(ratesMap.get(endDate).get(x.currency));
+                            return totalByCurrency;
+                        },
+                        (left, right) -> {
+                            left.totalAmountInSGD = left.totalAmountInSGD.add(right.totalAmountInSGD);
+                            return left;
+                        },
+                        HashMap::new
+                ))
+                .values()
+                .stream()
+                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
+                .limit(5)
+                .collect(Collectors.toList());
+        for (int i = 0; i < heldByHighRiskDPT.size(); i++) {
+            int row = 76 + i;
+            processor.getCellByPos(sheet0, "C" + row).setCellValue(heldByHighRiskDPT.get(i).currency.name);
+            processor.getCellByPos(sheet0, "D" + row).setCellValue(heldByHighRiskDPT.get(i).totalAmountInSGD.toString());
+        }
+        // Form 6B-6
+        BigDecimal totalAmountToHighRiskCountry = ZERO;
+        int countToHighRiskCountry = 0;
+        BigDecimal totalAmountFromHighRiskCountry = ZERO;
+        int countFromHighRiskCountry = 0;
+        BigDecimal totalAmountHighRiskTransaction = ZERO;
+        int countHighRiskTransaction = 0;
+        for (CryptoTransactionReport cryptoTransaction : cryptoTransactionList) {
+            if (highRiskCountryClientIds.contains(cryptoTransaction.clientId)) {
+                if (cryptoTransaction.type == CryptoTransactionType.DEPOSIT) {
+                    countFromHighRiskCountry++;
+                    totalAmountFromHighRiskCountry = addCryptoTransactionAmount(cryptoTransaction, totalAmountFromHighRiskCountry, ratesMap);
+                } else if (cryptoTransaction.type == CryptoTransactionType.WITHDRAW) {
+                    countToHighRiskCountry++;
+                    totalAmountToHighRiskCountry = addCryptoTransactionAmount(cryptoTransaction, totalAmountToHighRiskCountry, ratesMap);
+                }
+            }
+            if (highRiskIds.contains(cryptoTransaction.clientId)) {
+                countHighRiskTransaction++;
+                totalAmountHighRiskTransaction = addCryptoTransactionAmount(cryptoTransaction, totalAmountHighRiskTransaction, ratesMap);
+            }
+        }
+        processor.getCellByPos(sheet0, "C83").setCellValue(totalAmountToHighRiskCountry.toString());
+        processor.getCellByPos(sheet0, "E83").setCellValue(countToHighRiskCountry);
+        processor.getCellByPos(sheet0, "C84").setCellValue(totalAmountFromHighRiskCountry.toString());
+        processor.getCellByPos(sheet0, "E84").setCellValue(countFromHighRiskCountry);
+        // Form 6B-7 (a) No PEP client
+        processor.getCellByPos(sheet0, "C87").setCellValue(0);
+        processor.getCellByPos(sheet0, "D87").setCellValue("0.00");
+        processor.getCellByPos(sheet0, "E87").setCellValue(0);
+        // Form 6B-7 (b)
+        processor.getCellByPos(sheet0, "C88").setCellValue(highRiskIds.size());
+        processor.getCellByPos(sheet0, "D88").setCellValue(totalAmountHighRiskTransaction.toString());
+        processor.getCellByPos(sheet0, "E88").setCellValue(countHighRiskTransaction);
+        /*
+                SHEET 1 OTC Transaction
+         */
+        generateOtcSheet(processor, otcList, ratesMap);
+        /*
+                SHEET 2 Crypto Transaction
+         */
+        generateCryptoTransactionSheet(processor, cryptoTransactionList, ratesMap);
+        /*
+                SHEET 3 Risk Matrix
+         */
+        generateRiskMatrixSheet(processor, riskMatrixList);
+        return processor;
+    }
+
 //    private void setCurrentRates(HashMap<Currency, BigDecimal> currentRateToSGD) {
 //        log.info("Rates \n {}", currentRateToSGD);
 //        this.rateFromUSD = currentRateToSGD.get(Currency.USD);
@@ -910,427 +1207,20 @@ public class MasReportXlsxProcessor {
     private void fill3b() throws IllegalAccessException {
     }
 
-//    private void fill4a() throws IllegalAccessException {
-//        CellStyle percentCellStyle = this.workbook.createCellStyle();
-//        percentCellStyle.setDataFormat(this.workbook.createDataFormat().getFormat("0%"));
-//        /*
-//                SHEET 0 Report 4A Summary
-//         */
-//        XSSFSheet sheet0 = this.workbook.getSheetAt(0);
-//        XlsxGenerator.lock(sheet0);
-//        this.workbook.setSheetName(0, "4A Summary");
-//        // 4A Title
-//        this.getCellByPos(sheet0, "B2").setCellValue("Digital Treasures Center Pte. Ltd.");
-//        this.getCellByPos(sheet0, "B3").setCellValue(String.format("%s to %s",
-//                startDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)), endDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))));
-//        // Form 4A-1
-//        BigDecimal totalAmountInSGP = ZERO;
-//        int countInSGP = 0;
-//        BigDecimal totalAmountOutSGP = ZERO;
-//        int countOutSGP = 0;
-//        for (PaymentTransaction paymentTransaction : paymentTransactionList) {
-//            if ("SGP".equals(paymentTransaction.country)) {
-//                countInSGP++;
-//                totalAmountInSGP = this.addPaymentAmount(paymentTransaction, totalAmountInSGP);
-//            } else {
-//                countOutSGP++;
-//                totalAmountOutSGP = this.addPaymentAmount(paymentTransaction, totalAmountOutSGP);
-//            }
-//        }
-//        this.getCellByPos(sheet0, "B6").setCellValue(totalAmountInSGP.toString());
-//        this.getCellByPos(sheet0, "C6").setCellValue(countInSGP);
-//        this.getCellByPos(sheet0, "B7").setCellValue(totalAmountOutSGP.toString());
-//        this.getCellByPos(sheet0, "C7").setCellValue(countOutSGP);
-//        /*
-//                SHEET 1 Merchant Acquisition Transaction
-//         */
-//        XlsxGenerator
-//                .records(workbook, paymentTransactionList, PaymentTransactionReport.class)
-//                .valueHandler((key, record) -> {
-//                    PaymentTransaction paymentTransaction = (PaymentTransaction) record;
-//                    if ("rateToSGD".equals(key)) {
-//                        return getRateToSGD(paymentTransaction.requestCurrency);
-//                    }
-//                    return FieldValue.empty();
-//                })
-//                .genSheet("MA Transactions");
-//        /*
-//                SHEET 2 Non-individual Client
-//         */
-//        XlsxGenerator
-//                .records(workbook, nonIndividualList, NonIndividualReport.class)
-//                .genSheet("Non-individual Client");
-//    }
-//
-//    private void fill4b() throws IllegalAccessException {
-//        CellStyle percentCellStyle = this.workbook.createCellStyle();
-//        percentCellStyle.setDataFormat(this.workbook.createDataFormat().getFormat("0%"));
-//        /*
-//                SHEET 0 Report 4B Summary
-//         */
-//        XSSFSheet sheet0 = this.workbook.getSheetAt(0);
-//        XlsxGenerator.lock(sheet0);
-//        this.workbook.setSheetName(0, "4A Summary");
-//        // 4B Title
-//        this.getCellByPos(sheet0, "B2").setCellValue("Digital Treasures Center Pte. Ltd.");
-//        this.getCellByPos(sheet0, "B3").setCellValue(String.format("%s to %s",
-//                startDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)), endDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))));
-//        // Form 4B-1
-//        long countPOS = terminalList.stream().filter(terminal -> terminal.type == TerminalType.POS).count();
-//        this.getCellByPos(sheet0, "B6").setCellValue(countPOS);
-//        this.getCellByPos(sheet0, "B7").setCellValue(countPOS);
-//        // Form 4B-2
-//        long countNonIndividualInSGP = 0;
-//        long countNonIndividualOutSGP = 0;
-//        for (NonIndividual nonIndividual : nonIndividualList) {
-//            if ("SGP".equals(nonIndividual.country)) {
-//                countNonIndividualInSGP++;
-//            } else {
-//                countNonIndividualOutSGP++;
-//            }
-//        }
-//        this.getCellByPos(sheet0, "B10").setCellValue(countNonIndividualInSGP);
-//        this.getCellByPos(sheet0, "B11").setCellValue(countNonIndividualOutSGP);
-//        // Form 4B-3
-//        List<TotalCountByMerchant> totalCountByMerchantList =
-//                paymentTransactionList.stream()
-//                        .collect(Collectors.toMap(
-//                                PaymentTransaction::getCountry,
-//                                x -> {
-//                                    TotalCountByMerchant totalCountByMerchant = new TotalCountByMerchant();
-//                                    totalCountByMerchant.clientId = x.merchantId;
-//                                    totalCountByMerchant.clientName = x.merchantName;
-//                                    return totalCountByMerchant;
-//                                },
-//                                (left, right) -> {
-//                                    left.totalCount++;
-//                                    return left;
-//                                },
-//                                HashMap::new
-//                        ))
-//                        .values()
-//                        .stream()
-//                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalCountByMerchant::getTotalCount)))
-//                        .limit(10)
-//                        .collect(Collectors.toList());
-//        for (int i = 0; i < totalCountByMerchantList.size(); i++) {
-//            int row = 14 + i;
-//            this.getCellByPos(sheet0, "C" + row).setCellValue(totalCountByMerchantList.get(i).clientName);
-//            this.getCellByPos(sheet0, "E" + row).setCellValue(totalCountByMerchantList.get(i).totalCount);
-//        }
-//        /*
-//                SHEET 1 Merchant Acquisition Transaction
-//         */
-//        XlsxGenerator
-//                .records(workbook, paymentTransactionList, PaymentTransactionReport.class)
-//                .valueHandler((key, record) -> {
-//                    PaymentTransaction paymentTransaction = (PaymentTransaction) record;
-//                    if ("rateToSGD".equals(key)) {
-//                        return getRateToSGD(paymentTransaction.requestCurrency);
-//                    }
-//                    return FieldValue.empty();
-//                })
-//                .genSheet("MA Transactions");
-//        /*
-//                SHEET 2 Non-individual Client
-//         */
-//        XlsxGenerator
-//                .records(workbook, nonIndividualList, NonIndividualReport.class)
-//                .genSheet("Non-individual Client");
-//    }
-//
-//    private void fill5() throws IllegalAccessException {
-//        CellStyle percentCellStyle = this.workbook.createCellStyle();
-//        percentCellStyle.setDataFormat(this.workbook.createDataFormat().getFormat("0%"));
-//        /*
-//                SHEET 0 Report 5 Summary
-//         */
-//        XSSFSheet sheet0 = this.workbook.getSheetAt(0);
-//        XlsxGenerator.lock(sheet0);
-//        this.workbook.setSheetName(0, "5 Summary");
-//        // 5 Title
-//        this.getCellByPos(sheet0, "B2").setCellValue("Digital Treasures Center Pte. Ltd.");
-//        this.getCellByPos(sheet0, "B3").setCellValue(String.format("%s to %s",
-//                startDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)), endDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))));
-//        // Form 5
-//        this.getCellByPos(sheet0, "B6").setCellValue("0.00");
-//    }
-//
-//    private void fill6a() throws IllegalAccessException {
-//        CellStyle percentCellStyle = this.workbook.createCellStyle();
-//        percentCellStyle.setDataFormat(this.workbook.createDataFormat().getFormat("0%"));
-//        /*
-//                SHEET 0 Report 6A Summary
-//         */
-//        XSSFSheet sheet0 = this.workbook.getSheetAt(0);
-//        XlsxGenerator.lock(sheet0);
-//        this.workbook.setSheetName(0, "6A Summary");
-//        // 6A Title
-//        this.getCellByPos(sheet0, "B2").setCellValue("Digital Treasures Center Pte. Ltd.");
-//        this.getCellByPos(sheet0, "B3").setCellValue(String.format("%s to %s",
-//                startDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)), endDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))));
-//        // Form 6A-1
-//        BigDecimal totalBuyTokenAmount = ZERO;
-//        int countBuy = 0;
-//        BigDecimal totalSellTokenAmount = ZERO;
-//        int countSell = 0;
-//        for (Otc otc : otcList) {
-//            if (otc.type == OtcType.BUYING) {
-//                countBuy++;
-//                totalBuyTokenAmount = this.addOtcAmount(otc, totalBuyTokenAmount);
-//            } else {
-//                countSell++;
-//                totalSellTokenAmount = this.addOtcAmount(otc, totalSellTokenAmount);
-//            }
-//        }
-//        this.getCellByPos(sheet0, "B6").setCellValue(totalBuyTokenAmount.toString());
-//        this.getCellByPos(sheet0, "C6").setCellValue(countBuy);
-//        this.getCellByPos(sheet0, "B7").setCellValue(totalSellTokenAmount.toString());
-//        this.getCellByPos(sheet0, "C7").setCellValue(countSell);
-//        this.getCellByPos(sheet0, "B8").setCellValue("0.00");
-//        this.getCellByPos(sheet0, "C8").setCellValue(0);
-//        /*
-//                SHEET 1 OTC Transaction
-//         */
-//        XlsxGenerator
-//                .records(workbook, otcList, OtcReport.class)
-//                .valueHandler((key, record) -> {
-//                    Otc otc = (Otc) record;
-//                    if ("rateToSGD".equals(key)) {
-//                        return getRateToSGD(otc.fiatCurrency);
-//                    }
-//                    return FieldValue.empty();
-//                })
-//                .genSheet("OTC Transaction");
-//    }
-//
-//    private void fill6b() throws IllegalAccessException {
-//        CellStyle percentCellStyle = this.workbook.createCellStyle();
-//        percentCellStyle.setDataFormat(this.workbook.createDataFormat().getFormat("0%"));
-//        /*
-//                SHEET 0 Report 6B Summary
-//         */
-//        XSSFSheet sheet0 = this.workbook.getSheetAt(0);
-//        XlsxGenerator.lock(sheet0);
-//        this.workbook.setSheetName(0, "3A Summary");
-//        // 6B Title
-//        this.getCellByPos(sheet0, "B2").setCellValue("Digital Treasures Center Pte. Ltd.");
-//        this.getCellByPos(sheet0, "B3").setCellValue(String.format("%s to %s",
-//                startDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)), endDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))));
-//        // Form 6B-1 (a)
-//        BigDecimal totalBuyTokenAmount = ZERO;
-//        int countBuy = 0;
-//        BigDecimal totalSellTokenAmount = ZERO;
-//        int countSell = 0;
-//        for (Otc otc : otcList) {
-//            if (otc.type == OtcType.BUYING) {
-//                countBuy++;
-//                totalBuyTokenAmount = this.addOtcAmount(otc, totalBuyTokenAmount);
-//            } else {
-//                countSell++;
-//                totalSellTokenAmount = this.addOtcAmount(otc, totalSellTokenAmount);
-//            }
-//        }
-//        this.getCellByPos(sheet0, "B7").setCellValue(totalBuyTokenAmount.toString());
-//        this.getCellByPos(sheet0, "E7").setCellValue(countBuy);
-//        this.getCellByPos(sheet0, "B8").setCellValue(totalSellTokenAmount.toString());
-//        this.getCellByPos(sheet0, "E8").setCellValue(countSell);
-//        this.getCellByPos(sheet0, "B9").setCellValue("0.00");
-//        this.getCellByPos(sheet0, "C9").setCellValue(0);
-//        // Form 6B-1 (b) Not facilitating exchange of DPT on platform
-//        this.getCellByPos(sheet0, "B11").setCellValue("0.00");
-//        this.getCellByPos(sheet0, "E11").setCellValue(0);
-//        this.getCellByPos(sheet0, "B12").setCellValue("0.00");
-//        this.getCellByPos(sheet0, "E12").setCellValue(0);
-//        this.getCellByPos(sheet0, "B13").setCellValue("0.00");
-//        this.getCellByPos(sheet0, "E13").setCellValue(0);
-//        // Form 6B-2 (a) Not allowed to transfer within platform
-//        this.getCellByPos(sheet0, "B16").setCellValue("0.00");
-//        this.getCellByPos(sheet0, "E16").setCellValue(0);
-//        // Form 6B-2 (b) All crypto transfer out to cold wallet
-//        BigDecimal totalWithdrawalAmount = cryptoTransactionList.stream()
-//                .map(cryptoTransaction -> cryptoTransaction.amount.multiply(rateFromUSD)).reduce(BigDecimal.ZERO, BigDecimal::add);
-//        this.getCellByPos(sheet0, "B18").setCellValue("0.00");
-//        this.getCellByPos(sheet0, "E18").setCellValue(0);
-//        this.getCellByPos(sheet0, "B19").setCellValue("0.00");
-//        this.getCellByPos(sheet0, "E19").setCellValue(0);
-//        this.getCellByPos(sheet0, "B20").setCellValue(totalWithdrawalAmount.setScale(2, RoundingMode.HALF_UP).toString());
-//        this.getCellByPos(sheet0, "E20").setCellValue(cryptoTransactionList.size());
-//        // Form 6B-3
-//        long countNonIndividualInSGP = 0;
-//        long countNonIndividualOutSGP = 0;
-//        long countNonFaceToFace = riskMatrixList.stream()
-//                .filter(riskMatrix -> riskMatrix.verificationType == VerificationType.NON_FACE_TO_FACE)
-//                .map(RiskMatrix::getClientId)
-//                .count();
-//        for (NonIndividual nonIndividual : nonIndividualList) {
-//            if ("SGP".equals(nonIndividual.country)) {
-//                countNonIndividualInSGP++;
-//            } else {
-//                countNonIndividualOutSGP++;
-//            }
-//        }
-//        long countIndividualInSGP = 0;
-//        long countIndividualOutSGP = 0;
-//        for (Individual individual : individualList) {
-//            if ("SGP".equals(individual.country)) {
-//                countIndividualInSGP++;
-//            } else {
-//                countIndividualOutSGP++;
-//            }
-//        }
-//        this.getCellByPos(sheet0, "D23").setCellValue(countIndividualInSGP + countNonIndividualInSGP);
-//        this.getCellByPos(sheet0, "D24").setCellValue(countIndividualOutSGP + countNonIndividualOutSGP);
-//        this.getCellByPos(sheet0, "D25").setCellValue(countNonFaceToFace);
-//        // Form 6B-4 //TODO: To calculate average balance
-//        this.getCellByPos(sheet0, "D28").setCellValue("");
-//        // Form 6B-5 (a)
-//        this.printTop5ByAmountIn6B(sheet0, otcList, 32);
-//        this.printTop5ByCountIn6B(sheet0, otcList, 37);
-//        // Form 6B-5 (b)
-//        List<Otc> otcInSGDList = otcList.stream().filter(otc -> otc.fiatCurrency == Currency.SGD).collect(Collectors.toList());
-//        this.printTop5ByAmountIn6B(sheet0, otcInSGDList, 43);
-//        this.printTop5ByCountIn6B(sheet0, otcInSGDList, 48);
-//        // Form 6B-5 (c)
-//        List<Otc> otcNotSGDList = otcList.stream().filter(otc -> otc.fiatCurrency != Currency.SGD).collect(Collectors.toList());
-//        this.printTop5ByAmountIn6B(sheet0, otcNotSGDList, 54);
-//        this.printTop5ByCountIn6B(sheet0, otcNotSGDList, 59);
-//        // Form 6B-5 (d)
-//        Set<Long> highRiskIds = riskMatrixList.stream().filter(riskMatrix -> riskMatrix.riskLevel == RiskLevel.HIGH).map(RiskMatrix::getClientId).collect(Collectors.toSet());
-//        List<Otc> otcHighRiskList = otcList.stream().filter(otc -> highRiskIds.contains(otc.clientId)).collect(Collectors.toList());
-//        this.printTop5ByCountIn6B(sheet0, otcHighRiskList, 64); // Need to update when listed trading crypto is more than 5
-//        // Form 6B-5 (e)
-//        List<TotalByCurrency> top5HeldDPT = cryptoAccountList.stream()
-//                .filter(walletAccount -> walletAccount.currency.isCrypto())
-//                .collect(Collectors.toMap(
-//                        WalletAccount::getCurrency,
-//                        x -> {
-//                            TotalByCurrency totalByCurrency = new TotalByCurrency();
-//                            totalByCurrency.currency = x.currency;
-//                            totalByCurrency.totalAmount = x.balance;
-//                            return totalByCurrency;
-//                        },
-//                        (left, right) -> {
-//                            left.totalAmount = this.addAmountWithCurrency(right.currency, right.totalAmount, left.totalAmount);
-//                            return left;
-//                        },
-//                        HashMap::new
-//                ))
-//                .values()
-//                .stream()
-//                .sorted(Collections.reverseOrder(Comparator.comparing(TotalByCurrency::getTotalAmount)))
-//                .limit(5)
-//                .collect(Collectors.toList());
-//        for (int i = 0; i < top5HeldDPT.size(); i++) {
-//            int row = 70 + i;
-//            this.getCellByPos(sheet0, "C" + row).setCellValue(top5HeldDPT.get(i).currency.name);
-//            this.getCellByPos(sheet0, "D" + row).setCellValue(top5HeldDPT.get(i).totalAmount.toString());
-//        }
-//        // Form 6B-5 (f)
-//        BigDecimal totalAmountHeldDPT = cryptoAccountList.stream()
-//                .filter(walletAccount -> walletAccount.currency.isCrypto())
-//                .map(walletAccount -> addAmountWithCurrency(walletAccount.currency, walletAccount.balance, ZERO))
-//                .reduce(ZERO, BigDecimal::add);
-//        this.getCellByPos(sheet0, "D75").setCellValue(totalAmountHeldDPT.toString());
-//        // Form 6B-5 (g)
-//        List<TotalByCurrency> heldByHighRiskDPT = cryptoAccountList.stream()
-//                .filter(walletAccount -> highRiskIds.contains(walletAccount.clientId))
-//                .collect(Collectors.toMap(
-//                        WalletAccount::getCurrency,
-//                        x -> {
-//                            TotalByCurrency totalByCurrency = new TotalByCurrency();
-//                            totalByCurrency.currency = x.currency;
-//                            totalByCurrency.totalAmount = x.balance;
-//                            return totalByCurrency;
-//                        },
-//                        (left, right) -> {
-//                            left.totalAmount = this.addAmountWithCurrency(right.currency, right.totalAmount, left.totalAmount);
-//                            return left;
-//                        },
-//                        HashMap::new
-//                ))
-//                .values()
-//                .stream()
-//                .sorted(Collections.reverseOrder(Comparator.comparing(TotalByCurrency::getTotalAmount)))
-//                .limit(5)
-//                .collect(Collectors.toList());
-//        for (int i = 0; i < heldByHighRiskDPT.size(); i++) {
-//            int row = 76 + i;
-//            this.getCellByPos(sheet0, "C" + row).setCellValue(heldByHighRiskDPT.get(i).currency.name);
-//            this.getCellByPos(sheet0, "D" + row).setCellValue(heldByHighRiskDPT.get(i).totalAmount.toString());
-//        }
-//        // Form 6B-6
-//        BigDecimal totalAmountToHighRiskCountry = ZERO;
-//        int countToHighRiskCountry = 0;
-//        BigDecimal totalAmountFromHighRiskCountry = ZERO;
-//        int countFromHighRiskCountry = 0;
-//        BigDecimal totalAmountHighRiskTransaction = ZERO;
-//        int countHighRiskTransaction = 0;
-//        for (CryptoTransaction cryptoTransaction : cryptoTransactionList) {
-//            if (highRiskCountryClientIds.contains(cryptoTransaction.clientId)) {
-//                if (cryptoTransaction.type == CryptoTransactionType.DEPOSIT) {
-//                    countFromHighRiskCountry++;
-//                    totalAmountFromHighRiskCountry = addAmountWithCurrency(cryptoTransaction.currency, cryptoTransaction.amount, totalAmountFromHighRiskCountry);
-//                } else if (cryptoTransaction.type == CryptoTransactionType.WITHDRAW) {
-//                    countToHighRiskCountry++;
-//                    totalAmountToHighRiskCountry = addAmountWithCurrency(cryptoTransaction.currency, cryptoTransaction.amount, totalAmountToHighRiskCountry);
-//                }
-//            }
-//            if (highRiskIds.contains(cryptoTransaction.clientId)) {
-//                countHighRiskTransaction++;
-//                totalAmountHighRiskTransaction = addAmountWithCurrency(cryptoTransaction.currency, cryptoTransaction.amount, totalAmountHighRiskTransaction);
-//            }
-//        }
-//        this.getCellByPos(sheet0, "C83").setCellValue(totalAmountToHighRiskCountry.toString());
-//        this.getCellByPos(sheet0, "E83").setCellValue(countToHighRiskCountry);
-//        this.getCellByPos(sheet0, "C84").setCellValue(totalAmountFromHighRiskCountry.toString());
-//        this.getCellByPos(sheet0, "E84").setCellValue(countFromHighRiskCountry);
-//        // Form 6B-7 (a) No PEP client
-//        this.getCellByPos(sheet0, "C87").setCellValue(0);
-//        this.getCellByPos(sheet0, "D87").setCellValue("0.00");
-//        this.getCellByPos(sheet0, "E87").setCellValue(0);
-//        // Form 6B-7 (b)
-//        this.getCellByPos(sheet0, "C88").setCellValue(highRiskIds.size());
-//        this.getCellByPos(sheet0, "D88").setCellValue(totalAmountHighRiskTransaction.toString());
-//        this.getCellByPos(sheet0, "E88").setCellValue(countHighRiskTransaction);
-//        /*
-//                SHEET 1 OTC Transaction
-//         */
-//        XlsxGenerator
-//                .records(workbook, otcList, OtcReport.class)
-//                .valueHandler((key, record) -> {
-//                    Otc otc = (Otc) record;
-//                    if ("rateToSGD".equals(key)) {
-//                        return getRateToSGD(otc.fiatCurrency);
-//                    }
-//                    return FieldValue.empty();
-//                })
-//                .genSheet("OTC Transaction");
-//        /*
-//                SHEET 2 Crypto Transaction
-//         */
-//        XlsxGenerator
-//                .records(workbook, cryptoTransactionList, CryptoTransactionReport.class)
-//                .genSheet("Crypto Transaction");
-//        /*
-//                SHEET 3 Non-individual Client
-//         */
-//        XlsxGenerator
-//                .records(workbook, nonIndividualList, NonIndividualReport.class)
-//                .genSheet("Non-individual Client");
-//        /*
-//                SHEET 4 Individual Client
-//         */
-//        XlsxGenerator
-//                .records(workbook, individualList, IndividualReport.class)
-//                .genSheet("Individual Client");
-//        /*
-//                SHEET 5 Risk Matrix
-//         */
-//        XlsxGenerator
-//                .records(workbook, riskMatrixList, RiskMatrixReport.class)
-//                .genSheet("Risk Matrix");
-//    }
+    private void fill4a() throws IllegalAccessException {
+    }
+
+    private void fill4b() throws IllegalAccessException {
+    }
+
+    private void fill5() throws IllegalAccessException {
+    }
+
+    private void fill6a() throws IllegalAccessException {
+    }
+
+    private void fill6b() throws IllegalAccessException {
+    }
 //
 //    private FieldValue getRateToSGD(Currency currency) {
 //        switch (currency) {
@@ -1386,51 +1276,50 @@ public class MasReportXlsxProcessor {
 //        }
 //    }
 //
-//    private void printTop5ByAmountIn6B(XSSFSheet sheet, List<Otc> otcListToSort, int startedRow) {
-//        List<TotalByCurrency> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
-//                .sorted(Collections.reverseOrder(Comparator.comparing(TotalByCurrency::getTotalAmount)))
-//                .limit(5)
-//                .collect(Collectors.toList());
-//        this.print6bTop5(sheet, otcNotSGDSortedByAmount, startedRow);
-//    }
+    private static void printTop5ByAmountIn6B(MasReportXlsxProcessor processor, XSSFSheet sheet, List<OtcReport> otcListToSort, int startedRow) {
+        List<TotalSortingObject> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
+                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
+                .limit(5)
+                .collect(Collectors.toList());
+        print6bTop5(processor, sheet, otcNotSGDSortedByAmount, startedRow);
+    }
+
+    private static void printTop5ByCountIn6B(MasReportXlsxProcessor processor, XSSFSheet sheet, List<OtcReport> otcListToSort, int startedRow) {
+        List<TotalSortingObject> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
+                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                .limit(5)
+                .collect(Collectors.toList());
+        print6bTop5(processor, sheet, otcNotSGDSortedByAmount, startedRow);
+    }
+
+    private static Stream<TotalSortingObject> getUnsortedStream(List<OtcReport> otcListToSort) {
+        return otcListToSort.stream()
+                .collect(Collectors.toMap(
+                        OtcReport::getCryptoCurrency,
+                        x -> {
+                            TotalSortingObject totalByCurrency = new TotalSortingObject(null, null, x.cryptoCurrency);
+                            totalByCurrency.totalAmountInSGD = x.fiatAmount.multiply(x.rateToSGD);
+                            return totalByCurrency;
+                        },
+                        (left, right) -> {
+                            left.totalCount++;
+                            left.totalAmountInSGD = left.totalAmountInSGD.add(right.totalAmountInSGD);
+                            return left;
+                        },
+                        HashMap::new
+                ))
+                .values()
+                .stream();
+    }
 //
-//    private void printTop5ByCountIn6B(XSSFSheet sheet, List<Otc> otcListToSort, int startedRow) {
-//        List<TotalByCurrency> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
-//                .sorted(Collections.reverseOrder(Comparator.comparing(TotalByCurrency::getTotalCount)))
-//                .limit(5)
-//                .collect(Collectors.toList());
-//        this.print6bTop5(sheet, otcNotSGDSortedByAmount, startedRow);
-//    }
-//
-//    private Stream<TotalByCurrency> getUnsortedStream(List<Otc> otcListToSort) {
-//        return otcListToSort.stream()
-//                .collect(Collectors.toMap(
-//                        Otc::getCryptoCurrency,
-//                        x -> {
-//                            TotalByCurrency totalByCurrency = new TotalByCurrency();
-//                            totalByCurrency.currency = x.cryptoCurrency;
-//                            totalByCurrency.totalAmount = x.fiatAmount;
-//                            return totalByCurrency;
-//                        },
-//                        (left, right) -> {
-//                            left.totalCount++;
-//                            left.totalAmount = this.addAmountWithCurrency(right.currency, right.totalAmount, left.totalAmount);
-//                            return left;
-//                        },
-//                        HashMap::new
-//                ))
-//                .values()
-//                .stream();
-//    }
-//
-//    private void print6bTop5(XSSFSheet sheet, List<TotalByCurrency> otcNotSGDSortedByAmount, int startedRow) {
-//        for (int i = 0; i < otcNotSGDSortedByAmount.size(); i++) {
-//            int row = startedRow + i;
-//            this.getCellByPos(sheet, "C" + row).setCellValue(otcNotSGDSortedByAmount.get(i).currency.name);
-//            this.getCellByPos(sheet, "D" + row).setCellValue(otcNotSGDSortedByAmount.get(i).totalAmount.toString());
-//            this.getCellByPos(sheet, "E" + row).setCellValue(otcNotSGDSortedByAmount.get(i).totalCount);
-//        }
-//    }
+    private static void print6bTop5(MasReportXlsxProcessor processor, XSSFSheet sheet, List<TotalSortingObject> otcNotSGDSortedByAmount, int startedRow) {
+        for (int i = 0; i < otcNotSGDSortedByAmount.size(); i++) {
+            int row = startedRow + i;
+            processor.getCellByPos(sheet, "C" + row).setCellValue(otcNotSGDSortedByAmount.get(i).currency.name);
+            processor.getCellByPos(sheet, "D" + row).setCellValue(otcNotSGDSortedByAmount.get(i).totalAmountInSGD.toString());
+            processor.getCellByPos(sheet, "E" + row).setCellValue(otcNotSGDSortedByAmount.get(i).totalCount);
+        }
+    }
 
     private XSSFCell getCellByPos(XSSFSheet sheet, String position) {
         CellReference cr = new CellReference(position);

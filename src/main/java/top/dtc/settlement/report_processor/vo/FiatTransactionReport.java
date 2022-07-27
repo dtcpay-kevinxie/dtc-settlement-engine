@@ -6,6 +6,8 @@ import top.dtc.data.core.model.FiatTransaction;
 import top.dtc.settlement.handler.Record;
 import top.dtc.settlement.handler.RecordField;
 
+import java.math.BigDecimal;
+
 import static top.dtc.settlement.handler.RecordFieldType.AMOUNT;
 import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
 
@@ -24,7 +26,7 @@ import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
 public class FiatTransactionReport extends FiatTransaction {
 
     @RecordField(order = 7, title = "Rate to SGD")
-    public String rateToSGD;
+    public BigDecimal rateToSGD;
 
     @RecordField(order = 8, title = "Country")
     public String recipientCountry;
