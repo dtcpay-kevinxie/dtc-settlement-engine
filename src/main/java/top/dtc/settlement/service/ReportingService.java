@@ -294,7 +294,7 @@ public class ReportingService {
             }
         }
         // Get DPT enabled activated clients' daily balance record
-        List<DailyBalanceRecord> dailyBalanceRecordList = dailyBalanceRecordService.list().stream()
+        List<DailyBalanceRecord> dailyBalanceRecordList = dailyBalanceRecordService.getByParams(null, null, startDate, endDate).stream()
                 .filter(dailyBalanceRecord -> dailyBalanceRecord.currency.isCrypto()
                         && (dptClientOutsideSGP.contains(dailyBalanceRecord.clientId) || dptClientInSGP.contains(dailyBalanceRecord.clientId)))
                 .collect(Collectors.toList());
