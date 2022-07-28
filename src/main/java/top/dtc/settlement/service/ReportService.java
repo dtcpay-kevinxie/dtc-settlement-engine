@@ -31,7 +31,6 @@ import top.dtc.settlement.report_processor.vo.*;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,7 +38,7 @@ import static top.dtc.settlement.constant.NotificationConstant.NAMES.MAS_REPORT;
 
 @Log4j2
 @Service
-public class ReportingService {
+public class ReportService {
 
     @Autowired
     NotificationProperties notificationProperties;
@@ -111,19 +110,69 @@ public class ReportingService {
         return ratesMap;
     }
 
-    public void processMonthlyReport() {
+    public void processMonthlyReport(LocalDate startDate, LocalDate endDate) {
+        HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap = getRatesMap(startDate, endDate);
         try {
-            masReport2A(
-                    LocalDate.parse("20220701", DateTimeFormatter.ofPattern("yyyyMMdd")),
-                    LocalDate.now(),
-                    null
-            );
+            masReport1A(startDate, endDate, ratesMap);
         } catch (Exception e) {
-            log.error("Report Failed", e);
+            log.error("1A Report Failed", e);
+        }
+        try {
+            masReport2A(startDate, endDate, ratesMap);
+        } catch (Exception e) {
+            log.error("2A Report Failed", e);
+        }
+        try {
+            masReport3A(startDate, endDate, ratesMap);
+        } catch (Exception e) {
+            log.error("3A Report Failed", e);
+        }
+        try {
+            masReport4A(startDate, endDate, ratesMap);
+        } catch (Exception e) {
+            log.error("4A Report Failed", e);
+        }
+        try {
+            masReport5(startDate, endDate, ratesMap);
+        } catch (Exception e) {
+            log.error("5 Report Failed", e);
+        }
+        try {
+            masReport6A(startDate, endDate, ratesMap);
+        } catch (Exception e) {
+            log.error("6A Report Failed", e);
+        }
+    }
+    public void processHalfYearReport(LocalDate startDate, LocalDate endDate) {
+        HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap = getRatesMap(startDate, endDate);
+        try {
+            masReport1B(startDate, endDate);
+        } catch (Exception e) {
+            log.error("1B Report Failed", e);
+        }
+        try {
+            masReport2B(startDate, endDate, ratesMap);
+        } catch (Exception e) {
+            log.error("2B Report Failed", e);
+        }
+        try {
+            masReport3B(startDate, endDate, ratesMap);
+        } catch (Exception e) {
+            log.error("3B Report Failed", e);
+        }
+        try {
+            masReport4B(startDate, endDate, ratesMap);
+        } catch (Exception e) {
+            log.error("4B Report Failed", e);
+        }
+        try {
+            masReport6B(startDate, endDate, ratesMap);
+        } catch (Exception e) {
+            log.error("6B Report Failed", e);
         }
     }
 
-    private void masReport1A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
+    public void masReport1A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
@@ -147,7 +196,7 @@ public class ReportingService {
         sendReportEmail("1A", startDate.toString(), endDate.toString(), reportByte);
     }
 
-    private void masReport1B(LocalDate startDate, LocalDate endDate) throws IOException, IllegalAccessException {
+    public void masReport1B(LocalDate startDate, LocalDate endDate) throws IOException, IllegalAccessException {
         List<RiskMatrix> highRiskList = getHighRiskList();
         byte[] reportByte = MasReportXlsxProcessor.generate1b(startDate, endDate, highRiskList).toByteArray();
         sendReportEmail("1B", startDate.toString(), endDate.toString(), reportByte);
@@ -164,7 +213,7 @@ public class ReportingService {
         sendReportEmail("2A", startDate.toString(), endDate.toString(), reportByte);
     }
 
-    private void masReport2B(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
+    public void masReport2B(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
@@ -178,7 +227,7 @@ public class ReportingService {
         sendReportEmail("2B", startDate.toString(), endDate.toString(), reportByte);
     }
 
-    private void masReport3A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
+    public void masReport3A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
@@ -189,7 +238,7 @@ public class ReportingService {
         sendReportEmail("3A", startDate.toString(), endDate.toString(), reportByte);
     }
 
-    private void masReport3B(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
+    public void masReport3B(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
@@ -204,7 +253,7 @@ public class ReportingService {
         sendReportEmail("3B", startDate.toString(), endDate.toString(), reportByte);
     }
 
-    private void masReport4A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
+    public void masReport4A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
@@ -214,7 +263,7 @@ public class ReportingService {
         sendReportEmail("4A", startDate.toString(), endDate.toString(), reportByte);
     }
 
-    private void masReport4B(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
+    public void masReport4B(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
@@ -233,7 +282,7 @@ public class ReportingService {
         sendReportEmail("4B", startDate.toString(), endDate.toString(), reportByte);
     }
 
-    private void masReport5(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
+    public void masReport5(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
@@ -241,7 +290,7 @@ public class ReportingService {
         sendReportEmail("5", startDate.toString(), endDate.toString(), reportByte);
     }
 
-    private void masReport6A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
+    public void masReport6A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
@@ -251,7 +300,7 @@ public class ReportingService {
         sendReportEmail("6A", startDate.toString(), endDate.toString(), reportByte);
     }
 
-    private void masReport6B(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
+    public void masReport6B(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
