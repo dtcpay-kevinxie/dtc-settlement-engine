@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.82.0] - 
+[0.82.0] - 29 Jul 2022
 
 * Update data-wallet
 * Complete MAS Report processor and service
