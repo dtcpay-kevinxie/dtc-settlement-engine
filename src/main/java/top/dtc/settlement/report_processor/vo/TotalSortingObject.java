@@ -13,7 +13,7 @@ public class TotalSortingObject {
     public String clientName;
     public String country;
     public Currency currency;
-    public BigDecimal totalAmount;
+    public BigDecimal totalAmountInSGD;
     public long totalCount;
 
     public TotalSortingObject(Long clientId, String country, Currency currency) {

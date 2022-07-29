@@ -6,6 +6,8 @@ import top.dtc.data.core.model.CryptoTransaction;
 import top.dtc.settlement.handler.Record;
 import top.dtc.settlement.handler.RecordField;
 
+import java.math.BigDecimal;
+
 import static top.dtc.settlement.constant.DateConstant.FORMAT.DATETIME;
 import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
 
@@ -24,6 +26,6 @@ import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
 public class CryptoTransactionReport extends CryptoTransaction {
 
     @RecordField(order = 7, title = "Rate to SGD")
-    public String rateToSGD;
+    public BigDecimal rateToSGD;
 
 }

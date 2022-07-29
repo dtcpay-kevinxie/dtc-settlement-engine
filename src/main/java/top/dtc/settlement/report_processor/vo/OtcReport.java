@@ -6,6 +6,8 @@ import top.dtc.data.core.model.Otc;
 import top.dtc.settlement.handler.Record;
 import top.dtc.settlement.handler.RecordField;
 
+import java.math.BigDecimal;
+
 import static top.dtc.settlement.constant.DateConstant.FORMAT.DATETIME;
 import static top.dtc.settlement.handler.RecordFieldType.AMOUNT;
 import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
@@ -15,6 +17,7 @@ import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
 @Record(mappings = {
         @RecordField(order = 0, title = "ID", path = "id"),
         @RecordField(order = 1, title = "Client ID", path = "clientId"),
+        @RecordField(order = 1, title = "Type", path = "type", type = ENUM_NAME),
         @RecordField(order = 3, title = "Crypto Currency", path = "cryptoCurrency", type = ENUM_NAME),
         @RecordField(order = 4, title = "Crypto Amount", path = "cryptoAmount"),
         @RecordField(order = 5, title = "Fiat Currency", path = "fiatCurrency", type = ENUM_NAME),
@@ -24,10 +27,7 @@ import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
 })
 public class OtcReport extends Otc {
 
-    @RecordField(order = 2, title = "Type")
-    public String otcType;
-
     @RecordField(order = 8, title = "Rate to SGD")
-    public String rateToSGD;
+    public BigDecimal rateToSGD;
 
 }

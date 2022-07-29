@@ -40,4 +40,12 @@ public class ApiHeaderConstant {
         public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("19999", errMsg); }
     }
 
+    // STARTS WITH "28"
+    public static class REPORT {
+        public static ApiHeader INVALID_REPORT_TYPE() {
+            return new ApiHeader("28001", "Invalid Report Type");
+        }
+        public static ApiHeader OTHER_ERROR(String errMsg) { return new ApiHeader("28999", errMsg); }
+    }
+
 }
