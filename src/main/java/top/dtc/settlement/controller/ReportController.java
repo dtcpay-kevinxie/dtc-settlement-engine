@@ -44,7 +44,7 @@ public class ReportController {
         log.debug("[GET] /mas/1st-half-year");
         return SchedulerUtils.executeTask(group, name, async, () -> {
             Year reportingYear = Year.now();
-            reportService.processMonthlyReport(reportingYear.atMonth(1).atDay(1), reportingYear.atMonth(6).atEndOfMonth());
+            reportService.processHalfYearReport(reportingYear.atMonth(1).atDay(1), reportingYear.atMonth(6).atEndOfMonth());
             return null;
         });
     }
@@ -58,7 +58,7 @@ public class ReportController {
         log.debug("[GET] /mas/2nd-half-year");
         return SchedulerUtils.executeTask(group, name, async, () -> {
             Year reportingYear = Year.now();
-            reportService.processMonthlyReport(reportingYear.atMonth(7).atDay(1), reportingYear.atMonth(12).atEndOfMonth());
+            reportService.processHalfYearReport(reportingYear.atMonth(7).atDay(1), reportingYear.atMonth(12).atEndOfMonth());
             return null;
         });
     }

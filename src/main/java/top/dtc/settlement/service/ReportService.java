@@ -171,6 +171,11 @@ public class ReportService {
             log.error("6B Report Failed", e);
         }
     }
+    public void processYearlyReport(LocalDate startDate, LocalDate endDate) {
+        HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap = getRatesMap(startDate, endDate);
+        //TODO: Annual Report
+
+    }
 
     public void masReport1A(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) throws IOException, IllegalAccessException {
         if (ratesMap == null) {
