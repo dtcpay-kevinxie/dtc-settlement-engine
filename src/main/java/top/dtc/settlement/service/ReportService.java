@@ -107,6 +107,7 @@ public class ReportService {
             }
             ratesMap.put(rateDate, dateRateToSGD);
         }
+        log.debug("Rate MAP \n{}", ratesMap);
         return ratesMap;
     }
 

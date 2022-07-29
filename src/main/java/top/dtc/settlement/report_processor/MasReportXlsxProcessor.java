@@ -248,6 +248,8 @@ public class MasReportXlsxProcessor {
             List<WalletBalanceHistory> walletBalanceHistoryList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
+        log.debug("1A Monitoring Data {}", monitoringMatrixList);
+        log.debug("1A Wallet Balance History Data {}", walletBalanceHistoryList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("1A");
         // Initial Summary Sheet with Title
@@ -318,6 +320,7 @@ public class MasReportXlsxProcessor {
             LocalDate endDate,
             List<RiskMatrix> riskMatrixList
     ) throws IOException, IllegalAccessException {
+        log.debug("1B RiskMatrix Data {}", riskMatrixList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("1B");
         // Initial Summary Sheet with Title
@@ -337,7 +340,8 @@ public class MasReportXlsxProcessor {
             List<PoboTransactionReport> poboTransactionList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
-        log.debug("generate2a \n {} \n {} \n {}", fiatTransactionList, poboTransactionList, ratesMap);
+        log.debug("2A Fiat Transaction Data {}", fiatTransactionList);
+        log.debug("2A POBO Data {}", poboTransactionList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("2A");
         // Initial Summary Sheet with Title
@@ -371,6 +375,10 @@ public class MasReportXlsxProcessor {
             List<RiskMatrix> riskMatrixList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
+        log.debug("2B Fiat Transaction Data {}", fiatTransactionList);
+        log.debug("2B POBO Data {}", poboTransactionList);
+        log.debug("2B Client in SGP {}", clientInSGP);
+        log.debug("2B RiskMatrix Data {}", riskMatrixList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("2B");
         // Initial Summary Sheet with Title
@@ -472,6 +480,8 @@ public class MasReportXlsxProcessor {
             List<PoboTransactionReport> poboTransactionList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
+        log.debug("3A Fiat Transaction Data {}", fiatTransactionList);
+        log.debug("3A POBO Data {}", poboTransactionList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("3A");
         // Initial Summary Sheet with Title
@@ -526,6 +536,11 @@ public class MasReportXlsxProcessor {
             List<RiskMatrix> riskMatrixList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
+        log.debug("3B Fiat Transaction Data {}", fiatTransactionList);
+        log.debug("3B POBO Data {}", poboTransactionList);
+        log.debug("3B Client in SGP {}", clientInSGP);
+        log.debug("3B FI Client outside SGP {}", fiClient);
+        log.debug("3B RiskMatrix Data {}", riskMatrixList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("3B");
         // Initial Summary Sheet with Title
@@ -844,6 +859,7 @@ public class MasReportXlsxProcessor {
             List<PaymentTransactionReport> paymentTransactionList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
+        log.debug("4A Payment Transaction Data {}", paymentTransactionList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("4A");
         // Initial Summary Sheet with Title
@@ -881,6 +897,9 @@ public class MasReportXlsxProcessor {
             List<Terminal> terminalList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
+        log.debug("4B Payment Transaction Data {}", paymentTransactionList);
+        log.debug("4B Merchant Data {}", nonIndividualList);
+        log.debug("4B Terminal Data {}", terminalList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("4B");
         // Initial Summary Sheet with Title
@@ -942,6 +961,7 @@ public class MasReportXlsxProcessor {
             LocalDate startDate,
             LocalDate endDate
     ) throws IOException {
+        log.debug("5 No Data");
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("5");
         // Initial Summary Sheet with Title
@@ -957,6 +977,7 @@ public class MasReportXlsxProcessor {
             List<OtcReport> otcList,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
+        log.debug("6A OTC Data {}", otcList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("6A");
         // Initial Summary Sheet with Title
@@ -1001,6 +1022,13 @@ public class MasReportXlsxProcessor {
             Set<Long> highRiskCountryClientIds,
             HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
     ) throws IOException, IllegalAccessException {
+        log.debug("6B OTC Data {}", otcList);
+        log.debug("6B CryptoTransaction Data {}", cryptoTransactionList);
+        log.debug("6B RiskMatrix Data {}", riskMatrixList);
+        log.debug("6B DPT Client in SGP {}", dptClientInSGP);
+        log.debug("6B DPT Client outside SGP {}", dptClientOutsideSGP);
+        log.debug("6B Crypto Account {}", cryptoAccountList);
+        log.debug("6B High Risk Country Client {}", highRiskCountryClientIds);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("6B");
         // Initial Summary Sheet with Title
