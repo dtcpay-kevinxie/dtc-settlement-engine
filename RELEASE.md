@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.83.0] - 01 Aug 2022
+
+* MAS Report templates formatting
+* Add logs for report generating
+
 [0.82.0] - 29 Jul 2022
 
 * Update data-wallet
