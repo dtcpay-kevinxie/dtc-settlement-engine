@@ -6,7 +6,7 @@
     <parent>
         <groupId>top.dtc</groupId>
         <artifactId>dtc-parent</artifactId>
-        <version>0.49.0-SNAPSHOT</version>
+        <version>0.48.0</version>
         <relativePath/>
     </parent>
 
@@ -17,7 +17,11 @@
     <properties>
         <start-class>top.dtc.settlement.Application</start-class>
 
+        <subtlelib.version>1.0.4</subtlelib.version>
+        <amazonaws.version>1.11.142</amazonaws.version>
         <jsch.version>0.1.55</jsch.version>
+        <netty.version>4.1.42.Final</netty.version>
+        <poi.version>5.2.2</poi.version>
     </properties>
 
     <dependencies>
@@ -68,6 +72,13 @@
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.subtlelib</groupId>
+            <artifactId>poi.builder</artifactId>
+            <version>${subtlelib.version}</version>
         </dependency>
 
         <dependency>
