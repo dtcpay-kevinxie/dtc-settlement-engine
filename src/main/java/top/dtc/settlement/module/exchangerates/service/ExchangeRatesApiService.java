@@ -21,7 +21,7 @@ import top.dtc.settlement.core.properties.HttpProperties;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import static top.dtc.common.enums.Currency.*;
+import static top.dtc.common.enums.Currency.USD;
 
 @Log4j2
 @Service
@@ -34,23 +34,14 @@ public class ExchangeRatesApiService {
     ExchangeRateService exchangeRateService;
 
     public void getCryptoRate() {
-        try {
-            // ETH -> USD
-            getCryptoOtcRateFromFTX(ETH);
-        } catch (Exception e) {
-            log.error("Failed to get daily ETH -> USD rate. \n {}", e.getMessage());
-        }
-        try {
-            // BTC -> USD
-            getCryptoOtcRateFromFTX(BTC);
-        } catch (Exception e) {
-            log.error("Failed to get daily BTC -> USD rate. \n {}", e.getMessage());
-        }
-        try {
-            // TRX -> USD
-            getCryptoOtcRateFromFTX(TRX);
-        } catch (Exception e) {
-            log.error("Failed to get daily TRX -> USD rate. \n {}", e.getMessage());
+        for (Currency currency : Currency.values()) {
+            if (currency.isCrypto()) {
+                try {
+                    getCryptoOtcRateFromFTX(currency);
+                } catch (Exception e) {
+                    log.error("Failed to get daily {} -> USD rate. \n {}", currency, e.getMessage());
+                }
+            }
         }
     }
 

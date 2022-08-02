@@ -93,7 +93,7 @@ public class ReportService {
 
     public HashMap<LocalDate, HashMap<Currency, BigDecimal>> getRatesMap(LocalDate startDate, LocalDate endDate) {
         HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap = new HashMap<>();
-        for (LocalDate rateDate = startDate; rateDate.isBefore(endDate); rateDate = rateDate.plusDays(1)) {
+        for (LocalDate rateDate = startDate; rateDate.isBefore(endDate.plusDays(1)); rateDate = rateDate.plusDays(1)) {
             HashMap<Currency, BigDecimal> dateRateToSGD = new HashMap<>();
             for (Currency sellCurrency : Currency.values()) {
                 if (sellCurrency == Currency.SGD) {
