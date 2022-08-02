@@ -24,6 +24,7 @@ import top.dtc.data.finance.model.DailyBalanceRecord;
 import top.dtc.data.risk.enums.RiskLevel;
 import top.dtc.data.risk.enums.VerificationType;
 import top.dtc.data.risk.model.RiskMatrix;
+import top.dtc.data.wallet.enums.WalletStatus;
 import top.dtc.data.wallet.model.WalletAccount;
 import top.dtc.data.wallet.model.WalletBalanceHistory;
 import top.dtc.settlement.handler.FieldValue;
@@ -1132,7 +1133,7 @@ public class MasReportXlsxProcessor {
         printTop5ByCountIn6B(processor, sheet0, otcHighRiskList, 64); // Need to update when listed trading crypto is more than 5
         // Form 6B-5 (e)
         List<TotalSortingObject> top5HeldDPT = cryptoAccountList.stream()
-                .filter(walletAccount -> walletAccount.currency.isCrypto())
+                .filter(walletAccount -> walletAccount.currency.isCrypto() && walletAccount.status == WalletStatus.ACTIVE)
                 .collect(Collectors.toMap(
                         WalletAccount::getCurrency,
                         x -> {
