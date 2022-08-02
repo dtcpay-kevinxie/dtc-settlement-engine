@@ -2,8 +2,6 @@
 
 [0.84.0] - 02 Aug 2022
 
-* Update parent
-* Align changes with the crypto-engine APIs
 * Change crypto rate getting method
 
 [0.83.0] - 01 Aug 2022
