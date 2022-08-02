@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.84.0] -
+
+* Update parent
+* Align changes with the crypto-engine APIs
+
 [0.83.0] - 01 Aug 2022
 
 * MAS Report templates formatting

@@ -761,14 +761,13 @@ public class CryptoTransactionProcessService {
 
         transactionSend.currency = currency;
         transactionSend.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, currency);
-        input.account = senderAddress.type.account;
-        input.addressIndex = senderAddress.addressIndex;
+        input.wallet = CryptoWallet.unhostedWallet(senderAddress.type.account, senderAddress.addressIndex);
         input.amount = amount;
-        output.address = recipientAddress.address;
+        input.wallet = CryptoWallet.addressOnly(recipientAddress.address);
         output.amount = amount;
         if (recipientAddress.securityType == SecurityType.KMS) {
-            output.account = recipientAddress.type.account;
-            output.addressIndex = recipientAddress.addressIndex;
+            input.wallet.account = recipientAddress.type.account;
+            input.wallet.addressIndex = recipientAddress.addressIndex;
         }
 
         RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.cryptoEngineUrlPrefix
