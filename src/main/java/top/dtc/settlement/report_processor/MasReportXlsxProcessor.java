@@ -1,18 +1,11 @@
 package top.dtc.settlement.report_processor;
 
-import com.google.common.base.Objects;
-import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.FiatTransactionType;
@@ -275,9 +268,9 @@ public class MasReportXlsxProcessor {
                 valueOfWithdrawal = valueOfWithdrawal.add(walletBalanceHistory.changeAmount.multiply(rateToSGD));
             }
         }
-        processor.getCellByPos(sheet0, "B10").setCellValue(valueOfPlacement.toString()); // 2-a
+        processor.getCellByPos(sheet0, "B10").setCellValue(valueOfPlacement.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 2-a
         processor.getCellByPos(sheet0, "C10").setCellValue(countOfPlacement);
-        processor.getCellByPos(sheet0, "B11").setCellValue(valueOfWithdrawal.negate().toString()); // 2-b
+        processor.getCellByPos(sheet0, "B11").setCellValue(valueOfWithdrawal.setScale(SGD.exponent, RoundingMode.HALF_UP).negate().toString()); // 2-b
         processor.getCellByPos(sheet0, "C11").setCellValue(countOfWithdrawal);
         // Form 1A-3
         int countDomestic = 0;
@@ -354,7 +347,7 @@ public class MasReportXlsxProcessor {
         BigDecimal poboAmount = poboTransactionList.stream()
                 .map(poboTransaction -> getPoboAmount(poboTransaction, ratesMap))
                 .reduce(ZERO, BigDecimal::add);
-        processor.getCellByPos(sheet0, "B6").setCellValue(fiatAmount.add(poboAmount).toString());
+        processor.getCellByPos(sheet0, "B6").setCellValue(fiatAmount.add(poboAmount).setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C6").setCellValue(fiatTransactionList.size() + poboTransactionList.size());
         /*
                 SHEET 1 Domestic Transfer Transaction
@@ -447,17 +440,17 @@ public class MasReportXlsxProcessor {
             }
         }
         // Form 2B-1
-        processor.getCellByPos(sheet0, "B7").setCellValue(totalAmountIndividualInSGP.toString());
+        processor.getCellByPos(sheet0, "B7").setCellValue(totalAmountIndividualInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C7").setCellValue(countIndividualInSGP);
-        processor.getCellByPos(sheet0, "B8").setCellValue(totalAmountNonIndividualInSGP.toString());
+        processor.getCellByPos(sheet0, "B8").setCellValue(totalAmountNonIndividualInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C8").setCellValue(countNonIndividualInSGP);
         // Form 2B-2
-        processor.getCellByPos(sheet0, "B10").setCellValue(totalAmountIndividualOutSGP.toString());
+        processor.getCellByPos(sheet0, "B10").setCellValue(totalAmountIndividualOutSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C10").setCellValue(countIndividualOutSGP);
-        processor.getCellByPos(sheet0, "B11").setCellValue(totalAmountNonIndividualOutSGP.toString());
+        processor.getCellByPos(sheet0, "B11").setCellValue(totalAmountNonIndividualOutSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C11").setCellValue(countNonIndividualOutSGP);
         // Form 2B-3
-        processor.getCellByPos(sheet0, "B14").setCellValue(totalAmountHighRisk.toString());
+        processor.getCellByPos(sheet0, "B14").setCellValue(totalAmountHighRisk.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C14").setCellValue(countHighRisk);
         /*
                 SHEET 1 Domestic Transfer Transaction
@@ -511,10 +504,10 @@ public class MasReportXlsxProcessor {
         }
 
         // Form 3A-1 Outward Cross-border Transaction
-        processor.getCellByPos(sheet0, "B6").setCellValue(outwardTotalAmount.toString());
+        processor.getCellByPos(sheet0, "B6").setCellValue(outwardTotalAmount.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C6").setCellValue(countOutward);
         // Form 3A-2 Inward Cross-border Transaction
-        processor.getCellByPos(sheet0, "B9").setCellValue(inwardTotalAmount.toString());
+        processor.getCellByPos(sheet0, "B9").setCellValue(inwardTotalAmount.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C9").setCellValue(countInward);
         /*
                 SHEET 1 Cross-border Transfer Transaction
@@ -765,35 +758,35 @@ public class MasReportXlsxProcessor {
                         .collect(Collectors.toList());
 
         // Form 3B-1 Outward in Singapore
-        processor.getCellByPos(sheet0, "B7").setCellValue(totalOutwardAmountFiInSGP.toString()); // 3B-1 (a)
+        processor.getCellByPos(sheet0, "B7").setCellValue(totalOutwardAmountFiInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-1 (a)
         processor.getCellByPos(sheet0, "E7").setCellValue(countOutwardFiInSGP);
-        processor.getCellByPos(sheet0, "B9").setCellValue(totalOutwardAmountIndividualInSGP.toString()); // 3B-1 (b) (i)
+        processor.getCellByPos(sheet0, "B9").setCellValue(totalOutwardAmountIndividualInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-1 (b) (i)
         processor.getCellByPos(sheet0, "E9").setCellValue(countOutwardIndividualInSGP);
-        processor.getCellByPos(sheet0, "B10").setCellValue(totalOutwardAmountNonIndividualInSGP.toString()); // 3B-1 (b) (ii)
+        processor.getCellByPos(sheet0, "B10").setCellValue(totalOutwardAmountNonIndividualInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-1 (b) (ii)
         processor.getCellByPos(sheet0, "E10").setCellValue(countOutwardNonIndividualInSGP);
         // Form 3B-2 Outward outside Singapore
-        processor.getCellByPos(sheet0, "B12").setCellValue(totalOutwardAmountFiOutSGP.toString()); // 3B-2 (a)
+        processor.getCellByPos(sheet0, "B12").setCellValue(totalOutwardAmountFiOutSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-2 (a)
         processor.getCellByPos(sheet0, "E12").setCellValue(countOutwardFiOutSGP);
-        processor.getCellByPos(sheet0, "B14").setCellValue(totalOutwardAmountIndividualOutSGP.toString()); // 3B-2 (b) (i)
+        processor.getCellByPos(sheet0, "B14").setCellValue(totalOutwardAmountIndividualOutSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-2 (b) (i)
         processor.getCellByPos(sheet0, "E14").setCellValue(countOutwardIndividualOutSGP);
-        processor.getCellByPos(sheet0, "B15").setCellValue(totalOutwardAmountNonIndividualOutSGP.toString()); // 3B-2 (b) (ii)
+        processor.getCellByPos(sheet0, "B15").setCellValue(totalOutwardAmountNonIndividualOutSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-2 (b) (ii)
         processor.getCellByPos(sheet0, "E15").setCellValue(countOutwardNonIndividualOutSGP);
         // Form 3B-3 Inward in Singapore
-        processor.getCellByPos(sheet0, "B19").setCellValue(totalInwardAmountFiInSGP.toString()); // 3B-3 (a)
+        processor.getCellByPos(sheet0, "B19").setCellValue(totalInwardAmountFiInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-3 (a)
         processor.getCellByPos(sheet0, "E19").setCellValue(countInwardFiInSGP);
-        processor.getCellByPos(sheet0, "B21").setCellValue(totalInwardAmountIndividualInSGP.toString()); // 3B-3 (b) (i)
+        processor.getCellByPos(sheet0, "B21").setCellValue(totalInwardAmountIndividualInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-3 (b) (i)
         processor.getCellByPos(sheet0, "E21").setCellValue(countInwardIndividualInSGP);
-        processor.getCellByPos(sheet0, "B22").setCellValue(totalInwardAmountNonIndividualInSGP.toString()); // 3B-3 (b) (ii)
+        processor.getCellByPos(sheet0, "B22").setCellValue(totalInwardAmountNonIndividualInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-3 (b) (ii)
         processor.getCellByPos(sheet0, "E22").setCellValue(countInwardNonIndividualInSGP);
         // Form 3B-4 Inward outside Singapore
-        processor.getCellByPos(sheet0, "B24").setCellValue(totalInwardAmountFiOutSGP.toString()); // 3B-4 (a)
+        processor.getCellByPos(sheet0, "B24").setCellValue(totalInwardAmountFiOutSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-4 (a)
         processor.getCellByPos(sheet0, "E24").setCellValue(countInwardFiOutSGP);
-        processor.getCellByPos(sheet0, "B26").setCellValue(totalInwardAmountIndividualOutSGP.toString()); // 3B-4 (b) (i)
+        processor.getCellByPos(sheet0, "B26").setCellValue(totalInwardAmountIndividualOutSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-4 (b) (i)
         processor.getCellByPos(sheet0, "E26").setCellValue(countInwardIndividualOutSGP);
-        processor.getCellByPos(sheet0, "B27").setCellValue(totalInwardAmountNonIndividualOutSGP.toString()); // 3B-4 (b) (ii)
+        processor.getCellByPos(sheet0, "B27").setCellValue(totalInwardAmountNonIndividualOutSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-4 (b) (ii)
         processor.getCellByPos(sheet0, "E27").setCellValue(countInwardNonIndividualOutSGP);
         // Form 3B-5 All outward funds are transferred to a bank
-        processor.getCellByPos(sheet0, "B30").setCellValue(totalOutwardAmountToBank.toString()); // 3B-5 (a)
+        processor.getCellByPos(sheet0, "B30").setCellValue(totalOutwardAmountToBank.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-5 (a)
         processor.getCellByPos(sheet0, "D30").setCellValue(countOutwardToBank);
         processor.getCellByPos(sheet0, "B31").setCellValue("0.00"); // 3B-5 (b)
         processor.getCellByPos(sheet0, "D31").setCellValue(0);
@@ -803,7 +796,7 @@ public class MasReportXlsxProcessor {
         processor.getCellByPos(sheet0, "D33").setCellValue(0);
         processor.getCellByPos(sheet0, "E33").setCellValue("NA");
         // Form 3B-6 All inward funds are transferred from a bank
-        processor.getCellByPos(sheet0, "B36").setCellValue(totalInwardAmountToBank.toString()); // 3B-6 (a)
+        processor.getCellByPos(sheet0, "B36").setCellValue(totalInwardAmountToBank.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-6 (a)
         processor.getCellByPos(sheet0, "D36").setCellValue(countInwardToBank);
         processor.getCellByPos(sheet0, "B37").setCellValue("0.00"); // 3B-6 (b)
         processor.getCellByPos(sheet0, "D37").setCellValue(0);
@@ -826,10 +819,10 @@ public class MasReportXlsxProcessor {
         }
 
         // Form 3B-8
-        processor.getCellByPos(sheet0, "B65").setCellValue(totalAmountHighRisk.toString()); // 3B-6 (a)
+        processor.getCellByPos(sheet0, "B65").setCellValue(totalAmountHighRisk.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-6 (a)
         processor.getCellByPos(sheet0, "D65").setCellValue(countHighRisk);
         // Form 3B-9 All inward funds are transferred to DTC bank account
-        processor.getCellByPos(sheet0, "B68").setCellValue(totalInwardAmountToBank.toString()); // 3B-9 (a)
+        processor.getCellByPos(sheet0, "B68").setCellValue(totalInwardAmountToBank.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-9 (a)
         processor.getCellByPos(sheet0, "D68").setCellValue(countInwardToBank);
         processor.getCellByPos(sheet0, "B69").setCellValue("0.00"); // 3B-9 (b)
         processor.getCellByPos(sheet0, "D69").setCellValue(0);
@@ -879,9 +872,9 @@ public class MasReportXlsxProcessor {
                 totalAmountOutSGP = addPaymentAmount(paymentTransaction, totalAmountOutSGP, ratesMap);
             }
         }
-        processor.getCellByPos(sheet0, "B6").setCellValue(totalAmountInSGP.toString());
+        processor.getCellByPos(sheet0, "B6").setCellValue(totalAmountInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C6").setCellValue(countInSGP);
-        processor.getCellByPos(sheet0, "B7").setCellValue(totalAmountOutSGP.toString());
+        processor.getCellByPos(sheet0, "B7").setCellValue(totalAmountOutSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C7").setCellValue(countOutSGP);
         /*
                 SHEET 1 Merchant Acquisition Transaction
@@ -997,9 +990,9 @@ public class MasReportXlsxProcessor {
                 totalSellTokenAmount = addOtcAmount(otc, totalSellTokenAmount, ratesMap);
             }
         }
-        processor.getCellByPos(sheet0, "B6").setCellValue(totalBuyTokenAmount.toString()); // 6A-1 (a)
+        processor.getCellByPos(sheet0, "B6").setCellValue(totalBuyTokenAmount.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 6A-1 (a)
         processor.getCellByPos(sheet0, "C6").setCellValue(countBuy);
-        processor.getCellByPos(sheet0, "B7").setCellValue(totalSellTokenAmount.toString()); // 6A-1 (b)
+        processor.getCellByPos(sheet0, "B7").setCellValue(totalSellTokenAmount.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 6A-1 (b)
         processor.getCellByPos(sheet0, "C7").setCellValue(countSell);
         processor.getCellByPos(sheet0, "B8").setCellValue("0.00"); // 6A-1 (c) Don't have exchange between tokens
         processor.getCellByPos(sheet0, "C8").setCellValue(0);
@@ -1049,9 +1042,9 @@ public class MasReportXlsxProcessor {
             }
         }
         // Form 6B-1 (a) Dealing DPT BUY and SELL, no EXCHANGE between tokens
-        processor.getCellByPos(sheet0, "B7").setCellValue(totalBuyTokenAmount.toString());
+        processor.getCellByPos(sheet0, "B7").setCellValue(totalBuyTokenAmount.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "E7").setCellValue(countBuy);
-        processor.getCellByPos(sheet0, "B8").setCellValue(totalSellTokenAmount.toString());
+        processor.getCellByPos(sheet0, "B8").setCellValue(totalSellTokenAmount.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "E8").setCellValue(countSell);
         processor.getCellByPos(sheet0, "B9").setCellValue("0.00");
         processor.getCellByPos(sheet0, "C9").setCellValue(0);
@@ -1114,7 +1107,7 @@ public class MasReportXlsxProcessor {
                     // Average monthly
                     .divide(new BigDecimal(lengthOfMonths.size()), RoundingMode.HALF_UP);
 
-            processor.getCellByPos(sheet0, "D28").setCellValue(averageBalance.toString());
+            processor.getCellByPos(sheet0, "D28").setCellValue(averageBalance.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         }
         // Form 6B-5 (a)
         printTop5ByAmountIn6B(processor, sheet0, otcList, 32);
@@ -1155,14 +1148,14 @@ public class MasReportXlsxProcessor {
         for (int i = 0; i < top5HeldDPT.size(); i++) {
             int row = 70 + i;
             processor.getCellByPos(sheet0, "C" + row).setCellValue(top5HeldDPT.get(i).currency.name);
-            processor.getCellByPos(sheet0, "D" + row).setCellValue(top5HeldDPT.get(i).totalAmountInSGD.toString());
+            processor.getCellByPos(sheet0, "D" + row).setCellValue(top5HeldDPT.get(i).totalAmountInSGD.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         }
         // Form 6B-5 (f)
         BigDecimal totalAmountHeldDPT = cryptoAccountList.stream()
                 .filter(walletAccount -> walletAccount.currency.isCrypto())
                 .map(walletAccount -> walletAccount.balance.multiply(ratesMap.get(endDate).get(walletAccount.currency)))
                 .reduce(ZERO, BigDecimal::add);
-        processor.getCellByPos(sheet0, "D75").setCellValue(totalAmountHeldDPT.toString());
+        processor.getCellByPos(sheet0, "D75").setCellValue(totalAmountHeldDPT.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         // Form 6B-5 (g)
         List<TotalSortingObject> heldByHighRiskDPT = cryptoAccountList.stream()
                 .filter(walletAccount -> highRiskIds.contains(walletAccount.clientId))
@@ -1187,7 +1180,7 @@ public class MasReportXlsxProcessor {
         for (int i = 0; i < heldByHighRiskDPT.size(); i++) {
             int row = 76 + i;
             processor.getCellByPos(sheet0, "C" + row).setCellValue(heldByHighRiskDPT.get(i).currency.name);
-            processor.getCellByPos(sheet0, "D" + row).setCellValue(heldByHighRiskDPT.get(i).totalAmountInSGD.toString());
+            processor.getCellByPos(sheet0, "D" + row).setCellValue(heldByHighRiskDPT.get(i).totalAmountInSGD.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         }
         // Form 6B-6
         BigDecimal totalAmountToHighRiskCountry = ZERO;
@@ -1211,9 +1204,9 @@ public class MasReportXlsxProcessor {
                 totalAmountHighRiskTransaction = addCryptoTransactionAmount(cryptoTransaction, totalAmountHighRiskTransaction, ratesMap);
             }
         }
-        processor.getCellByPos(sheet0, "C83").setCellValue(totalAmountToHighRiskCountry.toString());
+        processor.getCellByPos(sheet0, "C83").setCellValue(totalAmountToHighRiskCountry.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "E83").setCellValue(countToHighRiskCountry);
-        processor.getCellByPos(sheet0, "C84").setCellValue(totalAmountFromHighRiskCountry.toString());
+        processor.getCellByPos(sheet0, "C84").setCellValue(totalAmountFromHighRiskCountry.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "E84").setCellValue(countFromHighRiskCountry);
         // Form 6B-7 (a) No PEP client
         processor.getCellByPos(sheet0, "C87").setCellValue(0);
@@ -1221,7 +1214,7 @@ public class MasReportXlsxProcessor {
         processor.getCellByPos(sheet0, "E87").setCellValue(0);
         // Form 6B-7 (b)
         processor.getCellByPos(sheet0, "C88").setCellValue(highRiskIds.size());
-        processor.getCellByPos(sheet0, "D88").setCellValue(totalAmountHighRiskTransaction.toString());
+        processor.getCellByPos(sheet0, "D88").setCellValue(totalAmountHighRiskTransaction.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "E88").setCellValue(countHighRiskTransaction);
         /*
                 SHEET 1 OTC Transaction
@@ -1238,104 +1231,6 @@ public class MasReportXlsxProcessor {
         return processor;
     }
 
-//    private void setCurrentRates(HashMap<Currency, BigDecimal> currentRateToSGD) {
-//        log.info("Rates \n {}", currentRateToSGD);
-//        this.rateFromUSD = currentRateToSGD.get(Currency.USD);
-//        this.rateFromCNY = currentRateToSGD.get(Currency.CNY);
-//        this.rateFromBTC = currentRateToSGD.get(Currency.BTC);
-//        this.rateFromETH = currentRateToSGD.get(Currency.ETH);
-//        this.rateFromTRX = currentRateToSGD.get(Currency.TRX);
-//        this.rateFromUSDT = currentRateToSGD.get(Currency.USDT);
-//        this.rateFromUSDC = currentRateToSGD.get(Currency.USDC);
-//    }
-
-    private void fill1a() throws IllegalAccessException {
-    }
-
-    private void fill1b() throws IllegalAccessException {
-    }
-
-    private void fill2a() throws IllegalAccessException {
-    }
-
-    private void fill2b() throws IllegalAccessException {
-    }
-
-    private void fill3a() throws IllegalAccessException {
-    }
-
-    private void fill3b() throws IllegalAccessException {
-    }
-
-    private void fill4a() throws IllegalAccessException {
-    }
-
-    private void fill4b() throws IllegalAccessException {
-    }
-
-    private void fill5() throws IllegalAccessException {
-    }
-
-    private void fill6a() throws IllegalAccessException {
-    }
-
-    private void fill6b() throws IllegalAccessException {
-    }
-//
-//    private FieldValue getRateToSGD(Currency currency) {
-//        switch (currency) {
-//            case SGD:
-//                return new FieldValue<>(BigDecimal.ONE);
-//            case USD:
-//                return new FieldValue<>(rateFromUSD);
-//            case CNY:
-//                return new FieldValue<>(rateFromCNY);
-//            default:
-//                return FieldValue.empty();
-//        }
-//    }
-//
-//    private BigDecimal addPaymentAmount(PaymentTransaction paymentTransaction, BigDecimal totalAmount) {
-//        return addAmountWithCurrency(paymentTransaction.requestCurrency, paymentTransaction.totalAmount, totalAmount);
-//    }
-//
-//    private BigDecimal addOtcAmount(Otc otc, BigDecimal totalAmount) {
-//        return addAmountWithCurrency(otc.fiatCurrency, otc.fiatAmount, totalAmount);
-//    }
-//
-//    private BigDecimal addAmountWithCurrency(Currency currency, BigDecimal amount, BigDecimal originalAmount) {
-//        switch (currency) {
-//            case SGD:
-//                return originalAmount.add(amount);
-//            case USD:
-//                return originalAmount.add(amount.multiply(rateFromUSD).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case EUR:
-//                return originalAmount.add(amount.multiply(rateFromEUR).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case AUD:
-//                return originalAmount.add(amount.multiply(rateFromAUD).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case JPY:
-//                return originalAmount.add(amount.multiply(rateFromJPY).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case HKD:
-//                return originalAmount.add(amount.multiply(rateFromHKD).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case GBP:
-//                return originalAmount.add(amount.multiply(rateFromGBP).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case CNY:
-//                return originalAmount.add(amount.multiply(rateFromCNY).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case ETH:
-//                return originalAmount.add(amount.multiply(rateFromETH).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case BTC:
-//                return originalAmount.add(amount.multiply(rateFromBTC).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case TRX:
-//                return originalAmount.add(amount.multiply(rateFromTRX).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case USDT:
-//                return originalAmount.add(amount.multiply(rateFromUSDT).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            case USDC:
-//                return originalAmount.add(amount.multiply(rateFromUSDC).setScale(Currency.SGD.exponent, RoundingMode.HALF_UP));
-//            default:
-//                throw new ValidationException(String.format("Can't convert transaction currency %s to SGD", currency));
-//        }
-//    }
-//
     private static void printTop5ByAmountIn6B(MasReportXlsxProcessor processor, XSSFSheet sheet, List<OtcReport> otcListToSort, int startedRow) {
         List<TotalSortingObject> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
                 .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
@@ -1376,7 +1271,7 @@ public class MasReportXlsxProcessor {
         for (int i = 0; i < otcNotSGDSortedByAmount.size(); i++) {
             int row = startedRow + i;
             processor.getCellByPos(sheet, "C" + row).setCellValue(otcNotSGDSortedByAmount.get(i).currency.name);
-            processor.getCellByPos(sheet, "D" + row).setCellValue(otcNotSGDSortedByAmount.get(i).totalAmountInSGD.toString());
+            processor.getCellByPos(sheet, "D" + row).setCellValue(otcNotSGDSortedByAmount.get(i).totalAmountInSGD.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
             processor.getCellByPos(sheet, "E" + row).setCellValue(otcNotSGDSortedByAmount.get(i).totalCount);
         }
     }
@@ -1391,73 +1286,6 @@ public class MasReportXlsxProcessor {
         this.workbook.write(stream);
         this.workbook.close();
         return stream.toByteArray();
-    }
-
-    public ResponseEntity<ByteArrayResource> toResponseEntity(String filename) throws IOException {
-        byte[] bytes = toByteArray();
-        HttpHeaders header = new HttpHeaders();
-        header.setContentType(new MediaType("application", "vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        header.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename + ".xlsx");
-        return new ResponseEntity<>(new ByteArrayResource(bytes), header, HttpStatus.CREATED);
-    }
-
-    @Data
-    private static class TotalCountByCountry {
-
-        public long totalCount;
-        public String country;
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            TotalCountByCountry key = (TotalCountByCountry) o;
-            return Objects.equal(country, key.country);
-        }
-
-        @Override
-        public int hashCode() { return Objects.hashCode(country);}
-
-    }
-
-    @Data
-    private static class TotalCountByMerchant {
-
-        public Long clientId;
-        public long totalCount;
-        public String clientName;
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            TotalCountByMerchant key = (TotalCountByMerchant) o;
-            return Objects.equal(clientId, key.clientId);
-        }
-
-        @Override
-        public int hashCode() { return Objects.hashCode(clientId);}
-
-    }
-
-    @Data
-    private static class TotalByCurrency {
-
-        public Currency currency;
-        public long totalCount;
-        public BigDecimal totalAmount;
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            TotalByCurrency key = (TotalByCurrency) o;
-            return Objects.equal(currency, key.currency);
-        }
-
-        @Override
-        public int hashCode() { return Objects.hashCode(currency);}
-
     }
 
 }
