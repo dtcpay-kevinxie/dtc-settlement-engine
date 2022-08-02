@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.85.0] -
+
+* Update parent
+* Align changes with the crypto-engine APIs
+
 [0.84.0] - 02 Aug 2022
 
 * Change crypto rate getting method
