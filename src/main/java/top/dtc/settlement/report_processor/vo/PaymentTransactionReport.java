@@ -15,7 +15,7 @@ import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
         @RecordField(order = 0, title = "ID", path = "id"),
         @RecordField(order = 1, title = "Client ID", path = "merchantId"),
         @RecordField(order = 2, title = "Client Name", path = "merchantName"),
-        @RecordField(order = 3, title = "Brand", path = "brand"),
+        @RecordField(order = 3, title = "Brand", path = "brand", type = ENUM_NAME),
         @RecordField(order = 4, title = "Currency", path = "requestCurrency", type = ENUM_NAME),
         @RecordField(order = 5, title = "Total Amount", path = "totalAmount", type = AMOUNT, currencyPath = "requestCurrency"),
         @RecordField(order = 7, title = "Transaction Time", path = "dtcTimestamp", format = DATETIME),
