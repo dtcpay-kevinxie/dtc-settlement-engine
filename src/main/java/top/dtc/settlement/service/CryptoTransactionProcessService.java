@@ -925,7 +925,7 @@ public class CryptoTransactionProcessService {
             case TRON:
                 return defaultConfig.defaultAutoSweepTrcAddress;
             case POLYGON:
-                // TODO default auto sweep polygon address;
+                return defaultConfig.defaultAutoSweepPolygonAddress;
             default:
                 return null;
         }
