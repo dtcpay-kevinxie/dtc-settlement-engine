@@ -341,7 +341,7 @@ public class CryptoTransactionProcessService {
                         }
                         payableProcessService.writeOff(originalPayable, "System auto write-off", existingTxn.txnHash);
                         WalletAccount cryptoAccount = walletAccountService.getOneByClientIdAndCurrency(existingTxn.clientId, existingTxn.currency);
-                        notifyCompleteWithdrawal(existingTxn, recipientAddress, cryptoAccount);
+                        notifyWithdrawalCompleted(existingTxn, recipientAddress, cryptoAccount);
                     } else if (recipientAddress.type == WalletAddressType.DTC_CLIENT_WALLET
                             && recipientAddress.id.equals(existingTxn.recipientAddressId)
                             && senderAddress != null
@@ -832,7 +832,7 @@ public class CryptoTransactionProcessService {
                 .send();
     }
 
-    private void notifyCompleteWithdrawal(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress, WalletAccount walletAccount) {
+    private void notifyWithdrawalCompleted(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress, WalletAccount walletAccount) {
         List<String> recipients = commonValidationService.getClientUserEmails(cryptoTransaction.clientId);
         String clientName = commonValidationService.getClientName(cryptoTransaction.clientId);
         String clientEmail = commonValidationService.getClientEmail(cryptoTransaction.clientId);
@@ -853,6 +853,10 @@ public class CryptoTransactionProcessService {
         } catch (Exception e) {
             log.error("Notification Error", e);
         }
+        if (cryptoTransaction.notificationUrl != null) {
+            log.debug("Notify url {}", cryptoTransaction.notificationUrl);
+            //TODO: Send notification with type and id
+        }
     }
 
     private void notifyDepositCompleted(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress) {
@@ -870,6 +874,10 @@ public class CryptoTransactionProcessService {
                     .send();
         } catch (Exception e) {
             log.error("Notification Error", e);
+        }
+        if (cryptoTransaction.notificationUrl != null) {
+            log.debug("Notify url {}", cryptoTransaction.notificationUrl);
+            //TODO: Send notification with type and id
         }
     }
 

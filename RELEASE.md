@@ -4,6 +4,7 @@
 
 * Update parent
 * Align changes with the crypto-engine APIs
+* Add notification_url TODO to cryptoTransaction
 
 [0.84.0] - 02 Aug 2022
 
