@@ -763,7 +763,7 @@ public class CryptoTransactionProcessService {
         transactionSend.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, currency);
         input.wallet = CryptoWallet.unhostedWallet(senderAddress.type.account, senderAddress.addressIndex);
         input.amount = amount;
-        input.wallet = CryptoWallet.addressOnly(recipientAddress.address);
+        output.wallet = CryptoWallet.addressOnly(recipientAddress.address);
         output.amount = amount;
         if (recipientAddress.securityType == SecurityType.KMS) {
             input.wallet.account = recipientAddress.type.account;
