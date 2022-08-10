@@ -17,8 +17,8 @@ import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
      mappings = {
              @RecordField(order = 0, title = "ID", path = "id"),
              @RecordField(order = 1, title = "Client ID", path = "clientId"),
-             @RecordField(order = 2, title = "Type", path = "type"),
-             @RecordField(order = 3, title = "Network", path = "mainNet"),
+             @RecordField(order = 2, title = "Type", path = "type", type = ENUM_NAME),
+             @RecordField(order = 3, title = "Network", path = "mainNet", type = ENUM_NAME),
              @RecordField(order = 4, title = "Crypto", path = "currency", type = ENUM_NAME),
              @RecordField(order = 5, title = "Amount", path = "amount"),
              @RecordField(order = 6, title = "Request Timestamp", path = "requestTimestamp", format = DATETIME),

@@ -138,8 +138,7 @@ public class MasReportXlsxProcessor {
 
     private static void generateOtcSheet(
             MasReportXlsxProcessor processor,
-            List<OtcReport> otcList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<OtcReport> otcList
     ) throws IllegalAccessException {
         /*
                SHEET OTC Transaction
@@ -151,14 +150,13 @@ public class MasReportXlsxProcessor {
 
     private static void generateCryptoTransactionSheet(
             MasReportXlsxProcessor processor,
-            List<CryptoTransactionReport> cryptoTransactionList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<CryptoTransactionReport> cryptoTransactionList
     ) throws IllegalAccessException {
         /*
                SHEET Crypto Transaction
          */
         XlsxGenerator
-                .records(processor.workbook, cryptoTransactionList, OtcReport.class)
+                .records(processor.workbook, cryptoTransactionList, CryptoTransactionReport.class)
                 .genSheet("Crypto Transactions");
     }
 
@@ -999,7 +997,7 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET 1 OTC Transaction
          */
-        generateOtcSheet(processor, otcList, ratesMap);
+        generateOtcSheet(processor, otcList);
         return processor;
     }
 
@@ -1219,11 +1217,11 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET 1 OTC Transaction
          */
-        generateOtcSheet(processor, otcList, ratesMap);
+        generateOtcSheet(processor, otcList);
         /*
                 SHEET 2 Crypto Transaction
          */
-        generateCryptoTransactionSheet(processor, cryptoTransactionList, ratesMap);
+        generateCryptoTransactionSheet(processor, cryptoTransactionList);
         /*
                 SHEET 3 Risk Matrix
          */

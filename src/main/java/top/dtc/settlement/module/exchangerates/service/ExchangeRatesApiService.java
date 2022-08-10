@@ -21,7 +21,7 @@ import top.dtc.settlement.core.properties.HttpProperties;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import static top.dtc.common.enums.Currency.USD;
+import static top.dtc.common.enums.Currency.*;
 
 @Log4j2
 @Service
@@ -35,7 +35,7 @@ public class ExchangeRatesApiService {
 
     public void getCryptoRate() {
         for (Currency currency : Currency.values()) {
-            if (currency.isCrypto()) {
+            if (currency.isCrypto() && currency != USDT && currency != USDC && currency != XSGD) {
                 try {
                     getCryptoOtcRateFromFTX(currency);
                 } catch (Exception e) {

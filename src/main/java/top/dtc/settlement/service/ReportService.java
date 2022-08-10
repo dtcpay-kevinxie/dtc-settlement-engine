@@ -369,7 +369,7 @@ public class ReportService {
                 .collect(Collectors.toList());
         byte[] reportByte = MasReportXlsxProcessor.generate6b(
                 startDate, endDate, otcList, cryptoTransactionList, dailyBalanceRecordList, riskMatrixList, dptClientInSGP, dptClientOutsideSGP, cryptoAccountList, highRiskCountryClientIds, ratesMap).toByteArray();
-        sendReportEmail("6A", startDate.toString(), endDate.toString(), reportByte);
+        sendReportEmail("6B", startDate.toString(), endDate.toString(), reportByte);
     }
 
     private List<RiskMatrix> getHighRiskList() {
@@ -521,7 +521,7 @@ public class ReportService {
                 null,
                 startDate.atStartOfDay(),
                 endDate.plusDays(1).atStartOfDay()
-        ).stream().map(otc -> {
+        ).stream().filter(otc -> otc.clientId != 1L).map(otc -> {
             OtcReport otcReport = new OtcReport();
             BeanUtils.copyProperties(otc, otcReport);
             otcReport.rateToSGD = ratesMap.get(otcReport.completedTime.toLocalDate()).get(otcReport.fiatCurrency);
