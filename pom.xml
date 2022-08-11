@@ -6,12 +6,12 @@
     <parent>
         <groupId>top.dtc</groupId>
         <artifactId>dtc-parent</artifactId>
-        <version>0.49.0-SNAPSHOT</version>
+        <version>0.49.0</version>
         <relativePath/>
     </parent>
 
     <artifactId>dtc-settlement-engine</artifactId>
-    <version>0.85.0-SNAPSHOT</version>
+    <version>0.85.0</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -32,7 +32,7 @@
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-core</artifactId>
-            <version>0.64.0-SNAPSHOT</version>
+            <version>0.64.0</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
@@ -47,7 +47,7 @@
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-wallet</artifactId>
-            <version>0.24.0-SNAPSHOT</version>
+            <version>0.24.0</version>
         </dependency>
 
         <!-- HTTP -->
