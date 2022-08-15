@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.86.0] - 15 Aug 2022
+
+* Change Binance settlement email recipient
+* Add licensing date for MAS report generating logic
+
 [0.85.0] - 11 Aug 2022
 
 * Update parent

@@ -51,7 +51,7 @@ public class BinanceSettleService {
         } else {
             NotificationSender
                     .by(QUERY_USER_UNSETTLE)
-                    .to(notificationProperties.complianceRecipient)
+                    .to(notificationProperties.opsRecipient)
                     .dataMap(Map.of(
                             "details", queryUserUnSettleResp.result.DetailList + "\n"
                     ))
