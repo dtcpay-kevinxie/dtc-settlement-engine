@@ -52,8 +52,8 @@ public class WechatReconcileData {
 
     public void getAttributeName(String key, String value) {
         Field[] fields = this.getClass().getDeclaredFields();
-        for (int i = 0; i < fields.length; i++) {
-            String name = fields[i].getName();
+        for (Field field : fields) {
+            String name = field.getName();
             if (name.equalsIgnoreCase(key)) {
                 name = name.substring(0, 1).toUpperCase() + name.substring(1);
                 try {

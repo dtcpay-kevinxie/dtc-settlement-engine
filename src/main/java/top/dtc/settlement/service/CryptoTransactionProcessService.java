@@ -312,8 +312,7 @@ public class CryptoTransactionProcessService {
             log.debug("Transaction is linked to {}", JSON.toJSONString(existingTxn, true));
             // 2a. Check Transaction State: PENDING, COMPLETED, REJECTED, CLOSED
             switch (existingTxn.state) {
-                case AUTHORIZED:
-                case PROCESSING:
+                case AUTHORIZED, PROCESSING -> {
                     // DTC_OPS to CLIENT_OWN has txnHash (Crypto Withdrawal case)
                     if (recipientAddress.type == WalletAddressType.CLIENT_OWN
                             && recipientAddress.id.equals(existingTxn.recipientAddressId)
@@ -356,19 +355,22 @@ public class CryptoTransactionProcessService {
                         sendAlert(notificationProperties.opsRecipient, alertMsg);
                     }
                     return;
-                case COMPLETED:
+                }
+                case COMPLETED -> {
                     log.debug("Transaction is handled properly.");
                     return;
-                case REJECTED:
-                case CLOSED:
+                }
+                case REJECTED, CLOSED -> {
                     alertMsg = String.format("Transaction[%s] success in blockchain network but handled as %s ",
                             existingTxn.txnHash, existingTxn.state.desc);
                     log.error(alertMsg);
                     sendAlert(notificationProperties.opsRecipient, alertMsg);
                     return;
-                default:
+                }
+                default -> {
                     log.error("Invalid CryptoTransaction state");
                     return;
+                }
             }
         }
 
@@ -492,18 +494,17 @@ public class CryptoTransactionProcessService {
                 // 4c. Check whether sender address is DTC_CLIENT_WALLET or DTC_GAS
                 if (senderAddress != null) {
                     switch (senderAddress.type) {
-                        case DTC_CLIENT_WALLET:
-                        case DTC_GAS:
-                        case DTC_FINANCE:
+                        case DTC_CLIENT_WALLET, DTC_GAS, DTC_FINANCE -> {
                             log.info("Sweep from [{}] to [{}] completed", senderAddress.address, recipientAddress.address);
                             internalTransferCompleted(result.id, InternalTransferReason.SWEEP, result.fee);
                             return;
-                        case SELF_CUSTODIAL:
-                        case CLIENT_OWN:
+                        }
+                        case SELF_CUSTODIAL, CLIENT_OWN -> {
                             alertMsg = String.format("Transaction [%s] sent from Client Own address(es) [%s] to DTC_OPS address [%s].", result.id, inputAddresses, recipientAddress.address);
                             log.error(alertMsg);
                             sendAlert(notificationProperties.opsRecipient, alertMsg);
                             return;
+                        }
                     }
                 } else {
                     if (isDustTxn(result.currency, output.amount)) {
@@ -565,15 +566,12 @@ public class CryptoTransactionProcessService {
         Long receivableId = receivableSubService.getOneReceivableIdBySubIdAndType(cryptoTransaction.id, ActivityType.PAYMENT);
         Receivable receivable = receivableService.getById(receivableId);
         switch (receivable.status) {
-            case NOT_RECEIVED:
-                receivable.receivedAmount = cryptoTransaction.amount;
-                break;
-            case PARTIAL:
-                receivable.receivedAmount = receivable.receivedAmount.add(cryptoTransaction.amount);
-                break;
-            default:
+            case NOT_RECEIVED -> receivable.receivedAmount = cryptoTransaction.amount;
+            case PARTIAL      -> receivable.receivedAmount = receivable.receivedAmount.add(cryptoTransaction.amount);
+            default -> {
                 log.error("Invalid Receivable status {}", receivable);
                 return;
+            }
         }
         if (receivable.amount.compareTo(receivable.receivedAmount) == 0) {
             receivable.status = ReceivableStatus.RECEIVED;
@@ -685,29 +683,30 @@ public class CryptoTransactionProcessService {
         BigDecimal threshold;
         BigDecimal transferAmount;
         switch (currency) {
-            case USDT:
+            case USDT -> {
                 threshold = defaultConfig.thresholdSweepUsdt;
                 transferAmount = amount;
-                break;
-            case USDC:
+            }
+            case USDC -> {
                 threshold = defaultConfig.thresholdSweepUsdc;
                 transferAmount = amount;
-                break;
-            case ETH:
+            }
+            case ETH -> {
                 threshold = defaultConfig.thresholdSweepEth;
                 transferAmount = amount.subtract(defaultConfig.maxEthGas);
-                break;
-            case BTC:
+            }
+            case BTC -> {
                 threshold = defaultConfig.thresholdSweepBtc;
                 transferAmount = amount.subtract(defaultConfig.maxBtcGas);
-                break;
-            case TRX:
+            }
+            case TRX -> {
                 threshold = defaultConfig.thresholdSweepTrx;
                 transferAmount = amount.subtract(defaultConfig.maxTronGas);
-                break;
-            default:
+            }
+            default -> {
                 log.error("Unsupported Currency, {}", currency);
                 return null;
+            }
         }
         Long defaultAutoSweepAddress = getDefaultAutoSweepAddress(defaultConfig, dtcAssignedAddress.mainNet);
         dtcOpsAddress = kycWalletAddressService.getById(defaultAutoSweepAddress);
@@ -925,18 +924,13 @@ public class CryptoTransactionProcessService {
     }
 
     private Long getDefaultAutoSweepAddress(DefaultConfig defaultConfig, MainNet mainNet) {
-        switch (mainNet) {
-            case BITCOIN:
-                return defaultConfig.defaultAutoSweepBtcAddress;
-            case ETHEREUM:
-                return defaultConfig.defaultAutoSweepErcAddress;
-            case TRON:
-                return defaultConfig.defaultAutoSweepTrcAddress;
-            case POLYGON:
-                return defaultConfig.defaultAutoSweepPolygonAddress;
-            default:
-                return null;
-        }
+        return switch (mainNet) {
+            case BITCOIN  -> defaultConfig.defaultAutoSweepBtcAddress;
+            case ETHEREUM -> defaultConfig.defaultAutoSweepErcAddress;
+            case TRON     -> defaultConfig.defaultAutoSweepTrcAddress;
+            case POLYGON  -> defaultConfig.defaultAutoSweepPolygonAddress;
+            default -> null;
+        };
     }
 
     private boolean isDustTxn(Currency currency, BigDecimal amount) {

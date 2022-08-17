@@ -13,7 +13,6 @@ import top.dtc.data.wallet.service.WalletUserService;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Log4j2
 @Service
@@ -52,7 +51,7 @@ public class CommonValidationService {
             log.info("Not Wallet user for client");
             return new ArrayList<>();
         } else {
-            return walletUserList.stream().map(walletUser -> walletUser.email).collect(Collectors.toList());
+            return walletUserList.stream().map(walletUser -> walletUser.email).toList();
         }
     }
 

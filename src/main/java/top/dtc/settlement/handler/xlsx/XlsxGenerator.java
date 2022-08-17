@@ -34,7 +34,7 @@ public class XlsxGenerator<T> {
     private Class<?> clazz;
     private List<?> records;
     private XSSFWorkbook workbook;
-    private Map<String, CellStyle> cellStyleMap = new HashMap<>();
+    private final Map<String, CellStyle> cellStyleMap = new HashMap<>();
     private BiFunction<String, Object, FieldValue<Object>> valueHandler = null;
 
     private XlsxGenerator() {
@@ -211,31 +211,29 @@ public class XlsxGenerator<T> {
         if (obj != null) {
             if (XlsxGeneratorUtils.isNumeric(field)) {
                 switch (recordField.type()) {
-                    case AMOUNT: {
+                    case AMOUNT -> {
                         double amount = this.parseAmount(obj);
                         Currency currency = (Currency) XlsxGeneratorUtils.getValueFromMap(valueMap, recordField.currencyPath());
                         if (currency == null) {
-                           cell.setCellValue(amount);
+                            cell.setCellValue(amount);
                         } else if (currency.exponent > 0) {
                             this.setCellFormat(cell, this.getAmountFormat(currency));
                         }
                         cell.setCellValue(amount);
-                        break;
                     }
-                    case PERCENTAGE:
+                    case PERCENTAGE -> {
                         double amount = Double.parseDouble(obj.toString());
                         cell.setCellValue(amount * 100);
-                        break;
-                    case BOOLEAN_NUMBER:
+                    }
+                    case BOOLEAN_NUMBER -> {
                         int number = (Integer) obj;
                         if (number == 0) {
                             cell.setCellValue("No");
                         } else if (number == 1) {
                             cell.setCellValue("Yes");
                         }
-                        break;
-                    default:
-                        cell.setCellValue(Double.parseDouble(obj.toString()));
+                    }
+                    default -> cell.setCellValue(Double.parseDouble(obj.toString()));
                 }
                 // TODO long object to amount, percent
             } else if (obj instanceof LocalDateTime) {

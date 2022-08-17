@@ -54,30 +54,14 @@ public class DailyBalanceRecordProcessService {
             dailyBalanceRecord.currency = walletAccount.currency;
             dailyBalanceRecord.clientId = walletAccount.clientId;
             switch (walletAccount.currency) {
-                case SGD:
-                    dailyBalanceRecord.rateToSgd = BigDecimal.ONE;
-                    break;
-                case USD:
-                    dailyBalanceRecord.rateToSgd = rateUSDToSGD;
-                    break;
-                case BTC:
-                    dailyBalanceRecord.rateToSgd = rateBTCToSGD;
-                    break;
-                case ETH:
-                    dailyBalanceRecord.rateToSgd = rateETHToSGD;
-                    break;
-                case TRX:
-                    dailyBalanceRecord.rateToSgd = rateTRXToSGD;
-                    break;
-                case USDT:
-                    dailyBalanceRecord.rateToSgd = rateUSDTToSGD;
-                    break;
-                case USDC:
-                    dailyBalanceRecord.rateToSgd = rateUSDCToSGD;
-                    break;
-                default:
-                    log.error("Invalid Currency Account {}", walletAccount);
-                    break;
+                case SGD  -> dailyBalanceRecord.rateToSgd = BigDecimal.ONE;
+                case USD  -> dailyBalanceRecord.rateToSgd = rateUSDToSGD;
+                case BTC  -> dailyBalanceRecord.rateToSgd = rateBTCToSGD;
+                case ETH  -> dailyBalanceRecord.rateToSgd = rateETHToSGD;
+                case TRX  -> dailyBalanceRecord.rateToSgd = rateTRXToSGD;
+                case USDT -> dailyBalanceRecord.rateToSgd = rateUSDTToSGD;
+                case USDC -> dailyBalanceRecord.rateToSgd = rateUSDCToSGD;
+                default -> log.error("Invalid Currency Account {}", walletAccount);
             }
             dailyBalanceRecordService.save(dailyBalanceRecord);
         });

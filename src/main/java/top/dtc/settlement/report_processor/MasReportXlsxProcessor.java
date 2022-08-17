@@ -732,7 +732,7 @@ public class MasReportXlsxProcessor {
                         .stream()
                         .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
                         .limit(10)
-                        .collect(Collectors.toList());
+                        .toList();
 
         // Only fiat deposit is inward
         HashMap<String, TotalSortingObject> inwardFiatCountByCountry = fiatTransactionList.stream()
@@ -753,7 +753,7 @@ public class MasReportXlsxProcessor {
                         .stream()
                         .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
                         .limit(10)
-                        .collect(Collectors.toList());
+                        .toList();
 
         // Form 3B-1 Outward in Singapore
         processor.getCellByPos(sheet0, "B7").setCellValue(totalOutwardAmountFiInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-1 (a)
@@ -932,7 +932,7 @@ public class MasReportXlsxProcessor {
                         .stream()
                         .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
                         .limit(10)
-                        .collect(Collectors.toList());
+                        .toList();
         for (int i = 0; i < totalCountByMerchantList.size(); i++) {
             int row = 14 + i;
             processor.getCellByPos(sheet0, "C" + row).setCellValue(totalCountByMerchantList.get(i).clientName);
@@ -1111,16 +1111,16 @@ public class MasReportXlsxProcessor {
         printTop5ByAmountIn6B(processor, sheet0, otcList, 32);
         printTop5ByCountIn6B(processor, sheet0, otcList, 37);
         // Form 6B-5 (b)
-        List<OtcReport> otcInSGDList = otcList.stream().filter(otc -> otc.fiatCurrency == SGD).collect(Collectors.toList());
+        List<OtcReport> otcInSGDList = otcList.stream().filter(otc -> otc.fiatCurrency == SGD).toList();
         printTop5ByAmountIn6B(processor, sheet0, otcInSGDList, 43);
         printTop5ByCountIn6B(processor, sheet0, otcInSGDList, 48);
         // Form 6B-5 (c)
-        List<OtcReport> otcNotSGDList = otcList.stream().filter(otc -> otc.fiatCurrency != SGD).collect(Collectors.toList());
+        List<OtcReport> otcNotSGDList = otcList.stream().filter(otc -> otc.fiatCurrency != SGD).toList();
         printTop5ByAmountIn6B(processor, sheet0, otcNotSGDList, 54);
         printTop5ByCountIn6B(processor, sheet0, otcNotSGDList, 59);
         // Form 6B-5 (d)
         Set<Long> highRiskIds = riskMatrixList.stream().filter(riskMatrix -> riskMatrix.riskLevel == RiskLevel.HIGH).map(RiskMatrix::getClientId).collect(Collectors.toSet());
-        List<OtcReport> otcHighRiskList = otcList.stream().filter(otc -> highRiskIds.contains(otc.clientId)).collect(Collectors.toList());
+        List<OtcReport> otcHighRiskList = otcList.stream().filter(otc -> highRiskIds.contains(otc.clientId)).toList();
         printTop5ByCountIn6B(processor, sheet0, otcHighRiskList, 64); // Need to update when listed trading crypto is more than 5
         // Form 6B-5 (e)
         List<TotalSortingObject> top5HeldDPT = cryptoAccountList.stream()
@@ -1142,7 +1142,7 @@ public class MasReportXlsxProcessor {
                 .stream()
                 .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
                 .limit(5)
-                .collect(Collectors.toList());
+                .toList();
         for (int i = 0; i < top5HeldDPT.size(); i++) {
             int row = 70 + i;
             processor.getCellByPos(sheet0, "C" + row).setCellValue(top5HeldDPT.get(i).currency.name);
@@ -1174,7 +1174,7 @@ public class MasReportXlsxProcessor {
                 .stream()
                 .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
                 .limit(5)
-                .collect(Collectors.toList());
+                .toList();
         for (int i = 0; i < heldByHighRiskDPT.size(); i++) {
             int row = 76 + i;
             processor.getCellByPos(sheet0, "C" + row).setCellValue(heldByHighRiskDPT.get(i).currency.name);
@@ -1233,7 +1233,7 @@ public class MasReportXlsxProcessor {
         List<TotalSortingObject> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
                 .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
                 .limit(5)
-                .collect(Collectors.toList());
+                .toList();
         print6bTop5(processor, sheet, otcNotSGDSortedByAmount, startedRow);
     }
 
@@ -1241,7 +1241,7 @@ public class MasReportXlsxProcessor {
         List<TotalSortingObject> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
                 .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
                 .limit(5)
-                .collect(Collectors.toList());
+                .toList();
         print6bTop5(processor, sheet, otcNotSGDSortedByAmount, startedRow);
     }
 

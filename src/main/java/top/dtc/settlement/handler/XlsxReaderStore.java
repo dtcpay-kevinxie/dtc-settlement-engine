@@ -5,7 +5,6 @@ import top.dtc.common.util.StringUtils;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class XlsxReaderStore {
 
@@ -17,7 +16,7 @@ public class XlsxReaderStore {
         List<Field> fieldList = Arrays.stream(clazz.getDeclaredFields())
                 .filter(f -> f.getAnnotation(RecordField.class) != null)
                 .sorted(Comparator.comparingInt(f -> f.getAnnotation(RecordField.class).order()))
-                .collect(Collectors.toList());
+                .toList();
         Map<Field, RecordField> map = new HashMap<>();
         recordFieldMap.put(clazz, map);
         fieldList.forEach(field -> {
