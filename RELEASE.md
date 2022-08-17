@@ -4,6 +4,7 @@
 
 * Update parent & data-*
 * Update to Java 17 with features migration
+* log4j2-spring-local.xml
 
 [0.86.0] - 15 Aug 2022
 

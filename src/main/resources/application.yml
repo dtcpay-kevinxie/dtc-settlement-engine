@@ -6,6 +6,9 @@ server:
     key-store: conf/key/${SSL_KEYSTORE_PATH}
     key-store-password: ${SSL_KEYSTORE_PASSWORD}
 
+logging:
+  config: ${LOG_CONFIG_FILE:}
+
 aleta:
   localPath: ${ALETA_LOCAL_PATH}
 
