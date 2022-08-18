@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.87.0] - 18 Aug 2022
+
+* Update data-finance version
+
 [0.86.0] - 15 Aug 2022
 
 * Change Binance settlement email recipient
