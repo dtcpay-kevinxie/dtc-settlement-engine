@@ -1,10 +1,14 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.87.0] -
+[0.88.0] -
 
 * Update parent & data-*
 * Update to Java 17 with features migration
 * log4j2-spring-local.xml
+
+[0.87.0] - 18 Aug 2022
+
+* Update data-finance version
 
 [0.86.0] - 15 Aug 2022
 
