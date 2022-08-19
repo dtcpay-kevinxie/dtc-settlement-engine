@@ -5,6 +5,7 @@
 * Update parent & data-*
 * Update to Java 17 with features migration
 * log4j2-spring-local.xml
+* Add CryptoNotification
 
 [0.87.0] - 18 Aug 2022
 

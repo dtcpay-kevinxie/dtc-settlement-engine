@@ -61,6 +61,9 @@ import static top.dtc.settlement.constant.NotificationConstant.NAMES.*;
 public class CryptoTransactionProcessService {
 
     @Autowired
+    NotificationService notificationService;
+
+    @Autowired
     CryptoTransactionService cryptoTransactionService;
 
     @Autowired
@@ -852,10 +855,7 @@ public class CryptoTransactionProcessService {
         } catch (Exception e) {
             log.error("Notification Error", e);
         }
-        if (cryptoTransaction.notificationUrl != null) {
-            log.debug("Notify url {}", cryptoTransaction.notificationUrl);
-            //TODO: Send notification with type and id
-        }
+        notificationService.callbackNotification(cryptoTransaction);
     }
 
     private void notifyDepositCompleted(CryptoTransaction cryptoTransaction, KycWalletAddress kycWalletAddress) {
@@ -874,10 +874,7 @@ public class CryptoTransactionProcessService {
         } catch (Exception e) {
             log.error("Notification Error", e);
         }
-        if (cryptoTransaction.notificationUrl != null) {
-            log.debug("Notify url {}", cryptoTransaction.notificationUrl);
-            //TODO: Send notification with type and id
-        }
+        notificationService.callbackNotification(cryptoTransaction);
     }
 
     private void notifyReceivableWriteOff(Receivable originalReceivable, BigDecimal receivedAmount) {
