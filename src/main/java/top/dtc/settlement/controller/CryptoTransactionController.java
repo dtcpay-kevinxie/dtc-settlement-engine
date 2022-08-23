@@ -16,16 +16,6 @@ public class CryptoTransactionController {
     @Autowired
     CryptoTransactionProcessService cryptoTransactionProcessService;
 
-    @PostMapping("/scheduled/satoshi-pending-checker")
-    public String scheduledPendingChecker(
-            @RequestParam("group") String group,
-            @RequestParam("name") String name,
-            @RequestParam("async") boolean async
-    ) {
-        log.debug("[POST] /scheduled/satoshi-pending-checker");
-        return SchedulerUtils.executeTask(group, name, async, () -> cryptoTransactionProcessService.scheduledStatusChecker());
-    }
-
     @PostMapping("/scheduled/auto-sweep")
     public String scheduledSweep(
             @RequestParam("group") String group,

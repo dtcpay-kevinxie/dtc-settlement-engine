@@ -114,24 +114,6 @@ public class CryptoTransactionProcessService {
     @Autowired
     CryptoTransactionProperties transactionProperties;
 
-    public String scheduledStatusChecker() {
-        List<CryptoTransaction> list = cryptoTransactionService.list();
-        list.forEach(k -> {
-            if (k.state == CryptoTransactionState.AUTHORIZED
-                    && k.type == CryptoTransactionType.SATOSHI
-                    && k.requestTimestamp.isBefore(LocalDateTime.now().minusMinutes(30))
-            ) {
-                k.state = CryptoTransactionState.CLOSED;
-                try {
-                    cryptoTransactionService.updateById(k);
-                } catch (Exception e) {
-                    log.error("Update CryptoTransaction Failed", e);
-                }
-            }
-        });
-        return null;
-    }
-
     /**
      * Auto-sweep logic:
      * 1.Retrieve all of DTC_ASSIGNED_WALLET addresses existing in our system
