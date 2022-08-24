@@ -7,6 +7,7 @@
 * log4j2-spring-local.xml
 * Add CryptoNotification
 * Remove Satoshi Test scheduled process
+* Correct the EnableScheduling importing
 
 [0.87.0] - 18 Aug 2022
 
@@ -57,6 +58,7 @@
 * Update parent
 * Anti-dust feature support
 * log4j2-spring-local.xml
+* Correct the EnableScheduling importing
 
 [0.77.0] - 13 Jul 2022
 
