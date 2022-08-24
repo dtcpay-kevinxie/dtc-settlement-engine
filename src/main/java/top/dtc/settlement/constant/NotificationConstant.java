@@ -15,6 +15,9 @@ public class NotificationConstant {
         public static final String SILVERGATE_BALANCE_CHANGED = "SILVERGATE_BALANCE_CHANGED";
         public static final String QUERY_USER_UNSETTLE = "QUERY_USER_UNSETTLE";
         public static final String MAS_REPORT = "MAS_REPORT";
+        public static final String FIAT_NOTIFICATION = "FIAT_NOTIFICATION";
+        public static final String POBO_NOTIFICATION = "POBO_NOTIFICATION";
+        public static final String CRYPTO_NOTIFICATION = "CRYPTO_NOTIFICATION";
     }
 
 }

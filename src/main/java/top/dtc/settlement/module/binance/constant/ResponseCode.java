@@ -9,7 +9,6 @@ import top.dtc.common.core.json.EnumField;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Getter
 @AllArgsConstructor
@@ -38,5 +37,5 @@ public enum ResponseCode {
         return CODE_LIST;
     }
 
-    private static final List<String> CODE_LIST = Arrays.stream(values()).map(ResponseCode::getCode).collect(Collectors.toList());
+    private static final List<String> CODE_LIST = Arrays.stream(values()).map(ResponseCode::getCode).toList();
 }

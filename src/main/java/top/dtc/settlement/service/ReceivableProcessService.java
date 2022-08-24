@@ -59,15 +59,9 @@ public class ReceivableProcessService {
         }
         for (ReceivableKey key : txnReceivableMap.keySet()) {
             switch (key.module) {
-                case ALETA:
-                    processAletaReceivable(key, txnReceivableMap.get(key));
-                    break;
-                case CS_GP_CNP:
-                    processGlobalPaymentReceivable(key, txnReceivableMap.get(key));
-                    break;
-                default:
-                    log.error("Undefined Settlement Host {}", key.module);
-                    break;
+                case ALETA     -> processAletaReceivable(key, txnReceivableMap.get(key));
+                case CS_GP_CNP -> processGlobalPaymentReceivable(key, txnReceivableMap.get(key));
+                default -> log.error("Undefined Settlement Host {}", key.module);
             }
         }
     }
@@ -162,20 +156,12 @@ public class ReceivableProcessService {
     private void calculateAmount(Receivable receivable, PaymentTransaction transaction, AcqRoute acqRoute) {
         BigDecimal receivableRate = BigDecimal.ONE.subtract(acqRoute.mdrCost);
         switch (transaction.type) {
-            case SALE:
-            case CONSUMER_QR:
-            case CAPTURE:
-            case MERCHANT_DYNAMIC_QR:
-                receivable.amount = receivable.amount.add(
-                        receivableRate.multiply(
-                                transaction.processingAmount.subtract(transaction.processingFee))
-                ).subtract(acqRoute.saleCost);
-                break;
-            case REFUND:
-                receivable.amount = receivable.amount.subtract(transaction.processingAmount).subtract(acqRoute.refundCost);
-                break;
-            default:
-                break;
+            case SALE, CONSUMER_QR, CAPTURE, MERCHANT_DYNAMIC_QR -> receivable.amount = receivable.amount
+                    .add(receivableRate.multiply(transaction.processingAmount.subtract(transaction.processingFee)))
+                    .subtract(acqRoute.saleCost);
+            case REFUND -> receivable.amount = receivable.amount
+                    .subtract(transaction.processingAmount)
+                    .subtract(acqRoute.refundCost);
         }
         log.debug("Receivable Amount {}", receivable.amount);
     }

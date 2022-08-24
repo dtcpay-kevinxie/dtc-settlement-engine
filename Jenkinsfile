@@ -3,7 +3,7 @@ properties([gitLabConnection('Gitlab Connection')])
 
 gitlabBuilds(builds: ['unit test','build','dockerize','deploy','integration test']){
 
-    node(label: 'linux-builder'){
+    node(label: 'linux-builder-17'){
 
             scmVars =  checkout(scm)
 

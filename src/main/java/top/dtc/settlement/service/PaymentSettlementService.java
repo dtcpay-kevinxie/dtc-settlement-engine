@@ -157,37 +157,16 @@ public class PaymentSettlementService {
         settlement.vatAmount = BigDecimal.ZERO;
         settlement.settleFinalAmount = BigDecimal.ZERO;
         switch (settlement.scheduleType) {
-            case DAILY:
-                settlement.settleDate = settlement.cycleEndDate.plusDays(1);
-                break;
-            case WEEKLY_SUN:
-                settlement.settleDate = settlement.cycleEndDate.with(DayOfWeek.SUNDAY); // Monday is start of week
-                break;
-            case WEEKLY_MON:
-                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.MONDAY);
-                break;
-            case WEEKLY_TUE:
-                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.TUESDAY);
-                break;
-            case WEEKLY_WED:
-                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.WEDNESDAY);
-                break;
-            case WEEKLY_THU:
-                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.THURSDAY);
-                break;
-            case WEEKLY_FRI:
-                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.FRIDAY);
-                break;
-            case WEEKLY_SAT:
-                settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.SATURDAY);
-                break;
-            case MONTHLY:
-                settlement.settleDate = settlement.cycleEndDate.plusMonths(1).withDayOfMonth(1);
-                break;
-            case FIXED_DATES:
-            case PER_REQUEST:
-                settlement.settleDate = LocalDate.now().plusDays(1);
-                break;
+            case DAILY      -> settlement.settleDate = settlement.cycleEndDate.plusDays(1);
+            case WEEKLY_SUN -> settlement.settleDate = settlement.cycleEndDate.with(DayOfWeek.SUNDAY); // Monday is start of week
+            case WEEKLY_MON -> settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.MONDAY);
+            case WEEKLY_TUE -> settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.TUESDAY);
+            case WEEKLY_WED -> settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.WEDNESDAY);
+            case WEEKLY_THU -> settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.THURSDAY);
+            case WEEKLY_FRI -> settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.FRIDAY);
+            case WEEKLY_SAT -> settlement.settleDate = settlement.cycleEndDate.plusWeeks(1).with(DayOfWeek.SATURDAY);
+            case MONTHLY    -> settlement.settleDate = settlement.cycleEndDate.plusMonths(1).withDayOfMonth(1);
+            case FIXED_DATES, PER_REQUEST -> settlement.settleDate = LocalDate.now().plusDays(1);
         }
         return settlement;
     }
@@ -216,26 +195,24 @@ public class PaymentSettlementService {
             payoutReconcile.settlementId = settlement.id;
             payoutReconcile.payoutCurrency = transaction.requestCurrency;
             switch (transaction.type) {
-                case SALE:
-                case CAPTURE:
-                case MERCHANT_DYNAMIC_QR:
-                case CONSUMER_QR:
+                case SALE, CAPTURE, MERCHANT_DYNAMIC_QR, CONSUMER_QR -> {
                     settlement.saleCount++;
                     settlement.saleAmount = settlement.saleAmount.add(transaction.totalAmount.subtract(transaction.processingFee));
                     settlement.saleProcessingFee = settlement.saleProcessingFee.add(settlementConfig.saleFee).negate();
                     settlement.mdrFee = settlement.mdrFee.add(settlementConfig.mdr.multiply(transaction.totalAmount.subtract(transaction.processingFee)).negate());
                     BigDecimal payoutRate = BigDecimal.ONE.subtract(settlementConfig.mdr);
                     payoutReconcile.payoutAmount = payoutRate.multiply(transaction.totalAmount.subtract(transaction.processingFee)).subtract(settlementConfig.saleFee);
-                    break;
-                case REFUND:
+                }
+                case REFUND -> {
                     settlement.refundCount++;
                     settlement.refundAmount = settlement.refundAmount.add(transaction.totalAmount.negate());
                     settlement.refundProcessingFee = settlement.refundProcessingFee.add(settlementConfig.refundFee.negate());
                     payoutReconcile.payoutAmount = transaction.totalAmount.negate().add(settlementConfig.refundFee.negate());
-                    break;
-                default:
+                }
+                default -> {
                     log.error("Invalid Transaction Type found {}", transaction);
                     continue;
+                }
             }
             payoutReconcileService.saveOrUpdate(payoutReconcile);
         }
@@ -277,21 +254,20 @@ public class PaymentSettlementService {
             }
         }
         switch (reserve.type) {
-            case ROLLING:
+            case ROLLING -> {
                 if (reserveConfig.percentage == null) {
                     throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
                 }
                 reserve.reserveRate = reserveConfig.percentage;
                 reserve.totalAmount = settlement.saleAmount.multiply(reserveConfig.percentage);
-                break;
-            case FIXED:
+            }
+            case FIXED -> {
                 if (reserveConfig.amount == null) {
                     throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
                 }
                 reserve.totalAmount = reserveConfig.amount;
-                break;
-            default:
-                throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
+            }
+            default -> throw new ReserveException(ErrorMessage.RESERVE.INVALID_CONFIG);
         }
         reserveService.saveOrUpdate(reserve);
     }

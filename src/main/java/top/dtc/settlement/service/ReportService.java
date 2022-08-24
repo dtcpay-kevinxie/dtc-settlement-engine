@@ -194,6 +194,7 @@ public class ReportService {
         List<WalletBalanceHistory> walletBalanceHistoryList = walletBalanceHistoryService.getByParams(
                 null,
                 null,
+                null,
                 startDate.atStartOfDay(),
                 endDate.plusDays(1).atStartOfDay()
         );
@@ -281,7 +282,7 @@ public class ReportService {
                         null, null, null, null, null)
                 .stream()
                 .filter(nonIndividual -> paymentClientIds.contains(nonIndividual.id))
-                .collect(Collectors.toList());
+                .toList();
         List<Terminal> terminalList = terminalService.getByParams(null, null, null, TerminalStatus.ACTIVATED);
         byte[] reportByte = MasReportXlsxProcessor.generate4b(
                 startDate, endDate, paymentTransactionList, merchantList, terminalList, ratesMap).toByteArray();
@@ -352,11 +353,11 @@ public class ReportService {
         List<DailyBalanceRecord> dailyBalanceRecordList = dailyBalanceRecordService.getByParams(null, null, startDate, endDate).stream()
                 .filter(dailyBalanceRecord -> dailyBalanceRecord.currency.isCrypto()
                         && (dptClientOutsideSGP.contains(dailyBalanceRecord.clientId) || dptClientInSGP.contains(dailyBalanceRecord.clientId)))
-                .collect(Collectors.toList());
+                .toList();
         // Get DPT enabled activated RiskMatrix
         List<RiskMatrix> riskMatrixList = riskMatrixService.list().stream()
                 .filter(riskMatrix -> dptClientInSGP.contains(riskMatrix.clientId) || dptClientOutsideSGP.contains(riskMatrix.clientId))
-                .collect(Collectors.toList());
+                .toList();
         List<WalletAccount> cryptoAccountList = walletAccountService.getByParams(
                 null,
                 null,
@@ -366,7 +367,7 @@ public class ReportService {
         ).stream()
                 .filter(walletAccount -> walletAccount.currency.isCrypto()
                         && (dptClientInSGP.contains(walletAccount.clientId) || dptClientOutsideSGP.contains(walletAccount.clientId))) // DPT enabled activated Ids
-                .collect(Collectors.toList());
+                .toList();
         byte[] reportByte = MasReportXlsxProcessor.generate6b(
                 startDate, endDate, otcList, cryptoTransactionList, dailyBalanceRecordList, riskMatrixList, dptClientInSGP, dptClientOutsideSGP, cryptoAccountList, highRiskCountryClientIds, ratesMap).toByteArray();
         sendReportEmail("6B", startDate.toString(), endDate.toString(), reportByte);
@@ -424,13 +425,13 @@ public class ReportService {
     private List<PoboTransactionReport> getDomesticPoboList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
         return getPoboReportList(startDate, endDate, ratesMap).stream()
                 .filter(poboTransactionReport -> "SGP".equals(poboTransactionReport.recipientCountry))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<PoboTransactionReport> getCrossBorderPoboList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
         return getPoboReportList(startDate, endDate, ratesMap).stream()
                 .filter(poboTransactionReport -> !"SGP".equals(poboTransactionReport.recipientCountry))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<PoboTransactionReport> getPoboReportList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
@@ -451,7 +452,7 @@ public class ReportService {
                     poboTransactionReport.rateToSGD = ratesMap.get(poboTransactionReport.approvedTime.toLocalDate()).get(poboTransactionReport.recipientCurrency);
                     return poboTransactionReport;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<FiatTransactionReport> getDomesticFiatList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
@@ -460,7 +461,7 @@ public class ReportService {
                         fiatTransactionReport.type == FiatTransactionType.WITHDRAW && "SGP".equals(fiatTransactionReport.recipientCountry)
                                 || fiatTransactionReport.type == FiatTransactionType.DEPOSIT && fiatTransactionReport.currency == Currency.SGD
                 )
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<FiatTransactionReport> getCrossBorderFiatList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
@@ -469,7 +470,7 @@ public class ReportService {
                     fiatTransactionReport.type == FiatTransactionType.WITHDRAW && !"SGP".equals(fiatTransactionReport.recipientCountry)
                             || fiatTransactionReport.type == FiatTransactionType.DEPOSIT && fiatTransactionReport.currency != Currency.SGD
                 )
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<FiatTransactionReport> getFiatReportList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
@@ -489,7 +490,7 @@ public class ReportService {
                     fiatTransactionReport.rateToSGD = ratesMap.get(fiatTransactionReport.completedTime.toLocalDate()).get(fiatTransactionReport.currency);
                     return fiatTransactionReport;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<PaymentTransactionReport> getPaymentTransactionReportList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
@@ -510,7 +511,7 @@ public class ReportService {
             BeanUtils.copyProperties(paymentTransaction, paymentTransactionReport);
             paymentTransactionReport.rateToSGD = ratesMap.get(paymentTransactionReport.dtcTimestamp.toLocalDate()).get(paymentTransactionReport.requestCurrency);
             return paymentTransactionReport;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     private List<OtcReport> getOtcReportList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
@@ -526,7 +527,7 @@ public class ReportService {
             BeanUtils.copyProperties(otc, otcReport);
             otcReport.rateToSGD = ratesMap.get(otcReport.completedTime.toLocalDate()).get(otcReport.fiatCurrency);
             return otcReport;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     private List<CryptoTransactionReport> getCryptoTransactionReportList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
@@ -545,7 +546,7 @@ public class ReportService {
             BeanUtils.copyProperties(cryptoTransaction, cryptoTransactionReport);
             cryptoTransactionReport.rateToSGD = ratesMap.get(cryptoTransaction.lastUpdatedDate.toLocalDate()).get(cryptoTransaction.currency);
             return cryptoTransactionReport;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     private void sendReportEmail(String reportType, String startDate, String endDate, byte[] reportByte) {

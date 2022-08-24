@@ -292,14 +292,11 @@ public class SilvergateProcessService {
 
 
     public String getDefaultAccount(String accountType) {
-        switch (accountType) {
-            case SEN:
-                return silvergateProperties.senAccountInfo.split(ACCOUNTS_SPLITTER)[0].split(ACCOUNT_INFO_SPLITTER)[0];
-            case TRADING:
-                return silvergateProperties.tradingAccountInfo.split(ACCOUNTS_SPLITTER)[0].split(ACCOUNT_INFO_SPLITTER)[0];
-            default:
-                throw new ValidationException(SILVERGATE_INVALID_ACCOUNT_TYPE(accountType));
-        }
+        return switch (accountType) {
+            case SEN     -> silvergateProperties.senAccountInfo.split(ACCOUNTS_SPLITTER)[0].split(ACCOUNT_INFO_SPLITTER)[0];
+            case TRADING -> silvergateProperties.tradingAccountInfo.split(ACCOUNTS_SPLITTER)[0].split(ACCOUNT_INFO_SPLITTER)[0];
+            default -> throw new ValidationException(SILVERGATE_INVALID_ACCOUNT_TYPE(accountType));
+        };
     }
 
     private String getTransferAccountNumber(RemitInfo remitInfo) {
@@ -314,15 +311,15 @@ public class SilvergateProcessService {
         if (!StringUtils.isBlank(remitInfo.beneficiaryAddress)) {
             String fullAddressString = remitInfo.beneficiaryAddress;
             String[] temp = fullAddressString.split(" ");
-            for (int i = 0; i < temp.length; i++) {
-                if ((line1 + temp[i]).length() < 35) {
-                    line1 = String.format("%s%s", line1, temp[i] + " ");
+            for (String s : temp) {
+                if ((line1 + s).length() < 35) {
+                    line1 = String.format("%s%s", line1, s + " ");
                     paymentPostReq.beneficiary_address1 = line1;
-                } else if ((line2 + temp[i]).length() < 35) {
-                    line2 = String.format("%s%s", line2, temp[i] + " ");
+                } else if ((line2 + s).length() < 35) {
+                    line2 = String.format("%s%s", line2, s + " ");
                     paymentPostReq.beneficiary_address2 = line2;
-                } else if ((line3 + temp[i]).length() < 35) {
-                    line3 = String.format("%s%s", line3, temp[i] + " ");
+                } else if ((line3 + s).length() < 35) {
+                    line3 = String.format("%s%s", line3, s + " ");
                     paymentPostReq.beneficiary_address3 = line3;
                 }
             }
@@ -331,15 +328,15 @@ public class SilvergateProcessService {
         if (!StringUtils.isBlank(remitInfo.beneficiaryBankAddress)) {
             String fullAddressString = remitInfo.beneficiaryBankAddress;
             String[] temp = fullAddressString.split(" ");
-            for (int i = 0; i < temp.length; i++) {
-                if ((line1 + temp[i]).length() < 35) {
-                    line1 = String.format("%s%s", line1, temp[i] + " ");
+            for (String s : temp) {
+                if ((line1 + s).length() < 35) {
+                    line1 = String.format("%s%s", line1, s + " ");
                     paymentPostReq.beneficiary_bank_address1 = line1;
-                } else if ((line2 + temp[i]).length() < 35) {
-                    line2 = String.format("%s%s", line2, temp[i] + " ");
+                } else if ((line2 + s).length() < 35) {
+                    line2 = String.format("%s%s", line2, s + " ");
                     paymentPostReq.beneficiary_bank_address2 = line2;
-                } else if ((line3 + temp[i]).length() < 35) {
-                    line3 = String.format("%s%s", line3, temp[i] + " ");
+                } else if ((line3 + s).length() < 35) {
+                    line3 = String.format("%s%s", line3, s + " ");
                     paymentPostReq.beneficiary_bank_address3 = line3;
                 }
             }
@@ -348,15 +345,15 @@ public class SilvergateProcessService {
         if (!StringUtils.isBlank(remitInfo.intermediaryBankAddress)) {
             String fullAddressString = remitInfo.intermediaryBankAddress;
             String[] temp = fullAddressString.split(" ");
-            for (int i = 0; i < temp.length; i++) {
-                if ((line1 + temp[i]).length() < 35) {
-                    line1 = String.format("%s%s", line1, temp[i] + " ");
+            for (String s : temp) {
+                if ((line1 + s).length() < 35) {
+                    line1 = String.format("%s%s", line1, s + " ");
                     paymentPostReq.intermediary_bank_address1 = line1;
-                } else if ((line2 + temp[i]).length() < 35) {
-                    line2 = String.format("%s%s", line2, temp[i] + " ");
+                } else if ((line2 + s).length() < 35) {
+                    line2 = String.format("%s%s", line2, s + " ");
                     paymentPostReq.intermediary_bank_address2 = line2;
-                } else if ((line3 + temp[i]).length() < 35) {
-                    line3 = String.format("%s%s", line3, temp[i] + " ");
+                } else if ((line3 + s).length() < 35) {
+                    line3 = String.format("%s%s", line3, s + " ");
                     paymentPostReq.intermediary_bank_address3 = line3;
                 }
             }

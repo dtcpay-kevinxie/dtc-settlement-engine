@@ -1,4 +1,4 @@
-FROM openjdk:11.0.10-jre-slim-buster
+FROM openjdk:17-slim-buster
 
 # Expose the following HTTP and HTTPS ports, respectively
 EXPOSE 8080

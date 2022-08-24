@@ -7,7 +7,6 @@ import top.dtc.common.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class XlsxGeneratorStore {
@@ -46,7 +45,7 @@ public class XlsxGeneratorStore {
                         })
         )
                 .sorted(Comparator.comparingInt(RecordField::order))
-                .collect(Collectors.toList());
+                .toList();
         recordFieldMap.put(clazz, recordFields);
         return recordFields;
     }
