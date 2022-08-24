@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.88.0] -
+[0.88.0] - 24 Aug 2022
 
 * Update parent & data-*
 * Update to Java 17 with features migration
