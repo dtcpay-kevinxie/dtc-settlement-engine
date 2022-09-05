@@ -1,8 +1,8 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.89.0] -
+[0.89.0] - 05 Sep 2022
 
-* update parent
+* Update parent
 
 [0.88.0] - 24 Aug 2022
 
