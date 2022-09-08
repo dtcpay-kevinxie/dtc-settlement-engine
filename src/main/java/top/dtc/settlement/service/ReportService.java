@@ -182,15 +182,7 @@ public class ReportService {
         if (ratesMap == null) {
             ratesMap = getRatesMap(startDate, endDate);
         }
-        List<MonitoringMatrix> monitoringMatrixList = monitoringMatrixService.getByParams(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+        List<MonitoringMatrix> monitoringMatrixList = getOnboardedMonitoringMatrix();
         List<WalletBalanceHistory> walletBalanceHistoryList = walletBalanceHistoryService.getByParams(
                 null,
                 null,
@@ -275,9 +267,10 @@ public class ReportService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<PaymentTransactionReport> paymentTransactionList = getPaymentTransactionReportList(startDate, endDate, ratesMap);
-        Set<Long> paymentClientIds = monitoringMatrixService.getByParams(
-                        null, null, null, null, true, null, null)
-                .stream().map(MonitoringMatrix::getClientId).collect(Collectors.toSet());
+        Set<Long> paymentClientIds = getOnboardedMonitoringMatrix().stream()
+                .filter(monitoringMatrix -> monitoringMatrix.paymentEnabled)
+                .map(MonitoringMatrix::getClientId)
+                .collect(Collectors.toSet());
         List<NonIndividual> merchantList = nonIndividualService.getByParams(
                         null, null, null, null, null)
                 .stream()
@@ -318,9 +311,10 @@ public class ReportService {
         Set<Long> dptClientInSGP = new HashSet<>();
         Set<Long> dptClientOutsideSGP = new HashSet<>();
         Set<Long> highRiskCountryClientIds = new HashSet<>();
-        List<MonitoringMatrix> monitoringMatrixList = monitoringMatrixService.getByParams(
-                null, null, null, true, null, null, null);
-        for (MonitoringMatrix monitoringMatrix : monitoringMatrixList) {
+        List<MonitoringMatrix> dptEnabledMonitoringMatrixList = getOnboardedMonitoringMatrix().stream()
+                .filter(monitoringMatrix -> monitoringMatrix.dptEnabled)
+                .toList();
+        for (MonitoringMatrix monitoringMatrix : dptEnabledMonitoringMatrixList) {
             if (ClientTypeUtils.isIndividual(monitoringMatrix.clientId)) {
                 Individual individual = individualService.getById(monitoringMatrix.clientId);
                 if (individual == null || individual.status != ClientStatus.ACTIVATED) {
@@ -371,6 +365,20 @@ public class ReportService {
         byte[] reportByte = MasReportXlsxProcessor.generate6b(
                 startDate, endDate, otcList, cryptoTransactionList, dailyBalanceRecordList, riskMatrixList, dptClientInSGP, dptClientOutsideSGP, cryptoAccountList, highRiskCountryClientIds, ratesMap).toByteArray();
         sendReportEmail("6B", startDate.toString(), endDate.toString(), reportByte);
+    }
+
+    private List<MonitoringMatrix> getOnboardedMonitoringMatrix() {
+        Set<Long> onboardedIndividual = individualService.list().stream()
+                .filter(individual -> individual.status != ClientStatus.PENDING_KYC && individual.status != ClientStatus.REGISTERED)
+                .map(Individual::getId)
+                .collect(Collectors.toSet());
+        Set<Long> onboardedNonIndividual = nonIndividualService.list().stream()
+                .filter(nonIndividual -> nonIndividual.status != ClientStatus.PENDING_KYC && nonIndividual.status != ClientStatus.REGISTERED)
+                .map(NonIndividual::getId)
+                .collect(Collectors.toSet());
+        return monitoringMatrixService.list().stream()
+                .filter(monitoringMatrix -> onboardedIndividual.contains(monitoringMatrix.clientId) || onboardedNonIndividual.contains(monitoringMatrix.clientId))
+                .toList();
     }
 
     private List<RiskMatrix> getHighRiskList() {
