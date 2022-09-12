@@ -167,6 +167,76 @@ public class CryptoTransactionProcessService {
                 .send();
         return null;
     }
+    /**
+     * Balance Checker logic:
+     * 1.Retrieve all of DTC_ASSIGNED_WALLET addresses existing in our system
+     * 2.Inquiry each of addresses of its balance on chain
+     * 3.Compare the balances with each currency of dust amount
+     * 4.Record and calculate total balance, send report to Ops
+     */
+    public String scheduledDtcWalletBalanceCheck() {
+        List<KycWalletAddress> dtcAssignedAddressList = kycWalletAddressService.getByParams(
+                1L,
+                null,
+                WalletAddressType.DTC_CLIENT_WALLET,
+                null,
+                null,
+                Boolean.TRUE
+        );
+        log.info("Balances Check Start");
+        BigDecimal totalUSDT = BigDecimal.ZERO;
+        BigDecimal totalETH = BigDecimal.ZERO;
+        BigDecimal totalBTC = BigDecimal.ZERO;
+        BigDecimal totalUSDC = BigDecimal.ZERO;
+        StringBuilder assignedAddresses = new StringBuilder("Balances of assigned address greator than 0:\n");
+        for (KycWalletAddress senderAddress : dtcAssignedAddressList) {
+            if (senderAddress.securityType != SecurityType.KMS) {
+                log.debug("not system generated address");
+                continue;
+            }
+            ApiResponse<CryptoBalance> response = Unirest.get(
+                            httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
+                    .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
+                    .routeParam("address", senderAddress.address)
+                    .routeParam("force", Boolean.TRUE + "")
+                    .asObject(new GenericType<ApiResponse<CryptoBalance>>() {})
+                    .getBody();
+            if (response == null ||
+                    !response.header.success
+                    || response.resultList == null
+                    || response.resultList.size() < 1) {
+                log.error("Call Crypto-engine Balance Query API Failed {}", JSON.toJSONString(response, true));
+            }
+            if (response != null && response.resultList != null && response.resultList.size() > 0) {
+                List<CryptoBalance> balanceList = response.resultList;
+                for (CryptoBalance balance : balanceList) {
+                    if (!isDustAmount(balance.currency, balance.amount)) {
+                        assignedAddresses.append(String.format("Client[%s] Address[%s] Balance %s(%s) \n",
+                                senderAddress.subId, senderAddress.address, balance.amount, balance.currency));
+                        switch (balance.currency) {
+                            case BTC -> totalBTC = totalBTC.add(balance.amount);
+                            case ETH -> totalETH = totalETH.add(balance.amount);
+                            case USDT -> totalUSDT = totalUSDT.add(balance.amount);
+                            case USDC -> totalUSDC = totalUSDC.add(balance.amount);
+                        }
+                    }
+                }
+            }
+        }
+        String lumpsum = String.format("Total USDT: %s\n Total USDC: %s\n Total BTC: %s\n Total ETH: %s\n",
+                totalUSDT, totalUSDC, totalBTC, totalETH
+                );
+        log.info("Balances Check End");
+        NotificationSender
+                .by(ASSIGNED_WALLET_BALANCE_CHECK)
+                .to(notificationProperties.opsRecipient)
+                .dataMap(Map.of(
+                        "lump_sum", lumpsum + "",
+                        "details", assignedAddresses + "\n"
+                ))
+                .send();
+        return null;
+    }
 
     /**
      * Notify Checking Logic:
@@ -441,7 +511,7 @@ public class CryptoTransactionProcessService {
                         }
                     }
                     // Transaction is not for satoshi test
-                    if (isDustTxn(result.currency, output.amount)) {
+                    if (isDustAmount(result.currency, output.amount)) {
                         log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
                         return;
                     }
@@ -450,7 +520,7 @@ public class CryptoTransactionProcessService {
                     log.error(alertMsg);
                     sendAlert(notificationProperties.complianceRecipient, alertMsg);
                 } else {
-                    if (isDustTxn(result.currency, output.amount)) {
+                    if (isDustAmount(result.currency, output.amount)) {
                         log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
                         return;
                     }
@@ -466,7 +536,7 @@ public class CryptoTransactionProcessService {
                     log.info("Gas filled to DTC_GAS address [{}]", recipientAddress.address);
                     internalTransferCompleted(result.id, InternalTransferReason.GAS, result.fee);
                 } else {
-                    if (isDustTxn(result.currency, output.amount)) {
+                    if (isDustAmount(result.currency, output.amount)) {
                         log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
                         return;
                     }
@@ -492,7 +562,7 @@ public class CryptoTransactionProcessService {
                         }
                     }
                 } else {
-                    if (isDustTxn(result.currency, output.amount)) {
+                    if (isDustAmount(result.currency, output.amount)) {
                         log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
                         return;
                     }
@@ -506,7 +576,7 @@ public class CryptoTransactionProcessService {
                     log.info("Sweep from [{}] to [{}] completed", senderAddress.address, recipientAddress.address);
                     internalTransferCompleted(result.id, InternalTransferReason.SWEEP, result.fee);
                 } else {
-                    if (isDustTxn(result.currency, output.amount)) {
+                    if (isDustAmount(result.currency, output.amount)) {
                         log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
                         return;
                     }
@@ -912,7 +982,7 @@ public class CryptoTransactionProcessService {
         };
     }
 
-    private boolean isDustTxn(Currency currency, BigDecimal amount) {
+    private boolean isDustAmount(Currency currency, BigDecimal amount) {
         return currency == Currency.USDT && amount.compareTo(transactionProperties.usdtThreshold) <= 0
                 || currency == Currency.USDC && amount.compareTo(transactionProperties.usdtThreshold) <= 0 // USDC and USDT using same threshold
                 || currency == Currency.ETH && amount.compareTo(transactionProperties.ethThreshold) <= 0

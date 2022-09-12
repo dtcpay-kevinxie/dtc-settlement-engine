@@ -1,9 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.90.0] - 13 Sep 2022
+[0.90.0] - 14 Sep 2022
 
 * Update data-core
 * Add client status filters for MonitoringMatrix report
+* Add daily-balance-check scheduler
 
 [0.89.0] - 05 Sep 2022
 

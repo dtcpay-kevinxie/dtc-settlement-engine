@@ -5,6 +5,8 @@ public class NotificationConstant {
     public static class NAMES {
         public static final String UNEXPECTED_TXN_FOUND = "UNEXPECTED_TXN_FOUND";
         public static final String AUTO_SWEEP_RESULT = "AUTO_SWEEP_RESULT";
+
+        public static final String ASSIGNED_WALLET_BALANCE_CHECK = "ASSIGNED_WALLET_BALANCE_CHECK";
         public static final String BLOCKCHAIN_REJECTED = "BLOCKCHAIN_REJECTED";
         public static final String WITHDRAWAL_CRYPTO_COMPLETED = "WITHDRAWAL_CRYPTO_COMPLETED";
         public static final String DEPOSIT_CONFIRMED = "DEPOSIT_CONFIRMED";
