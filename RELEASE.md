@@ -5,6 +5,7 @@
 * Update data-core
 * Add client status filters for MonitoringMatrix report
 * Add daily-balance-check scheduler
+* Change PSN04 report cross-border/domestic calculation logic
 
 [0.89.0] - 05 Sep 2022
 

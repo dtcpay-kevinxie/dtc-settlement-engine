@@ -465,18 +465,16 @@ public class ReportService {
 
     private List<FiatTransactionReport> getDomesticFiatList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
         return getFiatReportList(startDate, endDate, ratesMap).stream()
-                .filter(fiatTransactionReport -> // For DEPOSIT fiat transaction, no originator info, only can differentiate by currency, SGD account in SGP, the rest outside SGP
-                        fiatTransactionReport.type == FiatTransactionType.WITHDRAW && "SGP".equals(fiatTransactionReport.recipientCountry)
-                                || fiatTransactionReport.type == FiatTransactionType.DEPOSIT && fiatTransactionReport.currency == Currency.SGD
+                .filter(fiatTransactionReport -> // For fiat transaction, no originator info, only can differentiate by currency, SGD account in SGP, the rest outside SGP
+                        fiatTransactionReport.currency == Currency.SGD
                 )
                 .toList();
     }
 
     private List<FiatTransactionReport> getCrossBorderFiatList(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
         return getFiatReportList(startDate, endDate, ratesMap).stream()
-                .filter(fiatTransactionReport -> // For DEPOSIT fiat transaction, no originator info, only can differentiate by currency, SGD account in SGP, the rest outside SGP
-                    fiatTransactionReport.type == FiatTransactionType.WITHDRAW && !"SGP".equals(fiatTransactionReport.recipientCountry)
-                            || fiatTransactionReport.type == FiatTransactionType.DEPOSIT && fiatTransactionReport.currency != Currency.SGD
+                .filter(fiatTransactionReport -> // For fiat transaction, no originator info, only can differentiate by currency, SGD account in SGP, the rest outside SGP
+                        fiatTransactionReport.currency != Currency.SGD
                 )
                 .toList();
     }
