@@ -26,6 +26,16 @@ public class CryptoTransactionController {
         return SchedulerUtils.executeTask(group, name, async, () -> cryptoTransactionProcessService.scheduledAutoSweep());
     }
 
+    @PostMapping("/scheduled/daily-balance-check")
+    public String scheduledDailyBalanceCheck(
+            @RequestParam("group") String group,
+            @RequestParam("name") String name,
+            @RequestParam("async") boolean async
+    ) {
+        log.debug("[POST] /scheduled/daily-balance-check");
+        return SchedulerUtils.executeTask(group, name, async, () -> cryptoTransactionProcessService.scheduledDtcWalletBalanceCheck());
+    }
+
     @PostMapping("/notify")
     public void notify(@RequestBody CryptoTransactionResult transactionResult) {
         log.debug("[POST] /notify {}", JSON.toJSONString(transactionResult, true));
