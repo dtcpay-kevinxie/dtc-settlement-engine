@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.91.0] - 20 Sep 2022
+
+* Update data-finance
+* Change self-custodial wallet crypto payment settlement logic
+
 [0.90.0] - 14 Sep 2022
 
 * Update data-core

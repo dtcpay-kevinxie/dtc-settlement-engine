@@ -125,7 +125,7 @@ public class ReceivableProcessService {
             receivable.status = ReceivableStatus.NOT_RECEIVED;
             receivable.amount = BigDecimal.ZERO;
             receivable.currency = receivableKey.currency;
-            receivable.payer = SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME;
+            //TODO Add ALETA sender_id and sender_account_id
             receivable.description = SettlementConstant.getDesc(receivableKey.txnDate);
             receivable.receivableDate = receivableDate;
             receivableService.save(receivable);

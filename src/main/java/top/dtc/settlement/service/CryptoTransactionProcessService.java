@@ -401,7 +401,7 @@ public class CryptoTransactionProcessService {
                             && senderAddress != null
                             && senderAddress.type == WalletAddressType.SELF_CUSTODIAL
                     ) {
-                        // Settlement OTC transfers crypto from SELF_CUSTODIAL wallet to DTC_CLIENT_WALLET, txnHash is saved when triggered.
+                        // Crypto Transferred from SELF_CUSTODIAL wallet to DTC_CLIENT_WALLET, txnHash is saved in cryptoTransaction when triggered.
                         this.handleSelfCustodialSettle(result, recipientAddress, senderAddress, output);
                     } else {
                         alertMsg = String.format("Invalid Recipient address(%s) or Sender address(%s) for Crypto Withdrawal Transaction(%s)",
@@ -634,7 +634,7 @@ public class CryptoTransactionProcessService {
             receivable.description = "System auto write-off";
             receivableService.updateById(receivable);
             // Complete Settlement OTC
-            completeSettlementOtc(cryptoTransaction);
+//            completeSettlementOtc(cryptoTransaction);
             // Update PayoutReconcile to MATCHED
             paymentSettlementService.updateReconcileStatusAfterReceived(receivableId);
             notifyReceivableWriteOff(receivable, cryptoTransaction.amount);
@@ -700,10 +700,10 @@ public class CryptoTransactionProcessService {
         receivable.type = ActivityType.CRYPTO_DEPOSIT;
         receivable.receivedAmount = receivable.amount = cryptoTransaction.amount;
         receivable.currency = cryptoTransaction.currency;
-        receivable.bankName = cryptoTransaction.mainNet.desc;
-        receivable.bankAccount = recipientAddress.address;
+        receivable.senderId = cryptoTransaction.clientId;
+        receivable.senderAccountId = cryptoTransaction.senderAddressId;
+        receivable.recipientAccountId = recipientAddress.id;
         receivable.referenceNo = cryptoTransaction.txnHash;
-        receivable.payer = kycCommonService.getClientName(cryptoTransaction.clientId);
         receivable.writeOffDate = receivable.receivableDate = cryptoTransaction.requestTimestamp.toLocalDate();
         receivable.description = "System auto write-off";
         receivableService.save(receivable);
