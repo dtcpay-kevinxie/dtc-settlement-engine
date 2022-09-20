@@ -2,9 +2,9 @@ package top.dtc.settlement.report_processor.vo;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import top.dtc.addon.data_processor.Record;
+import top.dtc.addon.data_processor.RecordField;
 import top.dtc.data.core.model.NonIndividual;
-import top.dtc.settlement.handler.Record;
-import top.dtc.settlement.handler.RecordField;
 
 import static top.dtc.settlement.constant.DateConstant.FORMAT.DATETIME;
 

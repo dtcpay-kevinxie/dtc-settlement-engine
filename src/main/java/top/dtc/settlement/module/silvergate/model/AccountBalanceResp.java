@@ -1,6 +1,6 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
@@ -8,103 +8,103 @@ import java.util.List;
 @Data
 public class AccountBalanceResp {
 
-    @JSONField(name = "SEQUENCE")
+    @JsonProperty("SEQUENCE")
     public Integer sequence;// default: 0
-    @JSONField(name = "ResponseData")
+    @JsonProperty("ResponseData")
     public List<ResponseData> responseDataList;
-    @JSONField(name = "ERROR")
+    @JsonProperty("ERROR")
     public List<Error> errorList;
 
     @Data
     static class ResponseData {
-        @JSONField(name = "ACTNBR")
+        @JsonProperty("ACTNBR")
         public String actNbr;
-        @JSONField(name = "SHORTNAME")
+        @JsonProperty("SHORTNAME")
         public String shortName;
-        @JSONField(name = "AVAILBAL")
+        @JsonProperty("AVAILBAL")
         public Double availBal;
-        @JSONField(name = "CURRBAL")
+        @JsonProperty("CURRBAL")
         public Double currBal;
-        @JSONField(name = "TOTALHOLDS")
+        @JsonProperty("TOTALHOLDS")
         public Double totalHolds;
-        @JSONField(name = "ACCRINT")
+        @JsonProperty("ACCRINT")
         public Double acCrInt;
-        @JSONField(name = "YTDINT")
+        @JsonProperty("YTDINT")
         public Double yTdInt;
-        @JSONField(name = "ACTOPNDT")
+        @JsonProperty("ACTOPNDT")
         public String actOpndt;
-        @JSONField(name = "OFFICERCD")
+        @JsonProperty("OFFICERCD")
         public String officeRcd;
-        @JSONField(name = "LSTDEPDT")
+        @JsonProperty("LSTDEPDT")
         public String lstDepDt;
-        @JSONField(name = "LSTDEPAMT")
+        @JsonProperty("LSTDEPAMT")
         public Double lstDepamt;
-        @JSONField(name = "STATUS")
+        @JsonProperty("STATUS")
         public String status;
-        @JSONField(name = "STATDESC")
+        @JsonProperty("STATDESC")
         public String statsDesc;
-        @JSONField(name = "LSTSTMTBAL")
+        @JsonProperty("LSTSTMTBAL")
         public Double lstStmBal;
-        @JSONField(name = "LSTSTMTDT")
+        @JsonProperty("LSTSTMTDT")
         public String lstStmTdt;
-        @JSONField(name = "OFFICERCD2")
+        @JsonProperty("OFFICERCD2")
         public String officerCd2;
-        @JSONField(name = "RRSAVAFLG")
+        @JsonProperty("RRSAVAFLG")
         public String rrSavaFlg;
-        @JSONField(name = "DYNAVAFLG")
+        @JsonProperty("DYNAVAFLG")
         public String dyNaVaFlg;
-        @JSONField(name = "DDAVAFLG")
+        @JsonProperty("DDAVAFLG")
         public String dDaVaFlg;
-        @JSONField(name = "LNAVAFLG")
+        @JsonProperty("LNAVAFLG")
         public String lNaVaFlg;
-        @JSONField(name = "ODLMTFLG")
+        @JsonProperty("ODLMTFLG")
         public String odlmTFlg;
-        @JSONField(name = "CUSTFLTFLG")
+        @JsonProperty("CUSTFLTFLG")
         public String custFltFllg;
-        @JSONField(name = "BNKFLTFLG")
+        @JsonProperty("BNKFLTFLG")
         public String bnkfltFlg;
-        @JSONField(name = "HOLDSFLAG")
+        @JsonProperty("HOLDSFLAG")
         public String holdsFlag;
-        @JSONField(name = "CHKSPDTDY")
+        @JsonProperty("CHKSPDTDY")
         public String chkSpdTdy;
-        @JSONField(name = "RRSAVAAMT")
+        @JsonProperty("RRSAVAAMT")
         public Double prSavaAmt;
-        @JSONField(name = "DYNAVAAMT")
+        @JsonProperty("DYNAVAAMT")
         public Double dyNaVaAmt;
-        @JSONField(name = "DDAVAAMT")
+        @JsonProperty("DDAVAAMT")
         public Double dDaVaAmt;
-        @JSONField(name = "LNAVAAMT")
+        @JsonProperty("LNAVAAMT")
         public Double lnavaAmt;
-        @JSONField(name = "ODLMTAMT")
+        @JsonProperty("ODLMTAMT")
         public Double odLmtAmt;
-        @JSONField(name = "CUSTFLTAMT")
+        @JsonProperty("CUSTFLTAMT")
         public Double custFltAmt;
-        @JSONField(name = "BNKFLTAMT")
+        @JsonProperty("BNKFLTAMT")
         public Double bnkFltAmt;
-        @JSONField(name = "HOLDSAMT")
+        @JsonProperty("HOLDSAMT")
         public Double holdsAmt;
-        @JSONField(name = "CHKSPDTDYA")
+        @JsonProperty("CHKSPDTDYA")
         public Double chkSpdDya;
-        @JSONField(name = "AVGROLBAL")
+        @JsonProperty("AVGROLBAL")
         public Integer avgRolBal;
-        @JSONField(name = "AVGROLCOL")
+        @JsonProperty("AVGROLCOL")
         public Integer avgRolCol;
 
     }
 
     @Data
     public static class Error {
-        @JSONField(name = "MESSAGEID")
+        @JsonProperty("MESSAGEID")
         public String messageId;
-        @JSONField(name = "MESSAGETYPE")
+        @JsonProperty("MESSAGETYPE")
         public String messageType;
-        @JSONField(name = "SEGMENTID")
+        @JsonProperty("SEGMENTID")
         public String segmentId;
-        @JSONField(name = "SEGMENT_OCCUR")
+        @JsonProperty("SEGMENT_OCCUR")
         public String segment_occur;
-        @JSONField(name = "FIELDNAME")
+        @JsonProperty("FIELDNAME")
         public String fieldName;
-        @JSONField(name = "ERRORMSG")
+        @JsonProperty("ERRORMSG")
         public String errorMsg;
     }
 }

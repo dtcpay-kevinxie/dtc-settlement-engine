@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.92.0] -
+
+* Update parent
+* Add deps addon-integration & addon-data-processor
+
 [0.91.0] - 20 Sep 2022
 
 * Update data-finance

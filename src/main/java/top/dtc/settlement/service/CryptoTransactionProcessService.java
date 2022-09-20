@@ -1,18 +1,19 @@
 package top.dtc.settlement.service;
 
-import com.alibaba.fastjson.JSON;
 import kong.unirest.GenericType;
-import kong.unirest.RequestBodyEntity;
 import kong.unirest.Unirest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import top.dtc.addon.integration.crypto_engine.CryptoEngineClient;
+import top.dtc.addon.integration.crypto_engine.domain.*;
+import top.dtc.addon.integration.crypto_engine.util.CryptoEngineUtils;
+import top.dtc.addon.integration.notification.NotificationEngineClient;
 import top.dtc.common.enums.*;
 import top.dtc.common.exception.ValidationException;
-import top.dtc.common.model.crypto.*;
-import top.dtc.common.util.NotificationSender;
-import top.dtc.common.util.crypto.CryptoEngineUtils;
+import top.dtc.common.json.JSON;
+import top.dtc.common.web.Endpoints;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.model.CryptoTransaction;
 import top.dtc.data.core.model.DefaultConfig;
@@ -41,9 +42,8 @@ import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.settlement.constant.NotificationConstant;
 import top.dtc.settlement.constant.SseConstant;
 import top.dtc.settlement.core.properties.CryptoTransactionProperties;
-import top.dtc.settlement.core.properties.HttpProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
-import top.dtc.settlement.handler.PdfGenerator;
+import top.dtc.settlement.handler.pdf.PdfGenerator;
 import top.dtc.settlement.model.api.ApiResponse;
 
 import java.math.BigDecimal;
@@ -51,9 +51,9 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
+import static top.dtc.common.enums.Currency.*;
 import static top.dtc.settlement.constant.NotificationConstant.NAMES.*;
 
 @Service
@@ -79,7 +79,7 @@ public class CryptoTransactionProcessService {
     WalletAccountService walletAccountService;
 
     @Autowired
-    HttpProperties httpProperties;
+    Endpoints endpoints;
 
     @Autowired
     DefaultConfigService defaultConfigService;
@@ -103,9 +103,6 @@ public class CryptoTransactionProcessService {
     InternalTransferService internalTransferService;
 
     @Autowired
-    PdfGenerator pdfGenerator;
-
-    @Autowired
     CommonValidationService commonValidationService;
 
     @Autowired
@@ -113,6 +110,12 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     CryptoTransactionProperties transactionProperties;
+
+    @Autowired
+    CryptoEngineClient cryptoEngineClient;
+
+    @Autowired
+    NotificationEngineClient notificationEngineClient;
 
     /**
      * Auto-sweep logic:
@@ -138,26 +141,13 @@ public class CryptoTransactionProcessService {
                 log.debug("not system generated address");
                 continue;
             }
-            ApiResponse<CryptoBalance> response = Unirest.get(
-                    httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
-                    .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
-                    .routeParam("address", senderAddress.address)
-                    .routeParam("force", Boolean.TRUE + "")
-                    .asObject(new GenericType<ApiResponse<CryptoBalance>>() {})
-                    .getBody();
-            if (response == null ||
-                    !response.header.success
-                    || response.resultList == null
-                    || response.resultList.size() < 1) {
-                log.error("Call Crypto-engine Balance Query API Failed {}", JSON.toJSONString(response, true));
-            }
-            if (response != null && response.resultList != null && response.resultList.size() > 0) {
-                List<CryptoBalance> balanceList = response.resultList;
+            List<CryptoBalance> balanceList = cryptoEngineClient.balances(senderAddress.mainNet, senderAddress.address, true);
+            if (!balanceList.isEmpty()) {
                 count += autoSweep(senderAddress, balanceList, sweepingDetails);
             }
         }
         log.info("Auto Sweep End");
-        NotificationSender
+        notificationEngineClient
                 .by(AUTO_SWEEP_RESULT)
                 .to(notificationProperties.opsRecipient)
                 .dataMap(Map.of(
@@ -194,21 +184,8 @@ public class CryptoTransactionProcessService {
                 log.debug("not system generated address");
                 continue;
             }
-            ApiResponse<CryptoBalance> response = Unirest.get(
-                            httpProperties.cryptoEngineUrlPrefix + "/crypto/{netName}/balances/{address}/{force}")
-                    .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
-                    .routeParam("address", senderAddress.address)
-                    .routeParam("force", Boolean.TRUE + "")
-                    .asObject(new GenericType<ApiResponse<CryptoBalance>>() {})
-                    .getBody();
-            if (response == null ||
-                    !response.header.success
-                    || response.resultList == null
-                    || response.resultList.size() < 1) {
-                log.error("Call Crypto-engine Balance Query API Failed {}", JSON.toJSONString(response, true));
-            }
-            if (response != null && response.resultList != null && response.resultList.size() > 0) {
-                List<CryptoBalance> balanceList = response.resultList;
+            List<CryptoBalance> balanceList = cryptoEngineClient.balances(senderAddress.mainNet, senderAddress.address, true);
+            if (!balanceList.isEmpty()) {
                 for (CryptoBalance balance : balanceList) {
                     if (!isDustAmount(balance.currency, balance.amount)) {
                         assignedAddresses.append(String.format("Client[%s] Address[%s] Balance %s(%s) \n",
@@ -227,7 +204,7 @@ public class CryptoTransactionProcessService {
                 totalUSDT, totalUSDC, totalBTC, totalETH
                 );
         log.info("Balances Check End");
-        NotificationSender
+        notificationEngineClient
                 .by(ASSIGNED_WALLET_BALANCE_CHECK)
                 .to(notificationProperties.opsRecipient)
                 .dataMap(Map.of(
@@ -254,7 +231,7 @@ public class CryptoTransactionProcessService {
      */
     public void notify(CryptoTransactionResult result) {
         if (CryptoEngineUtils.isResultEmpty(result)) {
-            log.error("Notify txn result invalid {}", JSON.toJSONString(result, true));
+            log.error("Notify txn result invalid {}", JSON.stringify(result, true));
         }
         if (result.state != CryptoTransactionState.COMPLETED) {
             // Transaction REJECTED by blockchain case
@@ -364,7 +341,7 @@ public class CryptoTransactionProcessService {
         // 2. Check whether txnHash exists
         CryptoTransaction existingTxn = cryptoTransactionService.getOneByTxnHash(result.id);
         if (existingTxn != null) {
-            log.debug("Transaction is linked to {}", JSON.toJSONString(existingTxn, true));
+            log.debug("Transaction is linked to {}", JSON.stringify(existingTxn, true));
             // 2a. Check Transaction State: PENDING, COMPLETED, REJECTED, CLOSED
             switch (existingTxn.state) {
                 case AUTHORIZED, PROCESSING -> {
@@ -434,7 +411,7 @@ public class CryptoTransactionProcessService {
             case CLIENT_OWN:
                 log.error("CLIENT_OWN address shouldn't be in watchlist. Please check.");
             case SELF_CUSTODIAL: // Payment Transaction
-                String resp = Unirest.post(httpProperties.paymentEngineUrlPrefix + "/callback/crypto")
+                String resp = Unirest.post(endpoints.PAYMENT_ENGINE + "/callback/crypto")
                         .body(result)
                         .asString()
                         .getBody();
@@ -824,32 +801,16 @@ public class CryptoTransactionProcessService {
             input.wallet.addressIndex = recipientAddress.addressIndex;
         }
 
-        RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.cryptoEngineUrlPrefix
-                + "/crypto/{netName}/txn/send")
-                .routeParam("netName", senderAddress.mainNet.desc.toLowerCase(Locale.ROOT))
-                .body(transactionSend);
-        log.debug("Request url: {}", requestBodyEntity.getUrl());
-        ApiResponse<String> sendTxnResp = requestBodyEntity
-                .asObject(new GenericType<ApiResponse<String>>() {
-                })
-                .getBody();
-        log.debug("Request Body: {}", JSON.toJSONString(transactionSend));
-        if (sendTxnResp == null || sendTxnResp.header == null) {
-            log.error("Error when connecting crypto-engine");
-            return null;
-        } else if (!sendTxnResp.header.success) {
-            log.error(sendTxnResp.header.errMsg);
-            return null;
-        }
-        log.info("transfer sent txnHash: {}", sendTxnResp.result);
-        return sendTxnResp.result;
+        String result = cryptoEngineClient.txnSend(senderAddress.mainNet, transactionSend);
+        log.info("transfer sent txnHash: {}", result);
+        return result;
     }
 
     private void registerToChainalysis(CryptoTransaction cryptoTransaction) {
         try {
-            String path = String.format("/chainalysis/v2/register-%s-transfer/{cryptoTransactionId}",
+            String path = String.format("/risk/chainalysis/v2/register-%s-transfer/{cryptoTransactionId}",
                     cryptoTransaction.type == CryptoTransactionType.DEPOSIT ? "received" : "sent");
-            ApiResponse<String> resp = Unirest.get(httpProperties.riskEngineUrlPrefix + path)
+            ApiResponse<String> resp = Unirest.get(endpoints.RISK_ENGINE + path)
                     .routeParam("cryptoTransactionId", cryptoTransaction.id + "")
                     .asObject(new GenericType<ApiResponse<String>>() {})
                     .getBody();
@@ -864,7 +825,7 @@ public class CryptoTransactionProcessService {
     }
 
     private void sendAlert(String recipient, String alertMsg) {
-        NotificationSender
+        notificationEngineClient
                 .by(UNEXPECTED_TXN_FOUND)
                 .to(recipient)
                 .dataMap(Map.of(
@@ -874,7 +835,7 @@ public class CryptoTransactionProcessService {
     }
 
     private void rejectAlert(String recipient, MainNet mainNet, String txnHash, String txnInfo, String clientInfo) {
-        NotificationSender
+        notificationEngineClient
                 .by(BLOCKCHAIN_REJECTED)
                 .to(recipient)
                 .dataMap(Map.of(
@@ -892,7 +853,7 @@ public class CryptoTransactionProcessService {
         String clientEmail = commonValidationService.getClientEmail(cryptoTransaction.clientId);
         String owner = commonValidationService.getClientName(kycWalletAddress.ownerId);
         try {
-            NotificationSender.
+            notificationEngineClient.
                     by(WITHDRAWAL_CRYPTO_COMPLETED)
                     .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount.subtract(cryptoTransaction.transactionFee).toPlainString(),
@@ -902,7 +863,7 @@ public class CryptoTransactionProcessService {
                             "balance", walletAccount.balance + "",
                             "transaction_url", notificationProperties.walletUrlPrefix + "/crypto-transaction-info/" + cryptoTransaction.id
                     ))
-                    .attachment("Crypto-withdrawal-" + cryptoTransaction.id + ".pdf", pdfGenerator.toCryptoReceipt(cryptoTransaction, owner, kycWalletAddress, clientName, clientEmail))
+                    .attachment("Crypto-withdrawal-" + cryptoTransaction.id + ".pdf", PdfGenerator.toCryptoReceipt(cryptoTransaction, owner, kycWalletAddress, clientName, clientEmail))
                     .send();
         } catch (Exception e) {
             log.error("Notification Error", e);
@@ -916,12 +877,13 @@ public class CryptoTransactionProcessService {
         String clientContact = commonValidationService.getClientEmail(cryptoTransaction.clientId);
         String owner = commonValidationService.getClientName(kycWalletAddress.ownerId);
         try {
-            NotificationSender.by(DEPOSIT_CONFIRMED)
+            notificationEngineClient
+                    .by(DEPOSIT_CONFIRMED)
                     .to(recipients)
                     .dataMap(Map.of("amount", cryptoTransaction.amount.toString(),
                             "currency", cryptoTransaction.currency.name,
                             "transaction_url", notificationProperties.walletUrlPrefix + "/crypto-transaction-info/" + cryptoTransaction.id))
-                    .attachment("Crypto-deposit-" + cryptoTransaction.id + ".pdf", pdfGenerator.toCryptoReceipt(cryptoTransaction, owner, kycWalletAddress, clientContact, clientName))
+                    .attachment("Crypto-deposit-" + cryptoTransaction.id + ".pdf", PdfGenerator.toCryptoReceipt(cryptoTransaction, owner, kycWalletAddress, clientContact, clientName))
                     .send();
         } catch (Exception e) {
             log.error("Notification Error", e);
@@ -931,8 +893,8 @@ public class CryptoTransactionProcessService {
 
     private void notifyReceivableWriteOff(Receivable originalReceivable, BigDecimal receivedAmount) {
         try {
-            NotificationSender.
-                    by(NotificationConstant.NAMES.RECEIVABLE_WRITE_OFF)
+            notificationEngineClient
+                    .by(NotificationConstant.NAMES.RECEIVABLE_WRITE_OFF)
                     .to(notificationProperties.financeRecipient)
                     .dataMap(Map.of("id", originalReceivable.id + "",
                             "amount", originalReceivable.amount + " " + originalReceivable.currency,
@@ -983,10 +945,10 @@ public class CryptoTransactionProcessService {
     }
 
     private boolean isDustAmount(Currency currency, BigDecimal amount) {
-        return currency == Currency.USDT && amount.compareTo(transactionProperties.usdtThreshold) <= 0
+        return currency == USDT && amount.compareTo(transactionProperties.usdtThreshold) <= 0
                 || currency == Currency.USDC && amount.compareTo(transactionProperties.usdtThreshold) <= 0 // USDC and USDT using same threshold
-                || currency == Currency.ETH && amount.compareTo(transactionProperties.ethThreshold) <= 0
-                || currency == Currency.BTC && amount.compareTo(transactionProperties.btcThreshold) <= 0
+                || currency == ETH && amount.compareTo(transactionProperties.ethThreshold) <= 0
+                || currency == BTC && amount.compareTo(transactionProperties.btcThreshold) <= 0
                 || currency == Currency.TRX && amount.compareTo(transactionProperties.trxThreshold) <= 0;
     }
 

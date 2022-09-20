@@ -2,14 +2,14 @@ package top.dtc.settlement.report_processor.vo;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import top.dtc.addon.data_processor.Record;
+import top.dtc.addon.data_processor.RecordField;
 import top.dtc.data.core.model.CryptoTransaction;
-import top.dtc.settlement.handler.Record;
-import top.dtc.settlement.handler.RecordField;
 
 import java.math.BigDecimal;
 
+import static top.dtc.addon.data_processor.RecordFieldType.ENUM_NAME;
 import static top.dtc.settlement.constant.DateConstant.FORMAT.DATETIME;
-import static top.dtc.settlement.handler.RecordFieldType.ENUM_NAME;
 
 @EqualsAndHashCode(callSuper = true)
 @Data

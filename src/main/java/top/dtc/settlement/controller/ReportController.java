@@ -4,7 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import net.sf.jsqlparser.util.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import top.dtc.common.util.SchedulerUtils;
+import top.dtc.addon.integration.scheduler.SchedulerEngineClient;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.ReportService;
@@ -25,6 +25,9 @@ public class ReportController {
     @Autowired
     ReportService reportService;
 
+    @Autowired
+    SchedulerEngineClient schedulerEngineClient;
+
     @GetMapping(value = "/mas/monthly")
     public String processMasReportMonthly(
             @RequestParam("group") String group,
@@ -32,7 +35,7 @@ public class ReportController {
             @RequestParam("async") boolean async
     ) {
         log.debug("[GET] /mas/monthly");
-        return SchedulerUtils.executeTask(group, name, async, () -> {
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
             YearMonth reportingMonth = YearMonth.now().minusMonths(1);
             LocalDate reportStartDate = getReportStartDate(reportingMonth, "A");
             reportService.processMonthlyReport(reportStartDate, reportingMonth.atEndOfMonth());
@@ -47,7 +50,7 @@ public class ReportController {
             @RequestParam("async") boolean async
     ) {
         log.debug("[GET] /mas/1st-half-year");
-        return SchedulerUtils.executeTask(group, name, async, () -> {
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
             Year reportingYear = Year.now();
             LocalDate reportStartDate = getReportStartDate(reportingYear.atMonth(1), "B");
             reportService.processHalfYearReport(reportStartDate, reportingYear.atMonth(6).atEndOfMonth());
@@ -62,7 +65,7 @@ public class ReportController {
             @RequestParam("async") boolean async
     ) {
         log.debug("[GET] /mas/2nd-half-year");
-        return SchedulerUtils.executeTask(group, name, async, () -> {
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
             Year reportingYear = Year.now();
             LocalDate reportStartDate = getReportStartDate(reportingYear.atMonth(7), "B");
             reportService.processHalfYearReport(reportStartDate, reportingYear.atMonth(12).atEndOfMonth());
@@ -77,7 +80,7 @@ public class ReportController {
             @RequestParam("async") boolean async
     ) {
         log.debug("[GET] /mas/yearly");
-        return SchedulerUtils.executeTask(group, name, async, () -> {
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
             Year reportingYear = Year.now();
             reportService.processMonthlyReport(reportingYear.atDay(1), reportingYear.atMonth(12).atEndOfMonth());
             return null;

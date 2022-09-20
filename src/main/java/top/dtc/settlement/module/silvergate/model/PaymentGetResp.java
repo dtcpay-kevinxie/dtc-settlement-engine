@@ -1,16 +1,16 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
 public class PaymentGetResp {
-    @JSONField(name = "ERROR")
+    @JsonProperty("ERROR")
     public List<Error> errorList;
 
-    @JSONField(name = "payment_status")
+    @JsonProperty("payment_status")
     public String status;
     public String payment_id;
     public String payment_date;
@@ -66,17 +66,17 @@ public class PaymentGetResp {
 
     @Data
     static class Error {
-        @JSONField(name = "MESSAGEID")
+        @JsonProperty("MESSAGEID")
         public String messageId;
-        @JSONField(name = "MESSAGETYPE")
+        @JsonProperty("MESSAGETYPE")
         public String messageType;
-        @JSONField(name = "SEGMENTID")
+        @JsonProperty("SEGMENTID")
         public String segmentId;
-        @JSONField(name = "SEGMENT_OCCUR")
+        @JsonProperty("SEGMENT_OCCUR")
         public String segment_occur;
-        @JSONField(name = "FIELDNAME")
+        @JsonProperty("FIELDNAME")
         public String fieldName;
-        @JSONField(name = "ERRORMSG")
+        @JsonProperty("ERRORMSG")
         public String errorMsg;
     }
 }

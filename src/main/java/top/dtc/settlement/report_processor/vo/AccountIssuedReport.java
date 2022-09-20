@@ -2,9 +2,9 @@ package top.dtc.settlement.report_processor.vo;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import top.dtc.addon.data_processor.Record;
+import top.dtc.addon.data_processor.RecordField;
 import top.dtc.data.core.model.MonitoringMatrix;
-import top.dtc.settlement.handler.Record;
-import top.dtc.settlement.handler.RecordField;
 
 @EqualsAndHashCode(callSuper = true)
 @Data

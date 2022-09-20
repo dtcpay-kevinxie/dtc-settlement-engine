@@ -6,7 +6,7 @@
     <parent>
         <groupId>top.dtc</groupId>
         <artifactId>dtc-parent</artifactId>
-        <version>0.53.0</version>
+        <version>0.54.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
@@ -27,27 +27,33 @@
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
-            <artifactId>dtc-common-pdf</artifactId>
+            <artifactId>dtc-addon-data-processor</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>top.dtc</groupId>
+            <artifactId>dtc-addon-integration</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-core</artifactId>
-            <version>0.68.0</version>
+            <version>0.69.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-finance</artifactId>
-            <version>0.45.0</version>
+            <version>0.46.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-risk</artifactId>
-            <version>0.60.0</version>
+            <version>0.61.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-wallet</artifactId>
-            <version>0.27.0</version>
+            <version>0.30.0-SNAPSHOT</version>
         </dependency>
 
         <!-- HTTP -->

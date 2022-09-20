@@ -1,6 +1,6 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
@@ -8,71 +8,71 @@ import java.util.List;
 @Data
 public class AccountListResp {
 
-    @JSONField(name = "SEQUENCE")
+    @JsonProperty("SEQUENCE")
     public Integer sequence;// default: 0
-    @JSONField(name = "ResponseData")
+    @JsonProperty("ResponseData")
     public List<ResponseData> responseDataList;
-    @JSONField(name = "ERROR")
+    @JsonProperty("ERROR")
     public List<Error> errorList;
 
     @Data
     static class ResponseData {
-        @JSONField(name = "RECS_RETURNED")
+        @JsonProperty("RECS_RETURNED")
         public Integer recs_returned; //default: 0
-        @JSONField(name = "MOREDATA")
+        @JsonProperty("MOREDATA")
         public String moreData;
-        @JSONField(name = "CUSTACCT")
+        @JsonProperty("CUSTACCT")
         public List<CustAcct> custAcctList;
     }
 
     @Data
     static class CustAcct {
-        @JSONField(name = "APPLCD")
+        @JsonProperty("APPLCD")
         public String applCD;
-        @JSONField(name = "APPLDESC")
+        @JsonProperty("APPLDESC")
         public String appleDesc;
-        @JSONField(name = "ACTNBR")
+        @JsonProperty("ACTNBR")
         public String actNbr;
-        @JSONField(name = "PRODTYPE")
+        @JsonProperty("PRODTYPE")
         public String prodType;
-        @JSONField(name = "PRODDESC")
+        @JsonProperty("PRODDESC")
         public String prodDesc;
-        @JSONField(name = "RELTYPE")
+        @JsonProperty("RELTYPE")
         public String relType;
-        @JSONField(name = "RELTYPEDSC")
+        @JsonProperty("RELTYPEDSC")
         public String relTypeDesc;
-        @JSONField(name = "ACTSTATUS")
+        @JsonProperty("ACTSTATUS")
         public String actStatus;
-        @JSONField(name = "LGLTTLLN1")
+        @JsonProperty("LGLTTLLN1")
         public String lglttlln1;
-        @JSONField(name = "LGLTTLLN2")
+        @JsonProperty("LGLTTLLN2")
         public String lglttlln2;
-        @JSONField(name = "LGLTTLLN3")
+        @JsonProperty("LGLTTLLN3")
         public String lglttlln3;
-        @JSONField(name = "LGLTTLLN4")
+        @JsonProperty("LGLTTLLN4")
         public String lglttlln4;
-        @JSONField(name = "LGLTTLLN5")
+        @JsonProperty("LGLTTLLN5")
         public String lglttlln5;
-        @JSONField(name = "LGLTTLLN6")
+        @JsonProperty("LGLTTLLN6")
         public String lglttlln6;
-        @JSONField(name = "SHORTNAME")
+        @JsonProperty("SHORTNAME")
         public String shortName;
 
     }
 
     @Data
     static class Error {
-        @JSONField(name = "MESSAGEID")
+        @JsonProperty("MESSAGEID")
         public String messageId;
-        @JSONField(name = "MESSAGETYPE")
+        @JsonProperty("MESSAGETYPE")
         public String messageType;
-        @JSONField(name = "SEGMENTID")
+        @JsonProperty("SEGMENTID")
         public String segmentId;
-        @JSONField(name = "SEGMENT_OCCUR")
+        @JsonProperty("SEGMENT_OCCUR")
         public String segment_occur;
-        @JSONField(name = "FIELDNAME")
+        @JsonProperty("FIELDNAME")
         public String fieldName;
-        @JSONField(name = "ERRORMSG")
+        @JsonProperty("ERRORMSG")
         public String errorMsg;
     }
 

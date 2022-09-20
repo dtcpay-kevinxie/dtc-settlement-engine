@@ -1,6 +1,6 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -8,13 +8,13 @@ import java.util.List;
 
 @Data
 public class PaymentPostResp {
-    @JSONField(name = "payment_id")
+    @JsonProperty("payment_id")
     public String payment_id;
-    @JSONField(name = "payment_status")
+    @JsonProperty("payment_status")
     public String status;
-    @JSONField(name = "payment_timestamp")
+    @JsonProperty("payment_timestamp")
     public LocalDateTime timestamp;
 
-    @JSONField(name = "ERROR")
+    @JsonProperty("ERROR")
     public List<Error> errorList;
 }
