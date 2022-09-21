@@ -52,9 +52,6 @@ public class PaymentSettlementService {
     private ReserveConfigService reserveConfigService;
 
     @Autowired
-    private InvoiceNumberService invoiceNumberService;
-
-    @Autowired
     private PaymentTransactionService transactionService;
 
     @Autowired

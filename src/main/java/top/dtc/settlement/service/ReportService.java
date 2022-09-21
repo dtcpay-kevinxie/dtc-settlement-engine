@@ -21,7 +21,6 @@ import top.dtc.data.risk.model.RiskMatrix;
 import top.dtc.data.risk.service.RiskMatrixService;
 import top.dtc.data.wallet.enums.WalletStatus;
 import top.dtc.data.wallet.model.WalletAccount;
-import top.dtc.data.wallet.model.WalletBalanceHistory;
 import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.data.wallet.service.WalletBalanceHistoryService;
 import top.dtc.settlement.core.properties.NotificationProperties;
@@ -183,15 +182,9 @@ public class ReportService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<MonitoringMatrix> monitoringMatrixList = getOnboardedMonitoringMatrix();
-        List<WalletBalanceHistory> walletBalanceHistoryList = walletBalanceHistoryService.getByParams(
-                null,
-                null,
-                null,
-                startDate.atStartOfDay(),
-                endDate.plusDays(1).atStartOfDay()
-        );
+        List<WalletBalanceChangeHistoryReport> walletBalanceChangeHistoryReportList = getBalanceChangeReport(startDate, endDate, ratesMap);
         byte[] reportByte = MasReportXlsxProcessor.generate1a(
-                startDate, endDate, monitoringMatrixList, walletBalanceHistoryList, ratesMap).toByteArray();
+                startDate, endDate, monitoringMatrixList, walletBalanceChangeHistoryReportList).toByteArray();
         sendReportEmail("1A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -208,7 +201,7 @@ public class ReportService {
         List<PoboTransactionReport> poboTransactionList = getDomesticPoboList(startDate, endDate, ratesMap);
         List<FiatTransactionReport> fiatTransactionList = getDomesticFiatList(startDate, endDate, ratesMap);
         byte[] reportByte = MasReportXlsxProcessor.generate2a(
-                startDate, endDate, fiatTransactionList, poboTransactionList, ratesMap).toByteArray();
+                startDate, endDate, fiatTransactionList, poboTransactionList).toByteArray();
         sendReportEmail("2A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -222,7 +215,7 @@ public class ReportService {
         Set<Long> clientInSGP = getIndividualIdListInSGP();
         clientInSGP.addAll(getNonIndividualIdListInSGP());
         byte[] reportByte = MasReportXlsxProcessor.generate2b(
-                startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, highRiskList, ratesMap).toByteArray();
+                startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, highRiskList).toByteArray();
         sendReportEmail("2B", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -233,7 +226,7 @@ public class ReportService {
         List<PoboTransactionReport> poboTransactionList = getCrossBorderPoboList(startDate, endDate, ratesMap);
         List<FiatTransactionReport> fiatTransactionList = getCrossBorderFiatList(startDate, endDate, ratesMap);
         byte[] reportByte = MasReportXlsxProcessor.generate3a(
-                startDate, endDate, fiatTransactionList, poboTransactionList, ratesMap).toByteArray();
+                startDate, endDate, fiatTransactionList, poboTransactionList).toByteArray();
         sendReportEmail("3A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -248,7 +241,7 @@ public class ReportService {
         Set<Long> fiClient = getFiIdList();
         List<RiskMatrix> highRiskList = getHighRiskList();
         byte[] reportByte = MasReportXlsxProcessor.generate3b(
-                startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, fiClient, highRiskList, ratesMap).toByteArray();
+                startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, fiClient, highRiskList).toByteArray();
         sendReportEmail("3B", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -258,7 +251,7 @@ public class ReportService {
         }
         List<PaymentTransactionReport> paymentTransactionList = getPaymentTransactionReportList(startDate, endDate, ratesMap);
         byte[] reportByte = MasReportXlsxProcessor.generate4a(
-                startDate, endDate, paymentTransactionList, ratesMap).toByteArray();
+                startDate, endDate, paymentTransactionList).toByteArray();
         sendReportEmail("4A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -278,7 +271,7 @@ public class ReportService {
                 .toList();
         List<Terminal> terminalList = terminalService.getByParams(null, null, null, TerminalStatus.ACTIVATED);
         byte[] reportByte = MasReportXlsxProcessor.generate4b(
-                startDate, endDate, paymentTransactionList, merchantList, terminalList, ratesMap).toByteArray();
+                startDate, endDate, paymentTransactionList, merchantList, terminalList).toByteArray();
         sendReportEmail("4B", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -296,7 +289,7 @@ public class ReportService {
         }
         List<OtcReport> otcList = getOtcReportList(startDate, endDate, ratesMap);
         byte[] reportByte = MasReportXlsxProcessor.generate6a(
-                startDate, endDate, otcList, ratesMap).toByteArray();
+                startDate, endDate, otcList).toByteArray();
         sendReportEmail("6A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -550,9 +543,28 @@ public class ReportService {
         ).stream().map(cryptoTransaction -> {
             CryptoTransactionReport cryptoTransactionReport = new CryptoTransactionReport();
             BeanUtils.copyProperties(cryptoTransaction, cryptoTransactionReport);
-            cryptoTransactionReport.rateToSGD = ratesMap.get(cryptoTransaction.lastUpdatedDate.toLocalDate()).get(cryptoTransaction.currency);
+            cryptoTransactionReport.rateToSGD = ratesMap.get(cryptoTransaction.requestTimestamp.toLocalDate()).get(cryptoTransaction.currency);
             return cryptoTransactionReport;
         }).toList();
+    }
+
+    private List<WalletBalanceChangeHistoryReport> getBalanceChangeReport(LocalDate startDate, LocalDate endDate, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
+        return walletBalanceHistoryService.getByParams(
+                        null,
+                        null,
+                        null,
+                        startDate.atStartOfDay(),
+                        endDate.plusDays(1).atStartOfDay()
+                ).stream()
+                .map(walletBalanceHistory -> {
+                    WalletBalanceChangeHistoryReport walletBalanceChangeHistoryReport = new WalletBalanceChangeHistoryReport();
+                    BeanUtils.copyProperties(walletBalanceHistory, walletBalanceChangeHistoryReport);
+                    walletBalanceChangeHistoryReport.flowDirection
+                            = walletBalanceHistory.changeAmount.compareTo(BigDecimal.ZERO) > 0 ? "PLACEMENT" : "WITHDRAWAL";
+                    walletBalanceChangeHistoryReport.rateToSGD = ratesMap.get(walletBalanceHistory.lastUpdatedDate.toLocalDate()).get(walletBalanceHistory.currency);
+                    return walletBalanceChangeHistoryReport;
+                })
+                .toList();
     }
 
     private void sendReportEmail(String reportType, String startDate, String endDate, byte[] reportByte) {
