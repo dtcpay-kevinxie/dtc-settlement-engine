@@ -4,10 +4,10 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.dtc.addon.integration.notification.NotificationEngineClient;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.*;
 import top.dtc.common.util.ClientTypeUtils;
-import top.dtc.common.util.NotificationSender;
 import top.dtc.data.core.enums.ClientStatus;
 import top.dtc.data.core.enums.OtcStatus;
 import top.dtc.data.core.enums.TerminalStatus;
@@ -89,6 +89,9 @@ public class ReportService {
 
     @Autowired
     CountryService countryService;
+
+    @Autowired
+    NotificationEngineClient notificationEngineClient;
 
     public HashMap<LocalDate, HashMap<Currency, BigDecimal>> getRatesMap(LocalDate startDate, LocalDate endDate) {
         HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap = new HashMap<>();
@@ -569,8 +572,8 @@ public class ReportService {
 
     private void sendReportEmail(String reportType, String startDate, String endDate, byte[] reportByte) {
         try {
-            NotificationSender.
-                    by(MAS_REPORT)
+            notificationEngineClient
+                    .by(MAS_REPORT)
                     .to(notificationProperties.complianceRecipient)
                     .dataMap(Map.of("report_type", reportType,
                             "date_start", startDate,

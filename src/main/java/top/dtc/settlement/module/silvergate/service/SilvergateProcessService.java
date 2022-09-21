@@ -1,13 +1,13 @@
 package top.dtc.settlement.module.silvergate.service;
 
-import com.alibaba.fastjson.JSON;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.dtc.addon.integration.notification.NotificationEngineClient;
 import top.dtc.common.exception.ValidationException;
-import top.dtc.common.util.NotificationSender;
+import top.dtc.common.json.JSON;
 import top.dtc.data.finance.enums.PayableStatus;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.model.RemitInfo;
@@ -46,16 +46,19 @@ public class SilvergateProcessService {
     SilvergateApiService silvergateApiService;
 
     @Autowired
-    private NotificationProperties notificationProperties;
+    NotificationProperties notificationProperties;
 
     @Autowired
-    private PayableService payableService;
+    PayableService payableService;
 
     @Autowired
-    private RemitInfoService remitInfoService;
+    RemitInfoService remitInfoService;
 
     @Autowired
-    private SilvergateProperties silvergateProperties;
+    SilvergateProperties silvergateProperties;
+
+    @Autowired
+    NotificationEngineClient notificationEngineClient;
 
     public void notify(NotificationPost notificationPost) {
         BigDecimal previousAmount = new BigDecimal(notificationPost.previousBalance);
@@ -87,7 +90,7 @@ public class SilvergateProcessService {
                         try {
                             log.info("AccountWireDetailReq {}", accountWireDetailReq);
                             AccountWireDetailResp accountWireDetailResp = silvergateApiService.getAccountWireDetail(accountWireDetailReq);
-                            log.info(JSON.toJSONString(accountWireDetailResp, true));
+                            log.info(JSON.stringify(accountWireDetailResp, true));
                         } catch (Exception e) {
                             log.error("getAccountWireDetail Error", e);
                         }
@@ -96,7 +99,7 @@ public class SilvergateProcessService {
                         try {
                             log.info("AccountWireSummaryReq {}", accountWireSummaryReq);
                             AccountWireSummaryResp accountWireSummaryResp = silvergateApiService.getAccountWireSummary(accountWireSummaryReq);
-                            log.info(JSON.toJSONString(accountWireSummaryResp, true));
+                            log.info(JSON.stringify(accountWireSummaryResp, true));
                         } catch (Exception e) {
                             log.error("getAccountWireSummary Error", e);
                         }
@@ -106,7 +109,7 @@ public class SilvergateProcessService {
                 }
             }
             log.debug("Transaction Details {}", transactionDetails);
-            NotificationSender
+            notificationEngineClient
                     .by(SILVERGATE_BALANCE_CHANGED)
                     .to(notificationProperties.financeRecipient)
                     .dataMap(Map.of(
@@ -182,7 +185,7 @@ public class SilvergateProcessService {
         } else {
             throw new ValidationException(PAYMENT_INIT_FAILED(payable.id, resp));
         }
-        NotificationSender
+        notificationEngineClient
                 .by(SILVERGATE_PAY_INITIAL)
                 .to(notificationProperties.financeRecipient)
                 .dataMap(Map.of(
@@ -220,7 +223,7 @@ public class SilvergateProcessService {
             if (paymentPutResp != null && CANCELED.equalsIgnoreCase(paymentPutResp.payment_status)) {
                 payable.status = PayableStatus.UNPAID;
                 payableService.updateById(payable);
-                NotificationSender
+                notificationEngineClient
                         .by(SILVERGATE_PAY_CANCELLED)
                         .to(notificationProperties.financeRecipient)
                         .dataMap(Map.of(

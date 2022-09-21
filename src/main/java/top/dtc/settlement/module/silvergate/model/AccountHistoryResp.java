@@ -1,6 +1,6 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
@@ -8,80 +8,80 @@ import java.util.List;
 @Data
 public class AccountHistoryResp {
 
-    @JSONField(name = "SEQUENCE")
+    @JsonProperty("SEQUENCE")
     public Integer sequence;// default: 0
-    @JSONField(name = "ResponseData")
+    @JsonProperty("ResponseData")
     public List<ResponseData> responseDataList;
-    @JSONField(name = "ERROR")
+    @JsonProperty("ERROR")
     public List<Error> error;
 
     @Data
     public static class ResponseData {
-        @JSONField(name = "RECS_RETURNED")
+        @JsonProperty("RECS_RETURNED")
         public Integer recs_returned; //default: 0
-        @JSONField(name = "MOREDATA")
+        @JsonProperty("MOREDATA")
         public String moreData;
-        @JSONField(name = "TRANSACTION")
+        @JsonProperty("TRANSACTION")
         public List<Transaction> transactionList;
     }
 
     @Data
     public static class Transaction {
-        @JSONField(name = "TRANDATE")
+        @JsonProperty("TRANDATE")
         public String tranDate;
-        @JSONField(name = "TRANCD")
+        @JsonProperty("TRANCD")
         public String tranCD;
-        @JSONField(name = "TRANAMT")
+        @JsonProperty("TRANAMT")
         public Double tranAmt;
-        @JSONField(name = "CHECKNBR")
+        @JsonProperty("CHECKNBR")
         public String checkNbr;
-        @JSONField(name = "IDEMPOTENCYKEY")
+        @JsonProperty("IDEMPOTENCYKEY")
         public String IdemPotencyKey;
-        @JSONField(name = "TRANDESC")
+        @JsonProperty("TRANDESC")
         public String tranDesc;
-        @JSONField(name = "TRANDESCS")
+        @JsonProperty("TRANDESCS")
         public String tranDescS;
-        @JSONField(name = "TRANDESC3")
+        @JsonProperty("TRANDESC3")
         public String tranDesc3;
-        @JSONField(name = "TRANDESC4")
+        @JsonProperty("TRANDESC4")
         public String tranDesc4;
-        @JSONField(name = "TRANDESC5")
+        @JsonProperty("TRANDESC5")
         public String tranDesc5;
-        @JSONField(name = "TRANDESC6")
+        @JsonProperty("TRANDESC6")
         public String tranDesc6;
-        @JSONField(name = "TRANDESC7")
+        @JsonProperty("TRANDESC7")
         public String tranDesc7;
-        @JSONField(name = "TRANDESC8")
+        @JsonProperty("TRANDESC8")
         public String tranDesc8;
-        @JSONField(name = "TRANDESC9")
+        @JsonProperty("TRANDESC9")
         public String tranDesc9;
-        @JSONField(name = "TRANDESC10")
+        @JsonProperty("TRANDESC10")
         public String tranDesc10;
-        @JSONField(name = "TRANDESC11")
+        @JsonProperty("TRANDESC11")
         public String tranDesc11;
-        @JSONField(name = "EFFDATE")
+        @JsonProperty("EFFDATE")
         public String effDate;
-        @JSONField(name = "CURRAVAILBAL")
+        @JsonProperty("CURRAVAILBAL")
         public Double currAvailbal;
-        @JSONField(name = "MEMOPSTIND")
+        @JsonProperty("MEMOPSTIND")
         public String memoPstind;
-        @JSONField(name = "TRANCDX")
+        @JsonProperty("TRANCDX")
         public String tranCdx;
-        @JSONField(name = "DRCRFLAG")
+        @JsonProperty("DRCRFLAG")
         public String drcrFlag;
-        @JSONField(name = "IMAGEFLAG")
+        @JsonProperty("IMAGEFLAG")
         public String imageFlag;
-        @JSONField(name = "ORIGPROCDT")
+        @JsonProperty("ORIGPROCDT")
         public String origProcDt;
-        @JSONField(name = "ORIGSRC")
+        @JsonProperty("ORIGSRC")
         public String origSrc;
-        @JSONField(name = "ORIGSUBSRC")
+        @JsonProperty("ORIGSUBSRC")
         public String origSubSrc;
-        @JSONField(name = "UniqueId")
+        @JsonProperty("UniqueId")
         public String uniqueId;
-        @JSONField(name = "PaymentId")
+        @JsonProperty("PaymentId")
         public String paymentId;
-        @JSONField(name = "SenTransferResponse")
+        @JsonProperty("SenTransferResponse")
         public SenTransferResponse senTransferResponse;
 
 
@@ -89,29 +89,29 @@ public class AccountHistoryResp {
 
     @Data
     public static class SenTransferResponse {
-        @JSONField(name = "CounterPartyAccountNumber")
+        @JsonProperty("CounterPartyAccountNumber")
         public String counterPartyAccountNumber;
-        @JSONField(name = "Timestamp")
+        @JsonProperty("Timestamp")
         public String timeStamp;
-        @JSONField(name = "SenderMemo")
+        @JsonProperty("SenderMemo")
         public String senderMemo;
-        @JSONField(name = "CounterPartyLegalName")
+        @JsonProperty("CounterPartyLegalName")
         public String counterPartyLegalName;
     }
 
     @Data
     public static class Error {
-        @JSONField(name = "MESSAGEID")
+        @JsonProperty("MESSAGEID")
         public String messageId;
-        @JSONField(name = "MESSAGETYPE")
+        @JsonProperty("MESSAGETYPE")
         public String messageType;
-        @JSONField(name = "SEGMENTID")
+        @JsonProperty("SEGMENTID")
         public String segmentId;
-        @JSONField(name = "SEGMENT_OCCUR")
+        @JsonProperty("SEGMENT_OCCUR")
         public String segment_occur;
-        @JSONField(name = "FIELDNAME")
+        @JsonProperty("FIELDNAME")
         public String fieldName;
-        @JSONField(name = "ERRORMSG")
+        @JsonProperty("ERRORMSG")
         public String errorMsg;
     }
 

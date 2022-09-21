@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.dtc.common.util.SchedulerUtils;
+import top.dtc.addon.integration.scheduler.SchedulerEngineClient;
 import top.dtc.settlement.module.exchangerates.service.ExchangeRatesApiService;
 
 @Log4j2
@@ -14,9 +14,11 @@ import top.dtc.settlement.module.exchangerates.service.ExchangeRatesApiService;
 @RestController
 public class ExchangeRatesController {
 
-
     @Autowired
     ExchangeRatesApiService exchangeRatesApiService;
+
+    @Autowired
+    SchedulerEngineClient schedulerEngineClient;
 
     @GetMapping("/scheduled/get-crypto-rate")
     public String scheduledGetCryptoRate(
@@ -25,7 +27,7 @@ public class ExchangeRatesController {
             @RequestParam("async") boolean async
     ) {
         log.debug("[GET] /scheduled/get-crypto-rate");
-        return SchedulerUtils.executeTask(group, name, async, () -> {
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
             exchangeRatesApiService.getCryptoRate();
             return null;
         });

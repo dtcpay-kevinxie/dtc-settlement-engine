@@ -1,15 +1,13 @@
 package top.dtc.settlement.module.silvergate.service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import kong.unirest.*;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import top.dtc.common.core.data.redis.SettlementRedisOps;
 import top.dtc.common.exception.ValidationException;
+import top.dtc.common.json.JSON;
 import top.dtc.settlement.constant.RedisConstant;
 import top.dtc.settlement.module.silvergate.core.properties.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.model.*;
@@ -18,7 +16,6 @@ import javax.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.SILVERGATE_ACCOUNT_NUMBER_NOT_REGISTERED;
@@ -36,8 +33,7 @@ public class SilvergateApiService {
     private static final String IDEMPOTENCY_KEY = "Idempotency-Key";
 
     @Autowired
-    @Qualifier(RedisConstant.DB.SETTLEMENT_ENGINE.REDIS_TEMPLATE)
-    RedisTemplate<String, String> settlementEngineRedisTemplate;
+    SettlementRedisOps settlementRedisOps;
 
     @Autowired
     private SilvergateProperties silvergateProperties;
@@ -89,39 +85,45 @@ public class SilvergateApiService {
 
     private void storeAccessTokenAndKey(String accountNumber, String accessToken, String subscriptionKey) {
         String accessTokenAccount = getAccountType(accountNumber) + accountNumber;
-        settlementEngineRedisTemplate.opsForValue().set(
+        settlementRedisOps.set(
                 RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(accessTokenAccount),
                 accessToken,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN,
-                TimeUnit.MINUTES
+                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN
         );
-        settlementEngineRedisTemplate.opsForValue().set(
+        settlementRedisOps.set(
                 RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(accessTokenAccount),
                 subscriptionKey,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN,
-                TimeUnit.MINUTES
+                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN
         );
     }
 
     private String getAccessTokenFromCache(String accountNumber) {
-        String token = settlementEngineRedisTemplate.opsForValue().get(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber));
+        String token = settlementRedisOps.get(
+                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber),
+                String.class
+        );
         if (StringUtils.isBlank(token)) {
             refreshAccessToken(accountNumber);
-            token = settlementEngineRedisTemplate.opsForValue().get(
-                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber));
+            token = settlementRedisOps.get(
+                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber),
+                    String.class
+            );
         }
         log.debug("getAccessTokenFromCache token : {}", token);
         return token;
     }
 
     private String getAccessTokenSubscriptionKeyFromCache(String accountNumber) {
-        String subscriptionKey = settlementEngineRedisTemplate.opsForValue().get(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber));
+        String subscriptionKey = settlementRedisOps.get(
+                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber),
+                String.class
+        );
         if (StringUtils.isBlank(subscriptionKey)) {
             refreshAccessToken(accountNumber);
-            subscriptionKey = settlementEngineRedisTemplate.opsForValue().get(
-                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber));
+            subscriptionKey = settlementRedisOps.get(
+                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber),
+                    String.class
+            );
         }
         log.debug("getAccessTokenSubscriptionKeyFromCache subscriptionKey : {}", subscriptionKey);
         return subscriptionKey;
@@ -144,7 +146,7 @@ public class SilvergateApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         String result = response.getBody();
-        return JSON.parseObject(result, AccountBalanceResp.class);
+        return JSON.parse(result, AccountBalanceResp.class);
     }
 
     /**
@@ -157,7 +159,7 @@ public class SilvergateApiService {
         HttpResponse<String> response = unirest.get(silvergateProperties.apiUrlPrefix + "/account/history")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountHistoryReq.accountNumber))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountHistoryReq.accountNumber))
-                .queryString(JSON.parseObject(JSON.toJSONString(accountHistoryReq)))
+                .queryString(JSON.clone(accountHistoryReq, JSON.mapType(String.class, Object.class)))
                 .asString()
                 .ifFailure(resp -> {
                     log.error("request api failed, path={}, status={}", "/account/history", resp.getStatus());
@@ -166,7 +168,7 @@ public class SilvergateApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         String result = response.getBody();
-        return JSON.parseObject(result, AccountHistoryResp.class);
+        return JSON.parse(result, AccountHistoryResp.class);
     }
 
     /**
@@ -184,11 +186,11 @@ public class SilvergateApiService {
         String result = response.getBody();
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
-        return JSON.parseObject(result, AccountListResp.class);
+        return JSON.parse(result, AccountListResp.class);
     }
 
     public PaymentPostResp initialPaymentPost(PaymentPostReq paymentPostReq) {
-        log.info("request body: {}", JSON.toJSONString(paymentPostReq));
+        log.info("request body: {}", JSON.stringify(paymentPostReq));
         HttpResponse<String> response = unirest.post(silvergateProperties.apiUrlPrefix + "/payment")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(paymentPostReq.originator_account_number))
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()) // Content-Type optional
@@ -203,7 +205,7 @@ public class SilvergateApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         if (response.getStatus() == HttpStatus.OK) {
-            return JSON.parseObject(result, PaymentPostResp.class);
+            return JSON.parse(result, PaymentPostResp.class);
         }
         return null;
     }
@@ -225,7 +227,7 @@ public class SilvergateApiService {
                 response.getStatus(), response.getBody(), response.getHeaders());
         String body = response.getBody();
         if (response.getStatus() == HttpStatus.OK) {
-            return JSON.parseObject(body, PaymentPutResp.class);
+            return JSON.parse(body, PaymentPutResp.class);
         }
        return null;
     }
@@ -250,7 +252,7 @@ public class SilvergateApiService {
                 response.getStatus(), response.getBody(), response.getHeaders());
         String body = response.getBody();
         if (response.getStatus() == HttpStatus.OK) {
-            return JSON.parseObject(body, AccountWireDetailResp.class);
+            return JSON.parse(body, AccountWireDetailResp.class);
         }
         return null;
     }
@@ -274,13 +276,13 @@ public class SilvergateApiService {
                 response.getStatus(), response.getBody(), response.getHeaders());
         String body = response.getBody();
         if (response.getStatus() == HttpStatus.OK) {
-            return JSON.parseObject(body, AccountWireSummaryResp.class);
+            return JSON.parse(body, AccountWireSummaryResp.class);
         }
         return null;
     }
 
     public AccountTransferSenResp getAccountTransferSen(AccountTransferSenReq accountTransferSenReq) {
-        log.info("request body: {}", JSON.toJSONString(accountTransferSenReq));
+        log.info("request body: {}", JSON.stringify(accountTransferSenReq));
         HttpResponse<String> response = unirest.post(silvergateProperties.apiUrlPrefix + "/account/transfersen")
                 .header(HeaderNames.AUTHORIZATION, getAccessTokenFromCache(accountTransferSenReq.accountNumberFrom))
                 .header(OCP_APIM_SUBSCRIPTION_KEY, getAccessTokenSubscriptionKeyFromCache(accountTransferSenReq.accountNumberFrom))
@@ -294,7 +296,7 @@ public class SilvergateApiService {
                 response.getStatus(), response.getBody(), response.getHeaders());
         String body = response.getBody();
         if (response.getStatus() == HttpStatus.OK) {
-            return JSON.parseObject(body, AccountTransferSenResp.class);
+            return JSON.parse(body, AccountTransferSenResp.class);
         }
         return null;
     }
@@ -313,8 +315,7 @@ public class SilvergateApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         String body = response.getBody();
-        JSONArray jsonArray = JSON.parseArray(body);
-        List<PaymentGetResp> paymentGetRespList = JSON.parseArray(jsonArray.toJSONString(), PaymentGetResp.class);
+        List<PaymentGetResp> paymentGetRespList = JSON.parse(body, JSON.listType(PaymentGetResp.class));
         return paymentGetRespList.get(0);
     }
 
@@ -355,8 +356,7 @@ public class SilvergateApiService {
                 });
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
-        JSONArray jsonArray = JSONArray.parseArray(response.getBody());
-        return JSON.parseArray(jsonArray.toJSONString(), WebHooksGetRegisterResp.class);
+        return JSON.parse(response.getBody(), JSON.listType(WebHooksGetRegisterResp.class));
     }
 
     /**
@@ -377,7 +377,7 @@ public class SilvergateApiService {
         log.info("response status: {}, \n response body: {}, \n response headers: {}",
                 response.getStatus(), response.getBody(), response.getHeaders());
         String responseBody = response.getBody();
-        return JSON.parseObject(responseBody, WebHooksGetRegisterResp.class);
+        return JSON.parse(responseBody, WebHooksGetRegisterResp.class);
     }
 
     private String getAccountType(String accountNumber) {

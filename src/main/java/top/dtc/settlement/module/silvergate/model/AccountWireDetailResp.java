@@ -1,6 +1,6 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -9,230 +9,230 @@ import java.util.List;
 @Data
 public class AccountWireDetailResp {
 
-    @JSONField(name = "SequenceNumber")
+    @JsonProperty("SequenceNumber")
     public Integer sequenceNumber;// default: 0
 
-    @JSONField(name = "Errors")
+    @JsonProperty("Errors")
     public List<AccountWireSummaryResp.Error> errors;
 
-    @JSONField(name = "Ewires")
+    @JsonProperty("Ewires")
     public List<Ewire> ewires;
 
     @Data
     public static class Ewire {
-        @JSONField(name = "TransactionNumber_1")
+        @JsonProperty("TransactionNumber_1")
         public String transactionNumber_1;
-        @JSONField(name = "PaymnentDate_8")
+        @JsonProperty("PaymnentDate_8")
         public String paymentDate_8;
-        @JSONField(name = "ValueDate_9")
+        @JsonProperty("ValueDate_9")
         public String valueDate_9;
-        @JSONField(name = "ExternalSequenceNumber_10")
+        @JsonProperty("ExternalSequenceNumber_10")
         public String externalSequenceNumber_10;
-        @JSONField(name = "CurrencyCode_11")
+        @JsonProperty("CurrencyCode_11")
         public String currencyCode_11;
-        @JSONField(name = "Amount_12")
+        @JsonProperty("Amount_12")
         public BigDecimal amount_12;
-        @JSONField(name = "BeneficiaryType_15")
+        @JsonProperty("BeneficiaryType_15")
         public String beneficiaryType_15;
-        @JSONField(name = "FedWireProductCode_16")
+        @JsonProperty("FedWireProductCode_16")
         public String fedWireProductCode_16;
-        @JSONField(name = "FedwireType_17")
+        @JsonProperty("FedwireType_17")
         public String fedwireType_17;
-        @JSONField(name = "FedwireSubType_18")
+        @JsonProperty("FedwireSubType_18")
         public String fedwireSubType_18;
-        @JSONField(name = "SourceIndicator_21")
+        @JsonProperty("SourceIndicator_21")
         public String sourceIndicator_21;
-        @JSONField(name = "ReferenceForBeneficiary_22")
+        @JsonProperty("ReferenceForBeneficiary_22")
         public String referenceForBeneficiary_22;
-        @JSONField(name = "SendersReference_23")
+        @JsonProperty("SendersReference_23")
         public String sendersReference_23;
-        @JSONField(name = "SendingBankType_24")
+        @JsonProperty("SendingBankType_24")
         public String sendingBankType_24;
-        @JSONField(name = "SendingBankId_25")
+        @JsonProperty("SendingBankId_25")
         public String sendingBankId_25;
-        @JSONField(name = "SendingBankName_26")
+        @JsonProperty("SendingBankName_26")
         public String sendingBankName_26;
-        @JSONField(name = "SendingBankAddress1_27")
+        @JsonProperty("SendingBankAddress1_27")
         public String sendingBankAddress1_27;
-        @JSONField(name = "SendingBankAddress2_28")
+        @JsonProperty("SendingBankAddress2_28")
         public String sendingBankAddress2_28;
-        @JSONField(name = "SendingBankAddress3_29")
+        @JsonProperty("SendingBankAddress3_29")
         public String sendingBankAddress3_29;
-        @JSONField(name = "SwiftAdviceMessageType_32")
+        @JsonProperty("SwiftAdviceMessageType_32")
         public String swiftAdviceMessageType_32;
-        @JSONField(name = "ReceivingBankType_33")
+        @JsonProperty("ReceivingBankType_33")
         public String receivingBankType_33;
-        @JSONField(name = "ReceivingBankId_34")
+        @JsonProperty("ReceivingBankId_34")
         public String receivingBankId_34;
-        @JSONField(name = "ReceivingBankName_35")
+        @JsonProperty("ReceivingBankName_35")
         public String receivingBankName_35;
-        @JSONField(name = "ReceivingBankAddress1_36")
+        @JsonProperty("ReceivingBankAddress1_36")
         public String receivingBankAddress1_36;
-        @JSONField(name = "ReceivingBankAddress2_37")
+        @JsonProperty("ReceivingBankAddress2_37")
         public String receivingBankAddress2_37;
-        @JSONField(name = "ReceivingBankAddress3_38")
+        @JsonProperty("ReceivingBankAddress3_38")
         public String receivingBankAddress3_38;
-        @JSONField(name = "SwiftAdviceMessageType_41")
+        @JsonProperty("SwiftAdviceMessageType_41")
         public String swiftAdviceMessageType_41;
-        @JSONField(name = "OriginatorType_42")
+        @JsonProperty("OriginatorType_42")
         public String originatorType_42;
-        @JSONField(name = "OriginatorId_43")
+        @JsonProperty("OriginatorId_43")
         public String originatorId_43;
-        @JSONField(name = "Name_44")
+        @JsonProperty("Name_44")
         public String name_44;
-        @JSONField(name = "Address1_45")
+        @JsonProperty("Address1_45")
         public String address1_45;
-        @JSONField(name = "Address2_46")
+        @JsonProperty("Address2_46")
         public String address2_46;
-        @JSONField(name = "Address3_47")
+        @JsonProperty("Address3_47")
         public String address3_47;
-        @JSONField(name = "SwiftAdviceMessageType_50")
+        @JsonProperty("SwiftAdviceMessageType_50")
         public String swiftAdviceMessageType_50;
-        @JSONField(name = "OriginatingBankType_51")
+        @JsonProperty("OriginatingBankType_51")
         public String originatingBankType_51;
-        @JSONField(name = "Id_52")
+        @JsonProperty("Id_52")
         public String id_52;
-        @JSONField(name = "Name_53")
+        @JsonProperty("Name_53")
         public String name_53;
-        @JSONField(name = "Address1_54")
+        @JsonProperty("Address1_54")
         public String address1_54;
-        @JSONField(name = "Address2_55")
+        @JsonProperty("Address2_55")
         public String address2_55;
-        @JSONField(name = "Address3_56")
+        @JsonProperty("Address3_56")
         public String address3_56;
-        @JSONField(name = "AdviceAddress_57")
+        @JsonProperty("AdviceAddress_57")
         public String adviceAddress_57;
-        @JSONField(name = "AdviceMethod_58")
+        @JsonProperty("AdviceMethod_58")
         public String adviceMethod_58;
-        @JSONField(name = "SwiftAdviceMessageType_59")
+        @JsonProperty("SwiftAdviceMessageType_59")
         public String swiftAdviceMessageType_59;
-        @JSONField(name = "InstructingBankType_60")
+        @JsonProperty("InstructingBankType_60")
         public String instructingBankType_60;
-        @JSONField(name = "Id_61")
+        @JsonProperty("Id_61")
         public String id_61;
-        @JSONField(name = "Name_62")
+        @JsonProperty("Name_62")
         public String name_62;
-        @JSONField(name = "Address1_63")
+        @JsonProperty("Address1_63")
         public String address1_63;
-        @JSONField(name = "Address2_64")
+        @JsonProperty("Address2_64")
         public String address2_64;
-        @JSONField(name = "Address3_65")
+        @JsonProperty("Address3_65")
         public String address3_65;
-        @JSONField(name = "SwiftAdviceMessageType_68")
+        @JsonProperty("SwiftAdviceMessageType_68")
         public String swiftAdviceMessageType_68;
-        @JSONField(name = "BeneficiaryType_69")
+        @JsonProperty("BeneficiaryType_69")
         public String beneficiaryType_69;
-        @JSONField(name = "BeneficiaryId_70")
+        @JsonProperty("BeneficiaryId_70")
         public String beneficiaryId_70;
-        @JSONField(name = "Name_71")
+        @JsonProperty("Name_71")
         public String name_71;
-        @JSONField(name = "Address1_72")
+        @JsonProperty("Address1_72")
         public String address1_72;
-        @JSONField(name = "Address2_73")
+        @JsonProperty("Address2_73")
         public String address2_73;
-        @JSONField(name = "Address3_74")
+        @JsonProperty("Address3_74")
         public String address3_74;
-        @JSONField(name = "SwiftAdviceMessageType_77")
+        @JsonProperty("SwiftAdviceMessageType_77")
         public String swiftAdviceMessageType_77;
-        @JSONField(name = "BeneficiaryBankType_78")
+        @JsonProperty("BeneficiaryBankType_78")
         public String beneficiaryBankType_78;
-        @JSONField(name = "Id_79")
+        @JsonProperty("Id_79")
         public String id_79;
-        @JSONField(name = "Name_80")
+        @JsonProperty("Name_80")
         public String name_80;
-        @JSONField(name = "Address1_81")
+        @JsonProperty("Address1_81")
         public String address1_81;
-        @JSONField(name = "Address2_82")
+        @JsonProperty("Address2_82")
         public String address2_82;
-        @JSONField(name = "Address3_83")
+        @JsonProperty("Address3_83")
         public String address3_83;
-        @JSONField(name = "SwiftAdviceMessageType_86")
+        @JsonProperty("SwiftAdviceMessageType_86")
         public String swiftAdviceMessageType_86;
-        @JSONField(name = "IntermediaryBankType_87")
+        @JsonProperty("IntermediaryBankType_87")
         public String intermediaryBankType_87;
-        @JSONField(name = "Id_88")
+        @JsonProperty("Id_88")
         public String id_88;
-        @JSONField(name = "Name_89")
+        @JsonProperty("Name_89")
         public String name_89;
-        @JSONField(name = "Address1_90")
+        @JsonProperty("Address1_90")
         public String address1_90;
-        @JSONField(name = "Address2_91")
+        @JsonProperty("Address2_91")
         public String address2_91;
-        @JSONField(name = "Address3_92")
+        @JsonProperty("Address3_92")
         public String address3_92;
-        @JSONField(name = "SwiftAdviceMessageType_95")
+        @JsonProperty("SwiftAdviceMessageType_95")
         public String swiftAdviceMessageType_95;
-        @JSONField(name = "OriginatorToBeneficiaryInfoLine1_96")
+        @JsonProperty("OriginatorToBeneficiaryInfoLine1_96")
         public String originatorToBeneficiaryInfoLine1_96;
-        @JSONField(name = "OriginatorToBeneficiaryInfoLine2_97")
+        @JsonProperty("OriginatorToBeneficiaryInfoLine2_97")
         public String originatorToBeneficiaryInfoLine2_97;
-        @JSONField(name = "OriginatorToBeneficiaryInfoLine3_98")
+        @JsonProperty("OriginatorToBeneficiaryInfoLine3_98")
         public String originatorToBeneficiaryInfoLine3_98;
-        @JSONField(name = "OriginatorToBeneficiaryInfoLine4_99")
+        @JsonProperty("OriginatorToBeneficiaryInfoLine4_99")
         public String originatorToBeneficiaryInfoLine4_99;
-        @JSONField(name = "BankToBAnkInfoLine1_100")
+        @JsonProperty("BankToBAnkInfoLine1_100")
         public String bankToBAnkInfoLine1_100;
-        @JSONField(name = "BankToBAnkInfoLine2_101")
+        @JsonProperty("BankToBAnkInfoLine2_101")
         public String bankToBAnkInfoLine2_101;
-        @JSONField(name = "BankToBAnkInfoLine3_102")
+        @JsonProperty("BankToBAnkInfoLine3_102")
         public String bankToBAnkInfoLine3_102;
-        @JSONField(name = "BankToBAnkInfoLine4_103")
+        @JsonProperty("BankToBAnkInfoLine4_103")
         public String bankToBAnkInfoLine4_103;
-        @JSONField(name = "BankToBAnkInfoLine5_104")
+        @JsonProperty("BankToBAnkInfoLine5_104")
         public String bankToBAnkInfoLine5_104;
-        @JSONField(name = "BankToBAnkInfoLine6_105")
+        @JsonProperty("BankToBAnkInfoLine6_105")
         public String bankToBAnkInfoLine6_105;
-        @JSONField(name = "ImadCycleDate_117")
+        @JsonProperty("ImadCycleDate_117")
         public String imadCycleDate_117;
-        @JSONField(name = "ImadCalendarDate_118")
+        @JsonProperty("ImadCalendarDate_118")
         public String imadCalendarDate_118;
-        @JSONField(name = "ImadApplicationId_119")
+        @JsonProperty("ImadApplicationId_119")
         public String imadApplicationId_119;
-        @JSONField(name = "Imsn_120")
+        @JsonProperty("Imsn_120")
         public String imsn_120;
-        @JSONField(name = "ImadLtermId_121")
+        @JsonProperty("ImadLtermId_121")
         public String imadLtermId_121;
-        @JSONField(name = "ImadTime_122")
+        @JsonProperty("ImadTime_122")
         public String imadTime_122;
-        @JSONField(name = "OmadCycleData_123")
+        @JsonProperty("OmadCycleData_123")
         public String omadCycleData_123;
-        @JSONField(name = "OmadCalendarDate_124")
+        @JsonProperty("OmadCalendarDate_124")
         public String omadCalendarDate_124;
-        @JSONField(name = "OmadApplicationId_125")
+        @JsonProperty("OmadApplicationId_125")
         public String omadApplicationId_125;
-        @JSONField(name = "OmadLtermId_126")
+        @JsonProperty("OmadLtermId_126")
         public String omadLtermId_126;
-        @JSONField(name = "Omsn_127")
+        @JsonProperty("Omsn_127")
         public String omsn_127;
-        @JSONField(name = "OmadTime_128")
+        @JsonProperty("OmadTime_128")
         public String omadTime_128;
-        @JSONField(name = "TransactionTypeCodeIncomingMt103_137")
+        @JsonProperty("TransactionTypeCodeIncomingMt103_137")
         public String transactionTypeCodeIncomingMt103_137;
-        @JSONField(name = "EntryDate_138")
+        @JsonProperty("EntryDate_138")
         public String entryDate_138;
-        @JSONField(name = "CompletionDate_139")
+        @JsonProperty("CompletionDate_139")
         public String completionDate_139;
-        @JSONField(name = "CancelDate_140")
+        @JsonProperty("CancelDate_140")
         public String cancelDate_140;
-        @JSONField(name = "TerminateDate_141")
+        @JsonProperty("TerminateDate_141")
         public String terminateDate_141;
-        @JSONField(name = "BeneficiaryCountryCode_150")
+        @JsonProperty("BeneficiaryCountryCode_150")
         public String beneficiaryCountryCode_150;
-        @JSONField(name = "BeneficiaryBankCountyCode_151")
+        @JsonProperty("BeneficiaryBankCountyCode_151")
         public String beneficiaryBankCountyCode_151;
-        @JSONField(name = "ReasonPaymentLine1_152")
+        @JsonProperty("ReasonPaymentLine1_152")
         public String reasonPaymentLine1_152;
-        @JSONField(name = "ReasonPaymentLine2_153")
+        @JsonProperty("ReasonPaymentLine2_153")
         public String reasonPaymentLine2_153;
-        @JSONField(name = "DebitAccountType_154")
+        @JsonProperty("DebitAccountType_154")
         public String debitAccountType_154;
-        @JSONField(name = "DebitAccountId_155")
+        @JsonProperty("DebitAccountId_155")
         public String debitAccountId_155;
-        @JSONField(name = "CreditAccountId_157")
+        @JsonProperty("CreditAccountId_157")
         public String creditAccountId_157;
-        @JSONField(name = "Status")
+        @JsonProperty("Status")
         public String status;
-        @JSONField(name = "UniqueId")
+        @JsonProperty("UniqueId")
         public String uniqueId;
     }
 }

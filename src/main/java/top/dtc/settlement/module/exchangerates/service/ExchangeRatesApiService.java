@@ -1,22 +1,21 @@
 package top.dtc.settlement.module.exchangerates.service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import kong.unirest.*;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.dtc.addon.integration.ftx_otc.domain.Quote;
+import top.dtc.addon.integration.ftx_otc.domain.QuoteRequestReq;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.Institution;
 import top.dtc.common.exception.DtcRuntimeException;
-import top.dtc.common.integration.ftx_otc.domain.Quote;
-import top.dtc.common.integration.ftx_otc.domain.QuoteRequestReq;
+import top.dtc.common.json.JSON;
 import top.dtc.common.model.api.ApiRequest;
 import top.dtc.common.model.api.ApiResponse;
+import top.dtc.common.web.Endpoints;
 import top.dtc.data.core.enums.ExchangeType;
 import top.dtc.data.core.model.ExchangeRate;
 import top.dtc.data.core.service.ExchangeRateService;
-import top.dtc.settlement.core.properties.HttpProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,7 +27,7 @@ import static top.dtc.common.enums.Currency.*;
 public class ExchangeRatesApiService {
 
     @Autowired
-    HttpProperties httpProperties;
+    Endpoints endpoints;
 
     @Autowired
     ExchangeRateService exchangeRateService;
@@ -51,7 +50,7 @@ public class ExchangeRatesApiService {
         quoteRequestReq.quoteCurrency = USD.name;
         quoteRequestReq.baseCurrencySize = BigDecimal.ONE;
         quoteRequestReq.side = "sell";
-        RequestBodyEntity requestBodyEntity = Unirest.post(httpProperties.integrationEngineUrlPrefix
+        RequestBodyEntity requestBodyEntity = Unirest.post(endpoints.INTEGRATION_ENGINE
                         + "/integration/ftx-otc/quote/request")
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .body(new ApiRequest<>(quoteRequestReq));
@@ -59,14 +58,14 @@ public class ExchangeRatesApiService {
         ApiResponse<Quote> requestQuoteResp = requestBodyEntity.asObject(
                 new GenericType<ApiResponse<Quote>>() {
                 }).getBody();
-        log.debug("Request body: {}", JSON.toJSONString(quoteRequestReq));
+        log.debug("Request body: {}", JSON.stringify(quoteRequestReq));
         if (requestQuoteResp == null || requestQuoteResp.header == null) {
             throw new DtcRuntimeException("Error when connecting integration-engine");
         } else if (!requestQuoteResp.header.success) {
             throw new DtcRuntimeException(requestQuoteResp.header.errMsg);
         }
         log.debug("Request result: {}", requestQuoteResp.result);
-        Quote quote = JSONObject.parseObject(JSONObject.toJSONString(requestQuoteResp.result), Quote.class);
+        Quote quote = JSON.clone(requestQuoteResp.result, Quote.class);
         if (quote.price == null || quote.expiry == null) {
             throw new DtcRuntimeException("Can not get price at the moment, please try again");
         }

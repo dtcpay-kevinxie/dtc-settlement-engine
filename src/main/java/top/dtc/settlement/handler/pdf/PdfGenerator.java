@@ -1,23 +1,21 @@
-package top.dtc.settlement.handler;
+package top.dtc.settlement.handler.pdf;
 
-import org.springframework.stereotype.Service;
+import top.dtc.addon.data_processor.pdf.PdfProcessor;
+import top.dtc.addon.data_processor.pdf.Table;
 import top.dtc.common.constant.DateTime;
 import top.dtc.common.enums.CryptoTransactionType;
-import top.dtc.common.pdf.processor.PdfProcessor;
-import top.dtc.common.pdf.processor.Table;
 import top.dtc.data.core.model.CryptoTransaction;
 import top.dtc.data.risk.model.KycWalletAddress;
 
-@Service
 public class PdfGenerator {
 
-    public byte[] toCryptoReceipt(CryptoTransaction txn, String owner, KycWalletAddress walletAddress, String clientName, String clientContact) {
+    public static byte[] toCryptoReceipt(CryptoTransaction txn, String owner, KycWalletAddress walletAddress, String clientName, String clientContact) {
         PdfProcessor pdf = PdfProcessor.create();
         boolean isDeposit = false;
         if (txn.type == CryptoTransactionType.DEPOSIT || txn.type == CryptoTransactionType.SATOSHI) {
             isDeposit = true;
         }
-        this.pdfHeader(pdf, txn, txn.clientId, clientName, clientContact, isDeposit);
+        pdfHeader(pdf, txn, txn.clientId, clientName, clientContact, isDeposit);
         Table itemTable = pdf.table(new float[] {0.08f, 0.17f, 0.16f, 0.13f, 0.46f})
                 .marginTop(20)
                 .fontSize(6)
@@ -48,7 +46,7 @@ public class PdfGenerator {
         return pdf.toByteArray();
     }
 
-    private void pdfHeader(PdfProcessor pdf, CryptoTransaction txn, Long clientId, String clientName, String clientContact, Boolean isDeposit) {
+    private static void pdfHeader(PdfProcessor pdf, CryptoTransaction txn, Long clientId, String clientName, String clientContact, Boolean isDeposit) {
         pdf.append(pdf.table(new float[] {0.15f, 0.87f})
                 .fontSize(9)
                 .appendBlueCell("Order ID")

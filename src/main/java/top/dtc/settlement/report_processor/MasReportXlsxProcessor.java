@@ -6,6 +6,8 @@ import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import top.dtc.addon.data_processor.FieldValue;
+import top.dtc.addon.data_processor.xlsx.XlsxProcessor;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.FiatTransactionType;
@@ -22,8 +24,7 @@ import top.dtc.data.risk.enums.VerificationType;
 import top.dtc.data.risk.model.RiskMatrix;
 import top.dtc.data.wallet.enums.WalletStatus;
 import top.dtc.data.wallet.model.WalletAccount;
-import top.dtc.settlement.handler.FieldValue;
-import top.dtc.settlement.handler.xlsx.XlsxGenerator;
+import top.dtc.data.wallet.model.WalletBalanceHistory;
 import top.dtc.settlement.report_processor.vo.*;
 
 import java.io.ByteArrayOutputStream;
@@ -49,8 +50,7 @@ public class MasReportXlsxProcessor {
 
     private static MasReportXlsxProcessor initReportWorkbook(String reportType) throws IOException {
         MasReportXlsxProcessor processor = new MasReportXlsxProcessor();
-        processor.workbook = new XSSFWorkbook(
-                MasReportXlsxProcessor.class.getResourceAsStream(String.format("/xlsx-templates/mas-report-%s.xlsx", reportType.toLowerCase(Locale.ROOT))));
+        processor.workbook = new XSSFWorkbook(MasReportXlsxProcessor.class.getResourceAsStream(String.format("/xlsx-templates/mas-report-%s.xlsx", reportType.toLowerCase(Locale.ROOT))));
         CellStyle percentCellStyle = processor.workbook.createCellStyle();
         percentCellStyle.setDataFormat(processor.workbook.createDataFormat().getFormat("0%"));
         return processor;
@@ -61,7 +61,7 @@ public class MasReportXlsxProcessor {
                 SHEET 0 Report 1A Summary
          */
         XSSFSheet sheet0 = processor.workbook.getSheetAt(0);
-        XlsxGenerator.lock(sheet0);
+        XlsxProcessor.lock(sheet0);
         processor.workbook.setSheetName(0, String.format("%s Summary", reportType.toUpperCase(Locale.ROOT)));
         // 1A Title
         processor.getCellByPos(sheet0, "B2").setCellValue("Digital Treasures Center Pte. Ltd.");
@@ -77,24 +77,16 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET Account Issued
          */
-        XlsxGenerator
+        XlsxProcessor
                 .records(processor.workbook, monitoringMatrixList, AccountIssuedReport.class)
-                .valueHandler((key, record) -> {
-                    MonitoringMatrix monitoringMatrix = (MonitoringMatrix) record;
-                    if ("isDomesticEnabled".equals(key)) {
-                        return new FieldValue<>(monitoringMatrix.fiatAccountEnabled ? "YES" : "NO");
-                    } else if ("isCrossBorderEnabled".equals(key)) {
-                        return new FieldValue<>(monitoringMatrix.fiatAccountEnabled ? "YES" : "NO");
-                    } else if ("isMerchantAcquisitionEnabled".equals(key)) {
-                        return new FieldValue<>(monitoringMatrix.paymentEnabled ? "YES" : "NO");
-                    } else if ("isEmoneyEnabled".equals(key)) {
-                        return new FieldValue<>(monitoringMatrix.emoneyEnabled ? "YES" : "NO");
-                    } else if ("isDptEnabled".equals(key)) {
-                        return new FieldValue<>(monitoringMatrix.dptEnabled ? "YES" : "NO");
-                    } else if ("isMoneyChangingEnabled".equals(key)) {
-                        return new FieldValue<>("NO");
-                    }
-                    return FieldValue.empty();
+                .valueHandler((key, monitoringMatrix) -> switch (key) {
+                    case "isDomesticEnabled" -> new FieldValue<>(monitoringMatrix.fiatAccountEnabled ? "YES" : "NO");
+                    case "isCrossBorderEnabled" -> new FieldValue<>(monitoringMatrix.fiatAccountEnabled ? "YES" : "NO");
+                    case "isMerchantAcquisitionEnabled" -> new FieldValue<>(monitoringMatrix.paymentEnabled ? "YES" : "NO");
+                    case "isEmoneyEnabled" -> new FieldValue<>(monitoringMatrix.emoneyEnabled ? "YES" : "NO");
+                    case "isDptEnabled" -> new FieldValue<>(monitoringMatrix.dptEnabled ? "YES" : "NO");
+                    case "isMoneyChangingEnabled" -> new FieldValue<>("NO");
+                    default -> FieldValue.empty();
                 })
                 .genSheet("Accounts Issued");
     }
@@ -118,7 +110,7 @@ public class MasReportXlsxProcessor {
         /*
                SHEET Fiat Transaction
          */
-        XlsxGenerator
+        XlsxProcessor
                 .records(processor.workbook, fiatTransactionList, FiatTransactionReport.class)
                 .genSheet("Fiat Transaction");
     }
@@ -130,7 +122,7 @@ public class MasReportXlsxProcessor {
         /*
                SHEET Pobo Transaction
          */
-        XlsxGenerator
+        XlsxProcessor
                 .records(processor.workbook, poboTransactionList, PoboTransactionReport.class)
                 .genSheet("Payment-on-behalf-of Transaction");
     }
@@ -142,7 +134,7 @@ public class MasReportXlsxProcessor {
         /*
                SHEET Merchant Acquisition Transaction
          */
-        XlsxGenerator
+        XlsxProcessor
                 .records(processor.workbook, paymentTransactionList, PaymentTransactionReport.class)
                 .genSheet("MA Transactions");
     }
@@ -154,7 +146,7 @@ public class MasReportXlsxProcessor {
         /*
                SHEET OTC Transaction
          */
-        XlsxGenerator
+        XlsxProcessor
                 .records(processor.workbook, otcList, OtcReport.class)
                 .genSheet("OTC Transactions");
     }
@@ -166,7 +158,7 @@ public class MasReportXlsxProcessor {
         /*
                SHEET Crypto Transaction
          */
-        XlsxGenerator
+        XlsxProcessor
                 .records(processor.workbook, cryptoTransactionList, CryptoTransactionReport.class)
                 .genSheet("Crypto Transactions");
     }
@@ -178,7 +170,7 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET Merchant
          */
-        XlsxGenerator
+        XlsxProcessor
                 .records(processor.workbook, nonIndividualList, NonIndividualReport.class)
                 .genSheet("Merchant List");
     }
@@ -190,7 +182,7 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET Risk Matrix
          */
-        XlsxGenerator
+        XlsxProcessor
                 .records(processor.workbook, riskMatrixList, RiskMatrixReport.class)
                 .genSheet("Risk Matrix");
     }
