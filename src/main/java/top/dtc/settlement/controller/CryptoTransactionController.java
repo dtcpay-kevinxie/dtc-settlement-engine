@@ -26,9 +26,10 @@ public class CryptoTransactionController {
             @RequestParam("async") boolean async
     ) {
         log.debug("[POST] /scheduled/auto-sweep");
-        return schedulerEngineClient.executeTask(group, name, async, () ->
-                cryptoTransactionProcessService.scheduledAutoSweep()
-        );
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
+            cryptoTransactionProcessService.scheduledAutoSweep();
+            return null;
+        });
     }
 
     @PostMapping("/scheduled/daily-balance-check")
@@ -38,9 +39,10 @@ public class CryptoTransactionController {
             @RequestParam("async") boolean async
     ) {
         log.debug("[POST] /scheduled/daily-balance-check");
-        return schedulerEngineClient.executeTask(group, name, async, () ->
-                cryptoTransactionProcessService.scheduledDtcWalletBalanceCheck()
-        );
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
+            cryptoTransactionProcessService.scheduledDtcWalletBalanceCheck();
+            return null;
+        });
     }
 
     @PostMapping("/notify")

@@ -423,6 +423,11 @@ public class CryptoTransactionProcessService {
                 try {
                     kycCommonService.validateClientStatus(clientId);
                 } catch (ValidationException e) {
+                    //TODO: Move anti-dust logic to the top when satoshi test logic is removed.
+                    if (isDustAmount(result.currency, output.amount)) {
+                        log.debug("Dust transaction {} detected, Currency: {}, Amount: {}", result.id, result.currency, output.amount);
+                        return;
+                    }
                     alertMsg = String.format("Client(%s)'s address [%s] received a transaction [%s] \n Validation Failed: %s",
                             clientId, recipientAddress.address, result.id, e.getMessage());
                     log.error(alertMsg);
