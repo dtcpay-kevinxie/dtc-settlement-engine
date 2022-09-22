@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.addon.integration.binance.domain.QueryUserUnSettleReq;
 import top.dtc.addon.integration.binance.domain.QueryUserUnSettleResp;
-import top.dtc.addon.integration.binance.domain.SettleCreditOrderResp;
+import top.dtc.addon.integration.binance.domain.SettleCreditOrdersResp;
 import top.dtc.addon.integration.binance.domain.SettleCreditOrdersReq;
 import top.dtc.addon.integration.notification.NotificationEngineClient;
 import top.dtc.common.exception.DtcRuntimeException;
@@ -68,7 +68,7 @@ public class BinanceSettleService {
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .body(new ApiRequest<>(settleCreditOrdersReq));
         log.debug("Request url: {}", requestBodyEntity.getUrl());
-        ApiResponse<SettleCreditOrderResp> settleCreditOrderResp = requestBodyEntity.asObject(new GenericType<ApiResponse<SettleCreditOrderResp>>() {}).getBody();
+        ApiResponse<SettleCreditOrdersResp> settleCreditOrderResp = requestBodyEntity.asObject(new GenericType<ApiResponse<SettleCreditOrdersResp>>() {}).getBody();
         log.debug("Request body: {}", JSON.stringify(settleCreditOrdersReq));
         if (settleCreditOrderResp == null || settleCreditOrderResp.header == null) {
             throw new DtcRuntimeException("Error when connecting integration-engine");

@@ -41,3 +41,6 @@ transaction:
     eth-threshold: ${ANTI_DUST_ETH_THRESHOLD}
     trx-threshold: ${ANTI_DUST_TRX_THRESHOLD}
     usdt-threshold: ${ANTI_DUST_USDT_THRESHOLD}
+
+match-move:
+  integration-url-prefix: ${INTEGRATION_URL_PREFIX}

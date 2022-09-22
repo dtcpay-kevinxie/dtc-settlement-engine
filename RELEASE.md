@@ -4,6 +4,7 @@
 
 * Update parent
 * Add deps addon-integration & addon-data-processor
+* Init MatchMove webhooks
 
 [0.91.0] - 20 Sep 2022
 
