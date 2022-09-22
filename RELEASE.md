@@ -1,9 +1,14 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.92.0] -
+[0.93.0] -
 
 * Update parent
 * Add deps addon-integration & addon-data-processor
+
+[0.92.0] - 21 Sep 2022
+
+* Add BalanceChangeHistoryReport to PSN04 1A
+* Standardize rateMaps usage
 
 [0.91.0] - 20 Sep 2022
 
