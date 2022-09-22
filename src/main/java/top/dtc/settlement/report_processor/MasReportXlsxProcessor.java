@@ -24,7 +24,6 @@ import top.dtc.data.risk.enums.VerificationType;
 import top.dtc.data.risk.model.RiskMatrix;
 import top.dtc.data.wallet.enums.WalletStatus;
 import top.dtc.data.wallet.model.WalletAccount;
-import top.dtc.data.wallet.model.WalletBalanceHistory;
 import top.dtc.settlement.report_processor.vo.*;
 
 import java.io.ByteArrayOutputStream;
@@ -98,7 +97,7 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET Balance Change History
          */
-        XlsxGenerator
+        XlsxProcessor
                 .records(processor.workbook, walletBalanceHistoryList, WalletBalanceChangeHistoryReport.class)
                 .genSheet("Balance Change History");
     }
