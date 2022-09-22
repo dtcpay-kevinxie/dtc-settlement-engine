@@ -43,4 +43,4 @@ transaction:
     usdt-threshold: ${ANTI_DUST_USDT_THRESHOLD}
 
 match-move:
-  integration-url-prefix: ${INTEGRATION_URL_PREFIX}
+  integration-engine-endpoint: ${INTEGRATION_ENGINE_ENDPOINT}

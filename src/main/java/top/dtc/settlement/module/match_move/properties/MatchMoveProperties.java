@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("match-move")
 public class MatchMoveProperties {
 
-    public String integrationUrlPrefix;
+    public String integrationEngineEndpoint;
 
     public String webhookUrl;
 

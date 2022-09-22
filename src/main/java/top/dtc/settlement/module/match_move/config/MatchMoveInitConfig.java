@@ -36,7 +36,7 @@ public class MatchMoveInitConfig {
 
     private void hookMatchMoveAccount() {
         // Retrieve list of webhook categories
-        HttpResponse<RetrieveWebhookCategoriesResp> retrieveWebhookCategoriesResp = Unirest.get(matchMoveProperties.integrationUrlPrefix
+        HttpResponse<RetrieveWebhookCategoriesResp> retrieveWebhookCategoriesResp = Unirest.get(matchMoveProperties.integrationEngineEndpoint
                         + "/api/integration/match-move/webhook-categories")
                 .asObject(new GenericType<RetrieveWebhookCategoriesResp>() {
                 })
@@ -48,7 +48,7 @@ public class MatchMoveInitConfig {
             log.debug("Webhooks Categories: {}", JSON.stringify(retrieveWebhookCategoriesResp.getBody()));
         }
         // Retrieve list of webhooks
-        HttpResponse<RetrieveWebhooksResp> retrieveWebhooksResp = Unirest.get(matchMoveProperties.integrationUrlPrefix
+        HttpResponse<RetrieveWebhooksResp> retrieveWebhooksResp = Unirest.get(matchMoveProperties.integrationEngineEndpoint
                         + "/api/integration/match-move/webhooks")
                 .asObject(new GenericType<RetrieveWebhooksResp>() {
                 })
@@ -87,7 +87,7 @@ public class MatchMoveInitConfig {
 
 
     private GetWebhookDetailResp getWebhookDetails(String webhookId) {
-        final HttpResponse<GetWebhookDetailResp> webhookDetailResponse = Unirest.get(matchMoveProperties.integrationUrlPrefix + "/api/integration/match-move/webhook/{}")
+        final HttpResponse<GetWebhookDetailResp> webhookDetailResponse = Unirest.get(matchMoveProperties.integrationEngineEndpoint + "/api/integration/match-move/webhook/{}")
                 .routeParam("webhookId", webhookId)
                 .asObject(new GenericType<GetWebhookDetailResp>() {
                 }).ifFailure(resp -> {
@@ -101,7 +101,7 @@ public class MatchMoveInitConfig {
     }
 
     public void registerWebhook(CreateWebhooksReq createWebhooksReq) {
-        final HttpResponse<CreateWebhooksResp> createWebhooksRespHttpResponse = Unirest.post(matchMoveProperties.integrationUrlPrefix + "/api/integration/match-move/webhooks")
+        final HttpResponse<CreateWebhooksResp> createWebhooksRespHttpResponse = Unirest.post(matchMoveProperties.integrationEngineEndpoint + "/api/integration/match-move/webhooks")
                 .body(new ApiRequest<>(createWebhooksReq))
                 .asObject(new GenericType<CreateWebhooksResp>() {
                 })
