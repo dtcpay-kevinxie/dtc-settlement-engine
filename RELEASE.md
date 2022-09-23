@@ -1,10 +1,11 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.93.0] -
+[0.93.0] - 27 Sep 2022
 
 * Update parent
 * Add deps addon-integration & addon-data-processor
 * Find/check wallet address logic update
+* Init MatchMove webhooks
 
 [0.92.0] - 21 Sep 2022
 
