@@ -14,14 +14,16 @@ import top.dtc.common.enums.FiatTransactionType;
 import top.dtc.common.util.ClientTypeUtils;
 import top.dtc.data.core.enums.OtcType;
 import top.dtc.data.core.enums.TerminalType;
-import top.dtc.data.core.model.*;
+import top.dtc.data.core.model.MonitoringMatrix;
+import top.dtc.data.core.model.NonIndividual;
+import top.dtc.data.core.model.PaymentTransaction;
+import top.dtc.data.core.model.Terminal;
 import top.dtc.data.finance.model.DailyBalanceRecord;
 import top.dtc.data.risk.enums.RiskLevel;
 import top.dtc.data.risk.enums.VerificationType;
 import top.dtc.data.risk.model.RiskMatrix;
 import top.dtc.data.wallet.enums.WalletStatus;
 import top.dtc.data.wallet.model.WalletAccount;
-import top.dtc.data.wallet.model.WalletBalanceHistory;
 import top.dtc.settlement.report_processor.vo.*;
 
 import java.io.ByteArrayOutputStream;
@@ -88,10 +90,21 @@ public class MasReportXlsxProcessor {
                 .genSheet("Accounts Issued");
     }
 
+    private static void generateBalanceChangeHistorySheet(
+            MasReportXlsxProcessor processor,
+            List<WalletBalanceChangeHistoryReport> walletBalanceHistoryList
+    ) throws IllegalAccessException {
+        /*
+                SHEET Balance Change History
+         */
+        XlsxProcessor
+                .records(processor.workbook, walletBalanceHistoryList, WalletBalanceChangeHistoryReport.class)
+                .genSheet("Balance Change History");
+    }
+
     private static void generateFiatTransactionSheet(
             MasReportXlsxProcessor processor,
-            List<FiatTransactionReport> fiatTransactionList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<FiatTransactionReport> fiatTransactionList
     ) throws IllegalAccessException {
         /*
                SHEET Fiat Transaction
@@ -103,8 +116,7 @@ public class MasReportXlsxProcessor {
 
     private static void generatePoboTransactionSheet(
             MasReportXlsxProcessor processor,
-            List<PoboTransactionReport> poboTransactionList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<PoboTransactionReport> poboTransactionList
     ) throws IllegalAccessException {
         /*
                SHEET Pobo Transaction
@@ -116,8 +128,7 @@ public class MasReportXlsxProcessor {
 
     private static void generateMerchantAcquisitionTransactionSheet(
             MasReportXlsxProcessor processor,
-            List<PaymentTransactionReport> paymentTransactionList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<PaymentTransactionReport> paymentTransactionList
     ) throws IllegalAccessException {
         /*
                SHEET Merchant Acquisition Transaction
@@ -179,48 +190,57 @@ public class MasReportXlsxProcessor {
         return ratesMap.get(txnTime.toLocalDate()).get(currency);
     }
 
-    private static BigDecimal getPoboAmount(PoboTransactionReport poboTransactionReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        return poboTransactionReport.recipientAmount.multiply(getRateToSGD(poboTransactionReport.recipientCurrency, poboTransactionReport.approvedTime, ratesMap));
+    private static BigDecimal getChangeAmount(WalletBalanceChangeHistoryReport walletBalanceChangeHistoryReport) {
+        return walletBalanceChangeHistoryReport.changeAmount.multiply(walletBalanceChangeHistoryReport.rateToSGD);
     }
 
-    private static BigDecimal addPoboAmount(PoboTransactionReport poboTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        BigDecimal amountChanged = getPoboAmount(poboTransactionReport, ratesMap);
+    private static BigDecimal addChangeAmount(WalletBalanceChangeHistoryReport walletBalanceChangeHistoryReport, BigDecimal amountBefore) {
+        BigDecimal amountChanged = getChangeAmount(walletBalanceChangeHistoryReport);
         return amountBefore.add(amountChanged);
     }
 
-    private static BigDecimal getFiatTransferAmount(FiatTransactionReport fiatTransactionReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        return fiatTransactionReport.amount.multiply(getRateToSGD(fiatTransactionReport.currency, fiatTransactionReport.completedTime, ratesMap));
+    private static BigDecimal getPoboAmount(PoboTransactionReport poboTransactionReport) {
+        return poboTransactionReport.recipientAmount.multiply(poboTransactionReport.rateToSGD);
     }
 
-    private static BigDecimal addFiatTransferAmount(FiatTransactionReport fiatTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        BigDecimal amountChanged = getFiatTransferAmount(fiatTransactionReport, ratesMap);
+    private static BigDecimal addPoboAmount(PoboTransactionReport poboTransactionReport, BigDecimal amountBefore) {
+        BigDecimal amountChanged = getPoboAmount(poboTransactionReport);
         return amountBefore.add(amountChanged);
     }
 
-    private static BigDecimal getPaymentAmount(PaymentTransactionReport paymentTransactionReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        return paymentTransactionReport.totalAmount.multiply(getRateToSGD(paymentTransactionReport.requestCurrency, paymentTransactionReport.dtcTimestamp, ratesMap));
+    private static BigDecimal getFiatTransferAmount(FiatTransactionReport fiatTransactionReport) {
+        return fiatTransactionReport.amount.multiply(fiatTransactionReport.rateToSGD);
     }
 
-    private static BigDecimal addPaymentAmount(PaymentTransactionReport paymentTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        BigDecimal amountChanged = getPaymentAmount(paymentTransactionReport, ratesMap);
+    private static BigDecimal addFiatTransferAmount(FiatTransactionReport fiatTransactionReport, BigDecimal amountBefore) {
+        BigDecimal amountChanged = getFiatTransferAmount(fiatTransactionReport);
         return amountBefore.add(amountChanged);
     }
 
-    private static BigDecimal getOtcAmount(OtcReport otcReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        return otcReport.fiatAmount.multiply(getRateToSGD(otcReport.fiatCurrency, otcReport.completedTime, ratesMap));
+    private static BigDecimal getPaymentAmount(PaymentTransactionReport paymentTransactionReport) {
+        return paymentTransactionReport.totalAmount.multiply(paymentTransactionReport.rateToSGD);
     }
 
-    private static BigDecimal addOtcAmount(OtcReport otcReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        BigDecimal amountChanged = getOtcAmount(otcReport, ratesMap);
+    private static BigDecimal addPaymentAmount(PaymentTransactionReport paymentTransactionReport, BigDecimal amountBefore) {
+        BigDecimal amountChanged = getPaymentAmount(paymentTransactionReport);
         return amountBefore.add(amountChanged);
     }
 
-    private static BigDecimal getCryptoTransactionAmount(CryptoTransactionReport cryptoTransactionReport, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        return cryptoTransactionReport.amount.multiply(getRateToSGD(cryptoTransactionReport.currency, cryptoTransactionReport.requestTimestamp, ratesMap));
+    private static BigDecimal getOtcAmount(OtcReport otcReport) {
+        return otcReport.fiatAmount.multiply(otcReport.rateToSGD);
     }
 
-    private static BigDecimal addCryptoTransactionAmount(CryptoTransactionReport cryptoTransactionReport, BigDecimal amountBefore, HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap) {
-        BigDecimal amountChanged = getCryptoTransactionAmount(cryptoTransactionReport, ratesMap);
+    private static BigDecimal addOtcAmount(OtcReport otcReport, BigDecimal amountBefore) {
+        BigDecimal amountChanged = getOtcAmount(otcReport);
+        return amountBefore.add(amountChanged);
+    }
+
+    private static BigDecimal getCryptoTransactionAmount(CryptoTransactionReport cryptoTransactionReport) {
+        return cryptoTransactionReport.amount.multiply(cryptoTransactionReport.rateToSGD);
+    }
+
+    private static BigDecimal addCryptoTransactionAmount(CryptoTransactionReport cryptoTransactionReport, BigDecimal amountBefore) {
+        BigDecimal amountChanged = getCryptoTransactionAmount(cryptoTransactionReport);
         return amountBefore.add(amountChanged);
     }
 
@@ -228,11 +248,10 @@ public class MasReportXlsxProcessor {
             LocalDate startDate,
             LocalDate endDate,
             List<MonitoringMatrix> monitoringMatrixList,
-            List<WalletBalanceHistory> walletBalanceHistoryList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<WalletBalanceChangeHistoryReport> walletBalanceChangeHistoryReportList
     ) throws IOException, IllegalAccessException {
         log.debug("1A Monitoring Data {}", monitoringMatrixList);
-        log.debug("1A Wallet Balance History Data {}", walletBalanceHistoryList);
+        log.debug("1A Wallet Balance History Data {}", walletBalanceChangeHistoryReportList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("1A");
         // Initial Summary Sheet with Title
@@ -247,14 +266,13 @@ public class MasReportXlsxProcessor {
         BigDecimal valueOfPlacement = ZERO;
         int countOfWithdrawal = 0;
         BigDecimal valueOfWithdrawal = ZERO;
-        for (WalletBalanceHistory walletBalanceHistory : walletBalanceHistoryList) {
-            BigDecimal rateToSGD = getRateToSGD(walletBalanceHistory.currency, walletBalanceHistory.lastUpdatedDate, ratesMap);
-            if (walletBalanceHistory.changeAmount.compareTo(ZERO) > 0) {
+        for (WalletBalanceChangeHistoryReport walletBalanceChangeHistoryReport : walletBalanceChangeHistoryReportList) {
+            if (walletBalanceChangeHistoryReport.changeAmount.compareTo(ZERO) > 0) {
                 countOfPlacement++;
-                valueOfPlacement = valueOfPlacement.add(walletBalanceHistory.changeAmount.multiply(rateToSGD));
+                valueOfPlacement = addChangeAmount(walletBalanceChangeHistoryReport, valueOfPlacement);
             } else {
                 countOfWithdrawal++;
-                valueOfWithdrawal = valueOfWithdrawal.add(walletBalanceHistory.changeAmount.multiply(rateToSGD));
+                valueOfWithdrawal = addChangeAmount(walletBalanceChangeHistoryReport, valueOfWithdrawal);
             }
         }
         processor.getCellByPos(sheet0, "B10").setCellValue(valueOfPlacement.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 2-a
@@ -295,6 +313,10 @@ public class MasReportXlsxProcessor {
                 SHEET 1 Account Issued
          */
         generateAccountSheet(processor, monitoringMatrixList);
+        /*
+                SHEET Balance Change History
+         */
+        generateBalanceChangeHistorySheet(processor, walletBalanceChangeHistoryReportList);
         return processor;
     }
 
@@ -320,8 +342,7 @@ public class MasReportXlsxProcessor {
             LocalDate startDate,
             LocalDate endDate,
             List<FiatTransactionReport> fiatTransactionList,
-            List<PoboTransactionReport> poboTransactionList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<PoboTransactionReport> poboTransactionList
     ) throws IOException, IllegalAccessException {
         log.debug("2A Fiat Transaction Data {}", fiatTransactionList);
         log.debug("2A POBO Data {}", poboTransactionList);
@@ -331,21 +352,21 @@ public class MasReportXlsxProcessor {
         XSSFSheet sheet0 = initSummarySheet(processor, startDate, endDate, "2A");
         // Form 2A-1
         BigDecimal fiatAmount = fiatTransactionList.stream()
-                .map(fiatTransaction -> getFiatTransferAmount(fiatTransaction, ratesMap))
+                .map(MasReportXlsxProcessor::getFiatTransferAmount)
                 .reduce(ZERO, BigDecimal::add);
         BigDecimal poboAmount = poboTransactionList.stream()
-                .map(poboTransaction -> getPoboAmount(poboTransaction, ratesMap))
+                .map(MasReportXlsxProcessor::getPoboAmount)
                 .reduce(ZERO, BigDecimal::add);
         processor.getCellByPos(sheet0, "B6").setCellValue(fiatAmount.add(poboAmount).setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C6").setCellValue(fiatTransactionList.size() + poboTransactionList.size());
         /*
                 SHEET 1 Domestic Transfer Transaction
          */
-        generateFiatTransactionSheet(processor, fiatTransactionList, ratesMap);
+        generateFiatTransactionSheet(processor, fiatTransactionList);
         /*
                 SHEET 2 Domestic Pobo Transaction
          */
-        generatePoboTransactionSheet(processor, poboTransactionList, ratesMap);
+        generatePoboTransactionSheet(processor, poboTransactionList);
         return processor;
     }
 
@@ -355,8 +376,7 @@ public class MasReportXlsxProcessor {
             List<FiatTransactionReport> fiatTransactionList,
             List<PoboTransactionReport> poboTransactionList,
             Set<Long> clientInSGP,
-            List<RiskMatrix> riskMatrixList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<RiskMatrix> riskMatrixList
     ) throws IOException, IllegalAccessException {
         log.debug("2B Fiat Transaction Data {}", fiatTransactionList);
         log.debug("2B POBO Data {}", poboTransactionList);
@@ -385,23 +405,23 @@ public class MasReportXlsxProcessor {
             if (ClientTypeUtils.isIndividual(poboTransaction.clientId)) {
                 if (clientInSGP.contains(poboTransaction.clientId)) {
                     countIndividualInSGP++;
-                    totalAmountIndividualInSGP = addPoboAmount(poboTransaction, totalAmountIndividualInSGP, ratesMap);
+                    totalAmountIndividualInSGP = addPoboAmount(poboTransaction, totalAmountIndividualInSGP);
                 } else {
                     countIndividualOutSGP++;
-                    totalAmountIndividualOutSGP = addPoboAmount(poboTransaction, totalAmountIndividualOutSGP, ratesMap);
+                    totalAmountIndividualOutSGP = addPoboAmount(poboTransaction, totalAmountIndividualOutSGP);
                 }
             } else {
                 if (clientInSGP.contains(poboTransaction.clientId)) {
                     countNonIndividualInSGP++;
-                    totalAmountNonIndividualInSGP = addPoboAmount(poboTransaction, totalAmountNonIndividualInSGP, ratesMap);
+                    totalAmountNonIndividualInSGP = addPoboAmount(poboTransaction, totalAmountNonIndividualInSGP);
                 } else {
                     countNonIndividualOutSGP++;
-                    totalAmountNonIndividualOutSGP = addPoboAmount(poboTransaction, totalAmountNonIndividualOutSGP, ratesMap);
+                    totalAmountNonIndividualOutSGP = addPoboAmount(poboTransaction, totalAmountNonIndividualOutSGP);
                 }
             }
             if (highRiskClient.contains(poboTransaction.clientId)) {
                 countHighRisk++;
-                totalAmountHighRisk = addPoboAmount(poboTransaction, totalAmountHighRisk, ratesMap);
+                totalAmountHighRisk = addPoboAmount(poboTransaction, totalAmountHighRisk);
             }
         }
         // Calculate Fiat Transaction
@@ -409,23 +429,23 @@ public class MasReportXlsxProcessor {
             if (ClientTypeUtils.isIndividual(fiatTransaction.clientId)) {
                 if (clientInSGP.contains(fiatTransaction.clientId)) {
                     countIndividualInSGP++;
-                    totalAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalAmountIndividualInSGP, ratesMap);
+                    totalAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalAmountIndividualInSGP);
                 } else {
                     countIndividualOutSGP++;
-                    totalAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalAmountIndividualOutSGP, ratesMap);
+                    totalAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalAmountIndividualOutSGP);
                 }
             } else {
                 if (clientInSGP.contains(fiatTransaction.clientId)) {
                     countNonIndividualInSGP++;
-                    totalAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalAmountNonIndividualInSGP, ratesMap);
+                    totalAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalAmountNonIndividualInSGP);
                 } else {
                     countNonIndividualOutSGP++;
-                    totalAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalAmountNonIndividualOutSGP, ratesMap);
+                    totalAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalAmountNonIndividualOutSGP);
                 }
             }
             if (highRiskClient.contains(fiatTransaction.clientId)) {
                 countHighRisk++;
-                totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk, ratesMap);
+                totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk);
             }
         }
         // Form 2B-1
@@ -444,11 +464,11 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET 1 Domestic Transfer Transaction
          */
-        generateFiatTransactionSheet(processor, fiatTransactionList, ratesMap);
+        generateFiatTransactionSheet(processor, fiatTransactionList);
         /*
                 SHEET 2 Domestic Pobo Transaction
          */
-        generatePoboTransactionSheet(processor, poboTransactionList, ratesMap);
+        generatePoboTransactionSheet(processor, poboTransactionList);
         /*
                 SHEET 3 Risk Matrix
          */
@@ -460,8 +480,7 @@ public class MasReportXlsxProcessor {
             LocalDate startDate,
             LocalDate endDate,
             List<FiatTransactionReport> fiatTransactionList,
-            List<PoboTransactionReport> poboTransactionList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<PoboTransactionReport> poboTransactionList
     ) throws IOException, IllegalAccessException {
         log.debug("3A Fiat Transaction Data {}", fiatTransactionList);
         log.debug("3A POBO Data {}", poboTransactionList);
@@ -474,22 +493,19 @@ public class MasReportXlsxProcessor {
         BigDecimal outwardTotalAmount = ZERO;
         int countInward = 0;
         BigDecimal inwardTotalAmount = ZERO;
-        for (FiatTransaction fiatTransaction : fiatTransactionList) {
-            if (fiatTransaction.type == FiatTransactionType.WITHDRAW) {
+        for (FiatTransactionReport fiatTransactionReport : fiatTransactionList) {
+            if (fiatTransactionReport.type == FiatTransactionType.WITHDRAW) {
                 countOutward++;
-                outwardTotalAmount = outwardTotalAmount.add(
-                        fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                outwardTotalAmount = addFiatTransferAmount(fiatTransactionReport, outwardTotalAmount);
             } else {
                 countInward++;
-                inwardTotalAmount = inwardTotalAmount.add(
-                        fiatTransaction.amount.multiply(getRateToSGD(fiatTransaction.currency, fiatTransaction.completedTime, ratesMap)));
+                inwardTotalAmount = addFiatTransferAmount(fiatTransactionReport, inwardTotalAmount);
             }
         }
         //  POBO doesn't have inward transaction
-        for (PoboTransaction poboTransaction : poboTransactionList) {
+        for (PoboTransactionReport poboTransactionReport : poboTransactionList) {
             countOutward++;
-            outwardTotalAmount = outwardTotalAmount.add(
-                    poboTransaction.originatorAmount.multiply(getRateToSGD(poboTransaction.senderCurrency, poboTransaction.approvedTime, ratesMap)));
+            outwardTotalAmount = addPoboAmount(poboTransactionReport, outwardTotalAmount);
         }
 
         // Form 3A-1 Outward Cross-border Transaction
@@ -501,11 +517,11 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET 1 Cross-border Transfer Transaction
          */
-        generateFiatTransactionSheet(processor, fiatTransactionList, ratesMap);
+        generateFiatTransactionSheet(processor, fiatTransactionList);
         /*
                 SHEET 2 Cross-border Pobo Transaction
          */
-        generatePoboTransactionSheet(processor, poboTransactionList, ratesMap);
+        generatePoboTransactionSheet(processor, poboTransactionList);
         return processor;
     }
 
@@ -516,8 +532,7 @@ public class MasReportXlsxProcessor {
             List<PoboTransactionReport> poboTransactionList,
             Set<Long> clientInSGP,
             Set<Long> fiClient,
-            List<RiskMatrix> riskMatrixList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<RiskMatrix> riskMatrixList
     ) throws IOException, IllegalAccessException {
         log.debug("3B Fiat Transaction Data {}", fiatTransactionList);
         log.debug("3B POBO Data {}", poboTransactionList);
@@ -576,37 +591,37 @@ public class MasReportXlsxProcessor {
                 // Individual client will not contains FI
                 if (clientInSGP.contains(poboTransaction.clientId)) {
                     countOutwardIndividualInSGP++;
-                    totalOutwardAmountIndividualInSGP = addPoboAmount(poboTransaction, totalOutwardAmountIndividualInSGP, ratesMap);
+                    totalOutwardAmountIndividualInSGP = addPoboAmount(poboTransaction, totalOutwardAmountIndividualInSGP);
                 } else {
                     countOutwardIndividualOutSGP++;
-                    totalOutwardAmountIndividualOutSGP = addPoboAmount(poboTransaction, totalOutwardAmountIndividualOutSGP, ratesMap);
+                    totalOutwardAmountIndividualOutSGP = addPoboAmount(poboTransaction, totalOutwardAmountIndividualOutSGP);
                 }
             } else {
                 // Non-individual includes FI
                 if (clientInSGP.contains(poboTransaction.clientId)) {
                     if (fiClient.contains(poboTransaction.clientId)) {
                         countOutwardFiInSGP++;
-                        totalOutwardAmountFiInSGP = addPoboAmount(poboTransaction, totalOutwardAmountFiInSGP, ratesMap);
+                        totalOutwardAmountFiInSGP = addPoboAmount(poboTransaction, totalOutwardAmountFiInSGP);
                     } else {
                         countOutwardNonIndividualInSGP++;
-                        totalOutwardAmountNonIndividualInSGP = addPoboAmount(poboTransaction, totalOutwardAmountNonIndividualInSGP, ratesMap);
+                        totalOutwardAmountNonIndividualInSGP = addPoboAmount(poboTransaction, totalOutwardAmountNonIndividualInSGP);
                     }
                 } else {
                     if (fiClient.contains(poboTransaction.clientId)) {
                         countOutwardFiOutSGP++;
-                        totalOutwardAmountFiOutSGP = addPoboAmount(poboTransaction, totalOutwardAmountFiOutSGP, ratesMap);
+                        totalOutwardAmountFiOutSGP = addPoboAmount(poboTransaction, totalOutwardAmountFiOutSGP);
                     } else {
                         countOutwardNonIndividualOutSGP++;
-                        totalOutwardAmountNonIndividualOutSGP = addPoboAmount(poboTransaction, totalOutwardAmountNonIndividualOutSGP, ratesMap);
+                        totalOutwardAmountNonIndividualOutSGP = addPoboAmount(poboTransaction, totalOutwardAmountNonIndividualOutSGP);
                     }
                 }
             }
             if (highRiskClient.contains(poboTransaction.clientId)) {
                 countHighRisk++;
-                totalAmountHighRisk = addPoboAmount(poboTransaction, totalAmountHighRisk, ratesMap);
+                totalAmountHighRisk = addPoboAmount(poboTransaction, totalAmountHighRisk);
             }
             countOutwardToBank++;
-            totalOutwardAmountToBank = addPoboAmount(poboTransaction, totalOutwardAmountToBank, ratesMap);
+            totalOutwardAmountToBank = addPoboAmount(poboTransaction, totalOutwardAmountToBank);
         }
 
         // fiatTransaction.type DEPOSIT for inward, fiatTransaction.type WITHDRAWAL for outward
@@ -616,73 +631,73 @@ public class MasReportXlsxProcessor {
                     // Individual client will not contains FI
                     if (clientInSGP.contains(fiatTransaction.clientId)) {
                         countInwardIndividualInSGP++;
-                        totalInwardAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountIndividualInSGP, ratesMap);
+                        totalInwardAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountIndividualInSGP);
                     } else {
                         countInwardIndividualOutSGP++;
-                        totalInwardAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountIndividualOutSGP, ratesMap);
+                        totalInwardAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountIndividualOutSGP);
                     }
                 } else {
                     // Non-individual includes FI
                     if (clientInSGP.contains(fiatTransaction.clientId)) {
                         if (fiClient.contains(fiatTransaction.clientId)) {
                             countInwardFiInSGP++;
-                            totalInwardAmountFiInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountFiInSGP, ratesMap);
+                            totalInwardAmountFiInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountFiInSGP);
                         } else {
                             countInwardNonIndividualInSGP++;
-                            totalInwardAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountNonIndividualInSGP, ratesMap);
+                            totalInwardAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountNonIndividualInSGP);
                         }
                     } else {
                         if (fiClient.contains(fiatTransaction.clientId)) {
                             countInwardFiOutSGP++;
-                            totalInwardAmountFiOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountFiOutSGP, ratesMap);
+                            totalInwardAmountFiOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountFiOutSGP);
                         } else {
                             countInwardNonIndividualOutSGP++;
-                            totalInwardAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountNonIndividualOutSGP, ratesMap);
+                            totalInwardAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountNonIndividualOutSGP);
                         }
                     }
                 }
                 if (highRiskClient.contains(fiatTransaction.clientId)) {
                     countHighRisk++;
-                    totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk, ratesMap);
+                    totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk);
                 }
                 countInwardToBank++;
-                totalInwardAmountToBank = addFiatTransferAmount(fiatTransaction, totalOutwardAmountToBank, ratesMap);
+                totalInwardAmountToBank = addFiatTransferAmount(fiatTransaction, totalOutwardAmountToBank);
             } else {
                 if (ClientTypeUtils.isIndividual(fiatTransaction.clientId)) {
                     // Individual client will not contains FI
                     if (clientInSGP.contains(fiatTransaction.clientId)) {
                         countOutwardIndividualInSGP++;
-                        totalOutwardAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountIndividualInSGP, ratesMap);
+                        totalOutwardAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountIndividualInSGP);
                     } else {
                         countOutwardIndividualOutSGP++;
-                        totalOutwardAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountIndividualOutSGP, ratesMap);
+                        totalOutwardAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountIndividualOutSGP);
                     }
                 } else {
                     // Non-individual includes FI
                     if (clientInSGP.contains(fiatTransaction.clientId)) {
                         if (fiClient.contains(fiatTransaction.clientId)) {
                             countOutwardFiInSGP++;
-                            totalOutwardAmountFiInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountFiInSGP, ratesMap);
+                            totalOutwardAmountFiInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountFiInSGP);
                         } else {
                             countOutwardNonIndividualInSGP++;
-                            totalOutwardAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountNonIndividualInSGP, ratesMap);
+                            totalOutwardAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountNonIndividualInSGP);
                         }
                     } else {
                         if (fiClient.contains(fiatTransaction.clientId)) {
                             countOutwardFiOutSGP++;
-                            totalOutwardAmountFiOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountFiOutSGP, ratesMap);
+                            totalOutwardAmountFiOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountFiOutSGP);
                         } else {
                             countOutwardNonIndividualOutSGP++;
-                            totalOutwardAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountNonIndividualOutSGP, ratesMap);
+                            totalOutwardAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountNonIndividualOutSGP);
                         }
                     }
                 }
                 if (highRiskClient.contains(fiatTransaction.clientId)) {
                     countHighRisk++;
-                    totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk, ratesMap);
+                    totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk);
                 }
                 countOutwardToBank++;
-                totalOutwardAmountToBank = addFiatTransferAmount(fiatTransaction, totalOutwardAmountToBank, ratesMap);
+                totalOutwardAmountToBank = addFiatTransferAmount(fiatTransaction, totalOutwardAmountToBank);
             }
         }
 
@@ -824,11 +839,11 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET 1 Cross-border Transfer Transaction
          */
-        generateFiatTransactionSheet(processor, fiatTransactionList, ratesMap);
+        generateFiatTransactionSheet(processor, fiatTransactionList);
         /*
                 SHEET 2 Cross-border Pobo Transaction
          */
-        generatePoboTransactionSheet(processor, poboTransactionList, ratesMap);
+        generatePoboTransactionSheet(processor, poboTransactionList);
         /*
                 SHEET 3 Risk Matrix
          */
@@ -839,8 +854,7 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate4a(
             LocalDate startDate,
             LocalDate endDate,
-            List<PaymentTransactionReport> paymentTransactionList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<PaymentTransactionReport> paymentTransactionList
     ) throws IOException, IllegalAccessException {
         log.debug("4A Payment Transaction Data {}", paymentTransactionList);
         // Initial report processor
@@ -855,10 +869,10 @@ public class MasReportXlsxProcessor {
         for (PaymentTransactionReport paymentTransaction : paymentTransactionList) {
             if ("SGP".equals(paymentTransaction.country)) {
                 countInSGP++;
-                totalAmountInSGP = addPaymentAmount(paymentTransaction, totalAmountInSGP, ratesMap);
+                totalAmountInSGP = addPaymentAmount(paymentTransaction, totalAmountInSGP);
             } else {
                 countOutSGP++;
-                totalAmountOutSGP = addPaymentAmount(paymentTransaction, totalAmountOutSGP, ratesMap);
+                totalAmountOutSGP = addPaymentAmount(paymentTransaction, totalAmountOutSGP);
             }
         }
         processor.getCellByPos(sheet0, "B6").setCellValue(totalAmountInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
@@ -868,7 +882,7 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET 1 Merchant Acquisition Transaction
          */
-        generateMerchantAcquisitionTransactionSheet(processor, paymentTransactionList, ratesMap);
+        generateMerchantAcquisitionTransactionSheet(processor, paymentTransactionList);
         return processor;
     }
 
@@ -877,8 +891,7 @@ public class MasReportXlsxProcessor {
             LocalDate endDate,
             List<PaymentTransactionReport> paymentTransactionList,
             List<NonIndividual> nonIndividualList,
-            List<Terminal> terminalList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<Terminal> terminalList
     ) throws IOException, IllegalAccessException {
         log.debug("4B Payment Transaction Data {}", paymentTransactionList);
         log.debug("4B Merchant Data {}", nonIndividualList);
@@ -932,7 +945,7 @@ public class MasReportXlsxProcessor {
         /*
                 SHEET 1 Merchant Acquisition Transaction
          */
-        generateMerchantAcquisitionTransactionSheet(processor, paymentTransactionList, ratesMap);
+        generateMerchantAcquisitionTransactionSheet(processor, paymentTransactionList);
         /*
                 SHEET 2 Merchant List
          */
@@ -957,8 +970,7 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate6a(
             LocalDate startDate,
             LocalDate endDate,
-            List<OtcReport> otcList,
-            HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap
+            List<OtcReport> otcList
     ) throws IOException, IllegalAccessException {
         log.debug("6A OTC Data {}", otcList);
         // Initial report processor
@@ -973,10 +985,10 @@ public class MasReportXlsxProcessor {
         for (OtcReport otc : otcList) {
             if (otc.type == OtcType.BUYING) {
                 countBuy++;
-                totalBuyTokenAmount = addOtcAmount(otc, totalBuyTokenAmount, ratesMap);
+                totalBuyTokenAmount = addOtcAmount(otc, totalBuyTokenAmount);
             } else {
                 countSell++;
-                totalSellTokenAmount = addOtcAmount(otc, totalSellTokenAmount, ratesMap);
+                totalSellTokenAmount = addOtcAmount(otc, totalSellTokenAmount);
             }
         }
         processor.getCellByPos(sheet0, "B6").setCellValue(totalBuyTokenAmount.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 6A-1 (a)
@@ -1024,10 +1036,10 @@ public class MasReportXlsxProcessor {
         for (OtcReport otc : otcList) {
             if (otc.type == OtcType.BUYING) {
                 countBuy++;
-                totalBuyTokenAmount = addOtcAmount(otc, totalBuyTokenAmount, ratesMap);
+                totalBuyTokenAmount = addOtcAmount(otc, totalBuyTokenAmount);
             } else {
                 countSell++;
-                totalSellTokenAmount = addOtcAmount(otc, totalSellTokenAmount, ratesMap);
+                totalSellTokenAmount = addOtcAmount(otc, totalSellTokenAmount);
             }
         }
         // Form 6B-1 (a) Dealing DPT BUY and SELL, no EXCHANGE between tokens
@@ -1050,7 +1062,7 @@ public class MasReportXlsxProcessor {
         // Form 6B-2 (b) All crypto transfer out to cold wallet
         BigDecimal totalWithdrawalAmount = cryptoTransactionList.stream()
                 .filter(cryptoTransaction -> cryptoTransaction.type == CryptoTransactionType.WITHDRAW)
-                .map(cryptoTransaction -> getCryptoTransactionAmount(cryptoTransaction, ratesMap))
+                .map(MasReportXlsxProcessor::getCryptoTransactionAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         processor.getCellByPos(sheet0, "B18").setCellValue("0.00"); // 6B-2 (b) (i) licensed platform hosted wallet address
         processor.getCellByPos(sheet0, "E18").setCellValue(0);
@@ -1182,15 +1194,15 @@ public class MasReportXlsxProcessor {
             if (highRiskCountryClientIds.contains(cryptoTransaction.clientId)) {
                 if (cryptoTransaction.type == CryptoTransactionType.DEPOSIT) {
                     countFromHighRiskCountry++;
-                    totalAmountFromHighRiskCountry = addCryptoTransactionAmount(cryptoTransaction, totalAmountFromHighRiskCountry, ratesMap);
+                    totalAmountFromHighRiskCountry = addCryptoTransactionAmount(cryptoTransaction, totalAmountFromHighRiskCountry);
                 } else if (cryptoTransaction.type == CryptoTransactionType.WITHDRAW) {
                     countToHighRiskCountry++;
-                    totalAmountToHighRiskCountry = addCryptoTransactionAmount(cryptoTransaction, totalAmountToHighRiskCountry, ratesMap);
+                    totalAmountToHighRiskCountry = addCryptoTransactionAmount(cryptoTransaction, totalAmountToHighRiskCountry);
                 }
             }
             if (highRiskIds.contains(cryptoTransaction.clientId)) {
                 countHighRiskTransaction++;
-                totalAmountHighRiskTransaction = addCryptoTransactionAmount(cryptoTransaction, totalAmountHighRiskTransaction, ratesMap);
+                totalAmountHighRiskTransaction = addCryptoTransactionAmount(cryptoTransaction, totalAmountHighRiskTransaction);
             }
         }
         processor.getCellByPos(sheet0, "C83").setCellValue(totalAmountToHighRiskCountry.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
