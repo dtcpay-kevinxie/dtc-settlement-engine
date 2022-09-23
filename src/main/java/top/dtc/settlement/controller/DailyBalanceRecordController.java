@@ -26,9 +26,10 @@ public class DailyBalanceRecordController {
             @RequestParam("name") String name,
             @RequestParam("async") boolean async
     ) {
-        return schedulerEngineClient.executeTask(group, name, async, () ->
-                dailyBalanceRecordProcessService.processDayEndBalance()
-        );
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
+            dailyBalanceRecordProcessService.processDayEndBalance();
+            return null;
+        });
     }
 
 }
