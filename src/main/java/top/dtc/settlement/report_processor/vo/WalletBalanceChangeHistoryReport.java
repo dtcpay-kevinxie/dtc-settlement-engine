@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 
 import static top.dtc.addon.data_processor.RecordFieldType.ENUM_NAME;
 
-
 @Data
 @EqualsAndHashCode(callSuper = true)
 @DataRecord(mappings = {
