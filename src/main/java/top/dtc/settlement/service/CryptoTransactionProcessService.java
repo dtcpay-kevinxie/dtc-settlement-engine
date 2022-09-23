@@ -273,8 +273,8 @@ public class CryptoTransactionProcessService {
                     break;
             }
         } else { // txnHash not found in Crypto Transaction
-            KycWalletAddress senderAddress = CryptoEngineUtils.matchInOutAddress(result.inputs, kycWalletAddressService::getEnabledAddress);
-            KycWalletAddress recipientAddress = CryptoEngineUtils.matchInOutAddress(result.outputs, kycWalletAddressService::getEnabledAddress);
+            KycWalletAddress senderAddress = CryptoEngineUtils.matchInOutAddress(result.inputs, address -> kycWalletAddressService.getOneByAddressAndMainNetAndEnabled(address, result.mainNet));
+            KycWalletAddress recipientAddress = CryptoEngineUtils.matchInOutAddress(result.outputs, address -> kycWalletAddressService.getOneByAddressAndMainNetAndEnabled(address, result.mainNet));
             if (recipientAddress == null && senderAddress == null) {
                 log.error(String.format("Recipient address(es) [%s] and sender address(es) [%s] are not found or disabled. Please unwatch in system", CryptoEngineUtils.listAddressesStr(result.outputs), CryptoEngineUtils.listAddressesStr(result.inputs)));
             } else if (recipientAddress != null) { // Recipient address is found
@@ -322,8 +322,8 @@ public class CryptoTransactionProcessService {
     }
 
     private void handleSuccessTxn(CryptoTransactionResult result) {
-        KycWalletAddress senderAddress = CryptoEngineUtils.matchInOutAddress(result.inputs, address -> kycWalletAddressService.getEnabledAddress(address));
-        KycWalletAddress recipientAddress = CryptoEngineUtils.matchInOutAddress(result.outputs, address -> kycWalletAddressService.getEnabledAddress(address));
+        KycWalletAddress senderAddress = CryptoEngineUtils.matchInOutAddress(result.inputs, address -> kycWalletAddressService.getOneByAddressAndMainNetAndEnabled(address, result.mainNet));
+        KycWalletAddress recipientAddress = CryptoEngineUtils.matchInOutAddress(result.outputs, address -> kycWalletAddressService.getOneByAddressAndMainNetAndEnabled(address, result.mainNet));
         String inputAddresses = CryptoEngineUtils.listAddressesStr(result.inputs);
         String alertMsg;
 

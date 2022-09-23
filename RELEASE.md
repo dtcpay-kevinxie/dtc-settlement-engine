@@ -4,6 +4,7 @@
 
 * Update parent
 * Add deps addon-integration & addon-data-processor
+* Find/check wallet address logic update
 
 [0.92.0] - 21 Sep 2022
 
