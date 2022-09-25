@@ -3,8 +3,8 @@ package top.dtc.settlement.controller;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import top.dtc.addon.integration.scheduler.SchedulerEngineClient;
 import top.dtc.common.constant.DateTime;
-import top.dtc.common.util.SchedulerUtils;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.PaymentSettlementService;
@@ -17,7 +17,10 @@ import java.time.LocalDate;
 public class SettlementController {
 
     @Autowired
-    private PaymentSettlementService paymentSettlementService;
+    PaymentSettlementService paymentSettlementService;
+
+    @Autowired
+    SchedulerEngineClient schedulerEngineClient;
 
     @GetMapping(value = "/scheduled")
     public String scheduled(
@@ -26,7 +29,7 @@ public class SettlementController {
             @RequestParam("async") boolean async
     ) {
         log.debug("/scheduled");
-        return SchedulerUtils.executeTask(group, name, async, () -> {
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
             paymentSettlementService.processSettlement(LocalDate.now());
             return null;
         });

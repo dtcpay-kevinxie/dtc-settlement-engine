@@ -1,8 +1,8 @@
 package top.dtc.settlement.module.aletapay.model;
 
 import lombok.Data;
+import top.dtc.addon.data_processor.RecordField;
 import top.dtc.common.enums.Currency;
-import top.dtc.settlement.handler.RecordField;
 
 import java.util.Date;
 import java.util.List;

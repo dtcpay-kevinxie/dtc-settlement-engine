@@ -12,12 +12,6 @@ logging:
 aleta:
   localPath: ${ALETA_LOCAL_PATH}
 
-http:
-  risk-engine-url-prefix: ${RISK_ENGINE_URL_PREFIX}
-  crypto-engine-url-prefix: ${CRYPTO_ENGINE_URL_PREFIX}
-  payment-engine-url-prefix: ${PAYMENT_ENGINE_URL_PREFIX}
-  integration-engine-url-prefix: ${INTEGRATION_ENGINE_URL_PREFIX}
-
 notification:
   ops-recipient: ${NOTIFICATION_OPS_RECIPIENT}
   compliance-recipient: ${NOTIFICATION_COMPLIANCE_RECIPIENT}
@@ -47,3 +41,6 @@ transaction:
     eth-threshold: ${ANTI_DUST_ETH_THRESHOLD}
     trx-threshold: ${ANTI_DUST_TRX_THRESHOLD}
     usdt-threshold: ${ANTI_DUST_USDT_THRESHOLD}
+
+match-move:
+  integration-engine-endpoint: ${INTEGRATION_ENGINE_ENDPOINT}

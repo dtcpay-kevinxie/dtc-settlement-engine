@@ -1,6 +1,6 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
@@ -8,34 +8,34 @@ import java.util.List;
 @Data
 public class AccountTransferSenResp {
 
-    @JSONField(name = "SEQUENCE")
+    @JsonProperty("SEQUENCE")
     public Integer sequence;
 
-    @JSONField(name = "MESSAGE")
+    @JsonProperty("MESSAGE")
     public List<Message> messages;
 
-    @JSONField(name = "ERROR")
+    @JsonProperty("ERROR")
     public List<Error> errors;
 
     @Data
     public static class Message {
-        @JSONField(name = "MESSAGEID")
+        @JsonProperty("MESSAGEID")
         public String messageId;
-        @JSONField(name = "MESSAGETYPE")
+        @JsonProperty("MESSAGETYPE")
         public String messageType;
-        @JSONField(name = "MESSAGETEXT")
+        @JsonProperty("MESSAGETEXT")
         public String messageText;
     }
 
     @Data
     public static class Error {
-        @JSONField(name = "MESSAGEID")
+        @JsonProperty("MESSAGEID")
         public String messageId;
-        @JSONField(name = "SEGMENTID")
+        @JsonProperty("SEGMENTID")
         public String segmentId;
-        @JSONField(name = "FIELDNAME")
+        @JsonProperty("FIELDNAME")
         public String fieldName;
-        @JSONField(name = "ERRORMSG")
+        @JsonProperty("ERRORMSG")
         public String errorMsg;
     }
 }

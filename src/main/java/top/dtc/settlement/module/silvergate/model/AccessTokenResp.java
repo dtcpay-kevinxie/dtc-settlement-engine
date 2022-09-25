@@ -1,26 +1,26 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
 public class AccessTokenResp {
 
-    @JSONField(name = "Authorization")
+    @JsonProperty("Authorization")
     public String authorization;
-    @JSONField(name = "api-supported-versions")
+    @JsonProperty("api-supported-versions")
     public String requestContext;
-    @JSONField(name = "Access-Control-Expose-Headers")
+    @JsonProperty("Access-Control-Expose-Headers")
     public String accessControlExposeHeaders;
-    @JSONField(name = "Set-Cookie")
+    @JsonProperty("Set-Cookie")
     public String setCookie;
-    @JSONField(name = "Site")
+    @JsonProperty("Site")
     public String site;
-    @JSONField(name = "X-Powered-By")
+    @JsonProperty("X-Powered-By")
     public String xPoweredBy;
-    @JSONField(name = "Date")
+    @JsonProperty("Date")
     public String date;
-    @JSONField(name = "Content-Length")
+    @JsonProperty("Content-Length")
     public String contentLength;
 
 }

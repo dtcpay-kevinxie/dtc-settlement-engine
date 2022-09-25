@@ -3,7 +3,7 @@ package top.dtc.settlement.service;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.util.NotificationSender;
+import top.dtc.addon.integration.notification.NotificationEngineClient;
 import top.dtc.data.finance.enums.PayableStatus;
 import top.dtc.data.finance.model.Payable;
 import top.dtc.data.finance.service.PayableService;
@@ -23,6 +23,9 @@ public class PayableProcessService {
     @Autowired
     NotificationProperties notificationProperties;
 
+    @Autowired
+    NotificationEngineClient notificationEngineClient;
+
     public void writeOff(Payable originalPayable, String remark, String referenceNo) {
         originalPayable.referenceNo = referenceNo;
         originalPayable.remark = remark;
@@ -31,7 +34,7 @@ public class PayableProcessService {
         payableService.updateById(originalPayable);
         try {
             String feeDetail = (originalPayable.txnFee != null && originalPayable.feeCurrency != null) ? String.format(" (fee applied: %s %s)", originalPayable.txnFee, originalPayable.feeCurrency) : "";
-            NotificationSender.
+            notificationEngineClient.
                     by(NotificationConstant.NAMES.PAYABLE_WRITE_OFF)
                     .to(notificationProperties.financeRecipient)
                     .dataMap(Map.of("id", originalPayable.id + "",

@@ -1,6 +1,6 @@
 package top.dtc.settlement.constant;
 
-import com.alibaba.fastjson.JSON;
+import top.dtc.common.json.JSON;
 import top.dtc.settlement.module.silvergate.model.PaymentPostResp;
 import top.dtc.settlement.module.silvergate.model.PaymentPutResp;
 
@@ -93,7 +93,7 @@ public class ErrorMessage {
         public static String PAYMENT_CANCEL_FAILED(Long payableId, PaymentPutResp resp) {
             return String.format("Couldn't cancel payment for Payable [%s] due to [%s]",
                     payableId,
-                    (resp == null) ? "Empty Reponse from Silvergate" : "Error:" + JSON.toJSONString(resp.errorList)
+                    (resp == null) ? "Empty Response from Silvergate" : "Error:" + JSON.stringify(resp.errorList)
             );
         }
         public static String SILVERGATE_TOKEN_RETRIEVAL_FAILED(String accountNumber) {
