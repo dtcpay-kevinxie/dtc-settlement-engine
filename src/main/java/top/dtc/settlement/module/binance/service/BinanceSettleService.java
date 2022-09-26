@@ -68,14 +68,14 @@ public class BinanceSettleService {
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .body(new ApiRequest<>(settleCreditOrdersReq));
         log.debug("Request url: {}", requestBodyEntity.getUrl());
-        ApiResponse<SettleCreditOrdersResp> settleCreditOrderResp = requestBodyEntity.asObject(new GenericType<ApiResponse<SettleCreditOrdersResp>>() {}).getBody();
+        ApiResponse<SettleCreditOrdersResp> settleCreditOrdersResp = requestBodyEntity.asObject(new GenericType<ApiResponse<SettleCreditOrdersResp>>() {}).getBody();
         log.debug("Request body: {}", JSON.stringify(settleCreditOrdersReq));
-        if (settleCreditOrderResp == null || settleCreditOrderResp.header == null) {
+        if (settleCreditOrdersResp == null || settleCreditOrdersResp.header == null) {
             throw new DtcRuntimeException("Error when connecting integration-engine");
-        } else if (!settleCreditOrderResp.header.success) {
-            throw new DtcRuntimeException(ResponseCode.getMessage(settleCreditOrderResp.result.code).message);
+        } else if (!settleCreditOrdersResp.header.success) {
+            throw new DtcRuntimeException(ResponseCode.getMessage(settleCreditOrdersResp.result.code).message);
         }
-        log.debug("Request result: {}", settleCreditOrderResp.result);
+        log.debug("Request result: {}", settleCreditOrdersResp.result);
     }
 
 }
