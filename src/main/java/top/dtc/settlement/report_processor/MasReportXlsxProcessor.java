@@ -10,7 +10,6 @@ import top.dtc.addon.data_processor.FieldValue;
 import top.dtc.addon.data_processor.xlsx.XlsxProcessor;
 import top.dtc.common.enums.CryptoTransactionType;
 import top.dtc.common.enums.Currency;
-import top.dtc.common.enums.FiatTransactionType;
 import top.dtc.common.util.ClientTypeUtils;
 import top.dtc.data.core.enums.OtcType;
 import top.dtc.data.core.enums.TerminalType;
@@ -341,30 +340,22 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate2a(
             LocalDate startDate,
             LocalDate endDate,
-            List<FiatTransactionReport> fiatTransactionList,
             List<PoboTransactionReport> poboTransactionList
     ) throws IOException, IllegalAccessException {
-        log.debug("2A Fiat Transaction Data {}", fiatTransactionList);
+//        log.debug("2A Fiat Transaction Data {}", fiatTransactionList);
         log.debug("2A POBO Data {}", poboTransactionList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("2A");
         // Initial Summary Sheet with Title
         XSSFSheet sheet0 = initSummarySheet(processor, startDate, endDate, "2A");
         // Form 2A-1
-        BigDecimal fiatAmount = fiatTransactionList.stream()
-                .map(MasReportXlsxProcessor::getFiatTransferAmount)
-                .reduce(ZERO, BigDecimal::add);
         BigDecimal poboAmount = poboTransactionList.stream()
                 .map(MasReportXlsxProcessor::getPoboAmount)
                 .reduce(ZERO, BigDecimal::add);
-        processor.getCellByPos(sheet0, "B6").setCellValue(fiatAmount.add(poboAmount).setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
-        processor.getCellByPos(sheet0, "C6").setCellValue(fiatTransactionList.size() + poboTransactionList.size());
+        processor.getCellByPos(sheet0, "B6").setCellValue(poboAmount.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
+        processor.getCellByPos(sheet0, "C6").setCellValue(poboTransactionList.size());
         /*
-                SHEET 1 Domestic Transfer Transaction
-         */
-        generateFiatTransactionSheet(processor, fiatTransactionList);
-        /*
-                SHEET 2 Domestic Pobo Transaction
+                SHEET 1 Domestic Pobo Transaction
          */
         generatePoboTransactionSheet(processor, poboTransactionList);
         return processor;
@@ -373,12 +364,10 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate2b(
             LocalDate startDate,
             LocalDate endDate,
-            List<FiatTransactionReport> fiatTransactionList,
             List<PoboTransactionReport> poboTransactionList,
             Set<Long> clientInSGP,
             List<RiskMatrix> riskMatrixList
     ) throws IOException, IllegalAccessException {
-        log.debug("2B Fiat Transaction Data {}", fiatTransactionList);
         log.debug("2B POBO Data {}", poboTransactionList);
         log.debug("2B Client in SGP {}", clientInSGP);
         log.debug("2B RiskMatrix Data {}", riskMatrixList);
@@ -424,30 +413,6 @@ public class MasReportXlsxProcessor {
                 totalAmountHighRisk = addPoboAmount(poboTransaction, totalAmountHighRisk);
             }
         }
-        // Calculate Fiat Transaction
-        for (FiatTransactionReport fiatTransaction : fiatTransactionList) {
-            if (ClientTypeUtils.isIndividual(fiatTransaction.clientId)) {
-                if (clientInSGP.contains(fiatTransaction.clientId)) {
-                    countIndividualInSGP++;
-                    totalAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalAmountIndividualInSGP);
-                } else {
-                    countIndividualOutSGP++;
-                    totalAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalAmountIndividualOutSGP);
-                }
-            } else {
-                if (clientInSGP.contains(fiatTransaction.clientId)) {
-                    countNonIndividualInSGP++;
-                    totalAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalAmountNonIndividualInSGP);
-                } else {
-                    countNonIndividualOutSGP++;
-                    totalAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalAmountNonIndividualOutSGP);
-                }
-            }
-            if (highRiskClient.contains(fiatTransaction.clientId)) {
-                countHighRisk++;
-                totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk);
-            }
-        }
         // Form 2B-1
         processor.getCellByPos(sheet0, "B7").setCellValue(totalAmountIndividualInSGP.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C7").setCellValue(countIndividualInSGP);
@@ -462,15 +427,11 @@ public class MasReportXlsxProcessor {
         processor.getCellByPos(sheet0, "B14").setCellValue(totalAmountHighRisk.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C14").setCellValue(countHighRisk);
         /*
-                SHEET 1 Domestic Transfer Transaction
-         */
-        generateFiatTransactionSheet(processor, fiatTransactionList);
-        /*
-                SHEET 2 Domestic Pobo Transaction
+                SHEET 1 Domestic Pobo Transaction
          */
         generatePoboTransactionSheet(processor, poboTransactionList);
         /*
-                SHEET 3 Risk Matrix
+                SHEET 2 Risk Matrix
          */
         generateRiskMatrixSheet(processor, riskMatrixList);
         return processor;
@@ -479,10 +440,8 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate3a(
             LocalDate startDate,
             LocalDate endDate,
-            List<FiatTransactionReport> fiatTransactionList,
             List<PoboTransactionReport> poboTransactionList
     ) throws IOException, IllegalAccessException {
-        log.debug("3A Fiat Transaction Data {}", fiatTransactionList);
         log.debug("3A POBO Data {}", poboTransactionList);
         // Initial report processor
         MasReportXlsxProcessor processor = initReportWorkbook("3A");
@@ -493,15 +452,6 @@ public class MasReportXlsxProcessor {
         BigDecimal outwardTotalAmount = ZERO;
         int countInward = 0;
         BigDecimal inwardTotalAmount = ZERO;
-        for (FiatTransactionReport fiatTransactionReport : fiatTransactionList) {
-            if (fiatTransactionReport.type == FiatTransactionType.WITHDRAW) {
-                countOutward++;
-                outwardTotalAmount = addFiatTransferAmount(fiatTransactionReport, outwardTotalAmount);
-            } else {
-                countInward++;
-                inwardTotalAmount = addFiatTransferAmount(fiatTransactionReport, inwardTotalAmount);
-            }
-        }
         //  POBO doesn't have inward transaction
         for (PoboTransactionReport poboTransactionReport : poboTransactionList) {
             countOutward++;
@@ -515,11 +465,7 @@ public class MasReportXlsxProcessor {
         processor.getCellByPos(sheet0, "B9").setCellValue(inwardTotalAmount.setScale(SGD.exponent, RoundingMode.HALF_UP).toString());
         processor.getCellByPos(sheet0, "C9").setCellValue(countInward);
         /*
-                SHEET 1 Cross-border Transfer Transaction
-         */
-        generateFiatTransactionSheet(processor, fiatTransactionList);
-        /*
-                SHEET 2 Cross-border Pobo Transaction
+                SHEET 1 Cross-border Pobo Transaction
          */
         generatePoboTransactionSheet(processor, poboTransactionList);
         return processor;
@@ -528,13 +474,11 @@ public class MasReportXlsxProcessor {
     public static MasReportXlsxProcessor generate3b(
             LocalDate startDate,
             LocalDate endDate,
-            List<FiatTransactionReport> fiatTransactionList,
             List<PoboTransactionReport> poboTransactionList,
             Set<Long> clientInSGP,
             Set<Long> fiClient,
             List<RiskMatrix> riskMatrixList
     ) throws IOException, IllegalAccessException {
-        log.debug("3B Fiat Transaction Data {}", fiatTransactionList);
         log.debug("3B POBO Data {}", poboTransactionList);
         log.debug("3B Client in SGP {}", clientInSGP);
         log.debug("3B FI Client outside SGP {}", fiClient);
@@ -624,83 +568,6 @@ public class MasReportXlsxProcessor {
             totalOutwardAmountToBank = addPoboAmount(poboTransaction, totalOutwardAmountToBank);
         }
 
-        // fiatTransaction.type DEPOSIT for inward, fiatTransaction.type WITHDRAWAL for outward
-        for (FiatTransactionReport fiatTransaction : fiatTransactionList) {
-            if (fiatTransaction.type == FiatTransactionType.DEPOSIT) {
-                if (ClientTypeUtils.isIndividual(fiatTransaction.clientId)) {
-                    // Individual client will not contains FI
-                    if (clientInSGP.contains(fiatTransaction.clientId)) {
-                        countInwardIndividualInSGP++;
-                        totalInwardAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountIndividualInSGP);
-                    } else {
-                        countInwardIndividualOutSGP++;
-                        totalInwardAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountIndividualOutSGP);
-                    }
-                } else {
-                    // Non-individual includes FI
-                    if (clientInSGP.contains(fiatTransaction.clientId)) {
-                        if (fiClient.contains(fiatTransaction.clientId)) {
-                            countInwardFiInSGP++;
-                            totalInwardAmountFiInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountFiInSGP);
-                        } else {
-                            countInwardNonIndividualInSGP++;
-                            totalInwardAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountNonIndividualInSGP);
-                        }
-                    } else {
-                        if (fiClient.contains(fiatTransaction.clientId)) {
-                            countInwardFiOutSGP++;
-                            totalInwardAmountFiOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountFiOutSGP);
-                        } else {
-                            countInwardNonIndividualOutSGP++;
-                            totalInwardAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalInwardAmountNonIndividualOutSGP);
-                        }
-                    }
-                }
-                if (highRiskClient.contains(fiatTransaction.clientId)) {
-                    countHighRisk++;
-                    totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk);
-                }
-                countInwardToBank++;
-                totalInwardAmountToBank = addFiatTransferAmount(fiatTransaction, totalOutwardAmountToBank);
-            } else {
-                if (ClientTypeUtils.isIndividual(fiatTransaction.clientId)) {
-                    // Individual client will not contains FI
-                    if (clientInSGP.contains(fiatTransaction.clientId)) {
-                        countOutwardIndividualInSGP++;
-                        totalOutwardAmountIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountIndividualInSGP);
-                    } else {
-                        countOutwardIndividualOutSGP++;
-                        totalOutwardAmountIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountIndividualOutSGP);
-                    }
-                } else {
-                    // Non-individual includes FI
-                    if (clientInSGP.contains(fiatTransaction.clientId)) {
-                        if (fiClient.contains(fiatTransaction.clientId)) {
-                            countOutwardFiInSGP++;
-                            totalOutwardAmountFiInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountFiInSGP);
-                        } else {
-                            countOutwardNonIndividualInSGP++;
-                            totalOutwardAmountNonIndividualInSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountNonIndividualInSGP);
-                        }
-                    } else {
-                        if (fiClient.contains(fiatTransaction.clientId)) {
-                            countOutwardFiOutSGP++;
-                            totalOutwardAmountFiOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountFiOutSGP);
-                        } else {
-                            countOutwardNonIndividualOutSGP++;
-                            totalOutwardAmountNonIndividualOutSGP = addFiatTransferAmount(fiatTransaction, totalOutwardAmountNonIndividualOutSGP);
-                        }
-                    }
-                }
-                if (highRiskClient.contains(fiatTransaction.clientId)) {
-                    countHighRisk++;
-                    totalAmountHighRisk = addFiatTransferAmount(fiatTransaction, totalAmountHighRisk);
-                }
-                countOutwardToBank++;
-                totalOutwardAmountToBank = addFiatTransferAmount(fiatTransaction, totalOutwardAmountToBank);
-            }
-        }
-
         // All POBO transactions are outward
         HashMap<String, TotalSortingObject> outwardCountByCountry = poboTransactionList.stream()
                 .collect(Collectors.toMap(
@@ -713,48 +580,8 @@ public class MasReportXlsxProcessor {
                         HashMap::new
                 ));
 
-        // Only fiat withdrawal transactions are outward
-        HashMap<String, TotalSortingObject> outwardFiatCountByCountry = fiatTransactionList.stream()
-                .filter(fiatTransactionReport -> fiatTransactionReport.type == FiatTransactionType.WITHDRAW)
-                .collect(Collectors.toMap(
-                        o -> o.recipientCountry,
-                        x -> new TotalSortingObject(null, x.recipientCountry, null),
-                        (left, right) -> {
-                            left.totalCount++;
-                            return left;
-                        },
-                        HashMap::new
-                ));
-        outwardCountByCountry.forEach(
-                (k, v) -> outwardFiatCountByCountry.merge(k, v, (totalSortingObject, totalSortingObject2) -> {
-                    totalSortingObject.totalCount = totalSortingObject.totalCount + totalSortingObject2.totalCount;
-                    return totalSortingObject;
-                })
-        );
-
         List<TotalSortingObject> totalOutwardCountByCountryList =
                 outwardCountByCountry
-                        .values()
-                        .stream()
-                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
-                        .limit(10)
-                        .toList();
-
-        // Only fiat deposit is inward
-        HashMap<String, TotalSortingObject> inwardFiatCountByCountry = fiatTransactionList.stream()
-                .filter(fiatTransactionReport -> fiatTransactionReport.type == FiatTransactionType.DEPOSIT)
-                .collect(Collectors.toMap(
-                        o -> o.recipientCountry,
-                        x -> new TotalSortingObject(null, x.recipientCountry, null),
-                        (left, right) -> {
-                            left.totalCount++;
-                            return left;
-                        },
-                        HashMap::new
-                ));
-
-        List<TotalSortingObject> totalInwardCountByCountryList =
-                inwardFiatCountByCountry
                         .values()
                         .stream()
                         .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
@@ -815,12 +642,6 @@ public class MasReportXlsxProcessor {
             processor.getCellByPos(sheet0, "C" + row).setCellValue(totalOutwardCountByCountryList.get(i).country);
             processor.getCellByPos(sheet0, "D" + row).setCellValue(totalOutwardCountByCountryList.get(i).totalCount);
         }
-        // Form 3B-7 (b) Inward counts by country
-        for (int i = 0; i < totalInwardCountByCountryList.size(); i++) {
-            int row = 53 + i;
-            processor.getCellByPos(sheet0, "C" + row).setCellValue(totalInwardCountByCountryList.get(i).country);
-            processor.getCellByPos(sheet0, "D" + row).setCellValue(totalInwardCountByCountryList.get(i).totalCount);
-        }
 
         // Form 3B-8
         processor.getCellByPos(sheet0, "B65").setCellValue(totalAmountHighRisk.setScale(SGD.exponent, RoundingMode.HALF_UP).toString()); // 3B-6 (a)
@@ -837,15 +658,11 @@ public class MasReportXlsxProcessor {
         processor.getCellByPos(sheet0, "C73").setCellValue("NA");
         processor.getCellByPos(sheet0, "C84").setCellValue("NA");
         /*
-                SHEET 1 Cross-border Transfer Transaction
-         */
-        generateFiatTransactionSheet(processor, fiatTransactionList);
-        /*
-                SHEET 2 Cross-border Pobo Transaction
+                SHEET 1 Cross-border Pobo Transaction
          */
         generatePoboTransactionSheet(processor, poboTransactionList);
         /*
-                SHEET 3 Risk Matrix
+                SHEET 2 Risk Matrix
          */
         generateRiskMatrixSheet(processor, riskMatrixList);
         return processor;
