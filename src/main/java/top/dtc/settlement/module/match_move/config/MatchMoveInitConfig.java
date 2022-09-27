@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import top.dtc.addon.integration.match_move.domain.*;
 import top.dtc.common.json.JSON;
+import top.dtc.common.web.Endpoints;
 import top.dtc.settlement.model.api.ApiRequest;
 import top.dtc.settlement.module.match_move.properties.MatchMoveProperties;
 
@@ -23,6 +24,9 @@ public class MatchMoveInitConfig {
     @Autowired
     MatchMoveProperties matchMoveProperties;
 
+    @Autowired
+    Endpoints endpoints;
+
     @PostConstruct
     public void init() {
         log.debug("Settlement engine init MatchMove WebhookRegister...");
@@ -36,7 +40,7 @@ public class MatchMoveInitConfig {
 
     private void hookMatchMoveAccount() {
         // Retrieve list of webhook categories
-        HttpResponse<RetrieveWebhookCategoriesResp> retrieveWebhookCategoriesResp = Unirest.get(matchMoveProperties.integrationEngineEndpoint
+        HttpResponse<RetrieveWebhookCategoriesResp> retrieveWebhookCategoriesResp = Unirest.get(endpoints.INTEGRATION_ENGINE
                         + "/api/integration/match-move/webhook-categories")
                 .asObject(new GenericType<RetrieveWebhookCategoriesResp>() {
                 })
@@ -48,7 +52,7 @@ public class MatchMoveInitConfig {
             log.debug("Webhooks Categories: {}", JSON.stringify(retrieveWebhookCategoriesResp.getBody()));
         }
         // Retrieve list of webhooks
-        HttpResponse<RetrieveWebhooksResp> retrieveWebhooksResp = Unirest.get(matchMoveProperties.integrationEngineEndpoint
+        HttpResponse<RetrieveWebhooksResp> retrieveWebhooksResp = Unirest.get(endpoints.INTEGRATION_ENGINE
                         + "/api/integration/match-move/webhooks")
                 .asObject(new GenericType<RetrieveWebhooksResp>() {
                 })
@@ -87,7 +91,8 @@ public class MatchMoveInitConfig {
 
 
     private GetWebhookDetailResp getWebhookDetails(String webhookId) {
-        final HttpResponse<GetWebhookDetailResp> webhookDetailResponse = Unirest.get(matchMoveProperties.integrationEngineEndpoint + "/api/integration/match-move/webhook/{}")
+        final HttpResponse<GetWebhookDetailResp> webhookDetailResponse = Unirest.get(endpoints.INTEGRATION_ENGINE
+                        + "/api/integration/match-move/webhook/{}")
                 .routeParam("webhookId", webhookId)
                 .asObject(new GenericType<GetWebhookDetailResp>() {
                 }).ifFailure(resp -> {
@@ -101,7 +106,8 @@ public class MatchMoveInitConfig {
     }
 
     public void registerWebhook(CreateWebhooksReq createWebhooksReq) {
-        final HttpResponse<CreateWebhooksResp> createWebhooksRespHttpResponse = Unirest.post(matchMoveProperties.integrationEngineEndpoint + "/api/integration/match-move/webhooks")
+        final HttpResponse<CreateWebhooksResp> createWebhooksRespHttpResponse = Unirest.post(endpoints.INTEGRATION_ENGINE
+                        + "/api/integration/match-move/webhooks")
                 .body(new ApiRequest<>(createWebhooksReq))
                 .asObject(new GenericType<CreateWebhooksResp>() {
                 })
