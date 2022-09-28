@@ -202,9 +202,8 @@ public class ReportService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<PoboTransactionReport> poboTransactionList = getDomesticPoboList(startDate, endDate, ratesMap);
-        List<FiatTransactionReport> fiatTransactionList = getDomesticFiatList(startDate, endDate, ratesMap);
         byte[] reportByte = MasReportXlsxProcessor.generate2a(
-                startDate, endDate, fiatTransactionList, poboTransactionList).toByteArray();
+                startDate, endDate, poboTransactionList).toByteArray();
         sendReportEmail("2A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -213,12 +212,11 @@ public class ReportService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<PoboTransactionReport> poboTransactionList = getDomesticPoboList(startDate, endDate, ratesMap);
-        List<FiatTransactionReport> fiatTransactionList = getDomesticFiatList(startDate, endDate, ratesMap);
         List<RiskMatrix> highRiskList = getHighRiskList();
         Set<Long> clientInSGP = getIndividualIdListInSGP();
         clientInSGP.addAll(getNonIndividualIdListInSGP());
         byte[] reportByte = MasReportXlsxProcessor.generate2b(
-                startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, highRiskList).toByteArray();
+                startDate, endDate, poboTransactionList, clientInSGP, highRiskList).toByteArray();
         sendReportEmail("2B", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -227,9 +225,8 @@ public class ReportService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<PoboTransactionReport> poboTransactionList = getCrossBorderPoboList(startDate, endDate, ratesMap);
-        List<FiatTransactionReport> fiatTransactionList = getCrossBorderFiatList(startDate, endDate, ratesMap);
         byte[] reportByte = MasReportXlsxProcessor.generate3a(
-                startDate, endDate, fiatTransactionList, poboTransactionList).toByteArray();
+                startDate, endDate, poboTransactionList).toByteArray();
         sendReportEmail("3A", startDate.toString(), endDate.toString(), reportByte);
     }
 
@@ -238,13 +235,12 @@ public class ReportService {
             ratesMap = getRatesMap(startDate, endDate);
         }
         List<PoboTransactionReport> poboTransactionList = getCrossBorderPoboList(startDate, endDate, ratesMap);
-        List<FiatTransactionReport> fiatTransactionList = getCrossBorderFiatList(startDate, endDate, ratesMap);
         Set<Long> clientInSGP = getIndividualIdListInSGP();
         clientInSGP.addAll(getNonIndividualIdListInSGP());
         Set<Long> fiClient = getFiIdList();
         List<RiskMatrix> highRiskList = getHighRiskList();
         byte[] reportByte = MasReportXlsxProcessor.generate3b(
-                startDate, endDate, fiatTransactionList, poboTransactionList, clientInSGP, fiClient, highRiskList).toByteArray();
+                startDate, endDate, poboTransactionList, clientInSGP, fiClient, highRiskList).toByteArray();
         sendReportEmail("3B", startDate.toString(), endDate.toString(), reportByte);
     }
 

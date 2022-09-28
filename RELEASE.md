@@ -6,6 +6,7 @@
 * Add deps addon-integration & addon-data-processor
 * Find/check wallet address logic update
 * Init MatchMove webhooks
+* Remove FiatTransaction from Domestic and Cross-border report
 
 [0.92.0] - 21 Sep 2022
 

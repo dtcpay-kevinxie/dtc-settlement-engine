@@ -43,4 +43,4 @@ transaction:
     usdt-threshold: ${ANTI_DUST_USDT_THRESHOLD}
 
 match-move:
-  integration-engine-endpoint: ${INTEGRATION_ENGINE_ENDPOINT}
+  webhook-url: ${MATCH_MOVE_WEBHOOK_URL}
