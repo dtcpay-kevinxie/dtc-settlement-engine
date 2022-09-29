@@ -42,8 +42,7 @@ public class MatchMoveInitConfig {
         // Retrieve list of webhook categories
         HttpResponse<RetrieveWebhookCategoriesResp> retrieveWebhookCategoriesResp = Unirest.get(endpoints.INTEGRATION_ENGINE
                         + "/integration/match-move/webhook-categories")
-                .asObject(new GenericType<RetrieveWebhookCategoriesResp>() {
-                })
+                .asObject(new GenericType<RetrieveWebhookCategoriesResp>() {})
                 .ifFailure(resp -> {
                     log.error("Call integration-engine {} failed, {}", "/match-move/webhooks-categories", resp.getStatus());
                     resp.getParsingError().ifPresent(e -> log.error(e.getMessage()));
@@ -54,8 +53,7 @@ public class MatchMoveInitConfig {
         // Retrieve list of webhooks
         HttpResponse<RetrieveWebhooksResp> retrieveWebhooksResp = Unirest.get(endpoints.INTEGRATION_ENGINE
                         + "/integration/match-move/webhooks")
-                .asObject(new GenericType<RetrieveWebhooksResp>() {
-                })
+                .asObject(new GenericType<RetrieveWebhooksResp>() {})
                 .ifFailure(resp -> {
                     log.error("Call integration-engine {} failed, {}", "/match-move/webhooks", resp.getStatus());
                     resp.getParsingError().ifPresent(e -> log.error(e.getMessage()));
@@ -64,12 +62,12 @@ public class MatchMoveInitConfig {
             log.debug("Webhook list: {}", JSON.stringify(retrieveWebhooksResp.getBody()));
             final RetrieveWebhooksResp webhooksResp = retrieveWebhooksResp.getBody();
             final List<RetrieveWebhooksResp.Event> eventList = webhooksResp.eventList;
-            if (!eventList.isEmpty() && eventList.size() > 1) {
+            if (eventList != null && !eventList.isEmpty()) {
                 for (RetrieveWebhooksResp.Event event : eventList) {
                     // Get registered webhooks
                     String webhookId = event.id;
                     final GetWebhookDetailResp webhookDetails = getWebhookDetails(webhookId);
-                    if (webhookDetails != null && !webhookDetails.items.isEmpty() && webhookDetails.items.size() > 1) {
+                    if (webhookDetails != null && !webhookDetails.items.isEmpty()) {
                         final List<GetWebhookDetailResp.Item> items = webhookDetails.items;
                         Map<String, GetWebhookDetailResp.Item> webhooksMap = items.stream()
                                 .collect(Collectors.toMap(GetWebhookDetailResp.Item::getId, itemsResp -> itemsResp));
@@ -94,8 +92,8 @@ public class MatchMoveInitConfig {
         final HttpResponse<GetWebhookDetailResp> webhookDetailResponse = Unirest.get(endpoints.INTEGRATION_ENGINE
                         + "/integration/match-move/webhook/{}")
                 .routeParam("webhookId", webhookId)
-                .asObject(new GenericType<GetWebhookDetailResp>() {
-                }).ifFailure(resp -> {
+                .asObject(new GenericType<GetWebhookDetailResp>() {})
+                .ifFailure(resp -> {
                     log.error("Call integration-engine Webhook detail API failed, {}", resp.getStatus());
                     resp.getParsingError().ifPresent(e -> log.error(e.getMessage()));});
         if (webhookDetailResponse.isSuccess()) {
@@ -109,8 +107,7 @@ public class MatchMoveInitConfig {
         final HttpResponse<CreateWebhooksResp> createWebhooksRespHttpResponse = Unirest.post(endpoints.INTEGRATION_ENGINE
                         + "/integration/match-move/webhooks")
                 .body(new ApiRequest<>(createWebhooksReq))
-                .asObject(new GenericType<CreateWebhooksResp>() {
-                })
+                .asObject(new GenericType<CreateWebhooksResp>() {})
                 .ifFailure(resp -> {
                     log.error("Call integration-engine Create webhook API failed, {}", resp.getStatus());
                     resp.getParsingError().ifPresent(e -> log.error(e.getMessage()));
