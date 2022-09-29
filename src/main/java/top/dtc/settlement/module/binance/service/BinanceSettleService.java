@@ -6,8 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.addon.integration.binance.domain.QueryUserUnSettleReq;
 import top.dtc.addon.integration.binance.domain.QueryUserUnSettleResp;
-import top.dtc.addon.integration.binance.domain.SettleCreditOrdersResp;
 import top.dtc.addon.integration.binance.domain.SettleCreditOrdersReq;
+import top.dtc.addon.integration.binance.domain.SettleCreditOrdersResp;
 import top.dtc.addon.integration.notification.NotificationEngineClient;
 import top.dtc.common.exception.DtcRuntimeException;
 import top.dtc.common.json.JSON;
@@ -37,7 +37,7 @@ public class BinanceSettleService {
     public void queryUserUnsettle() {
         QueryUserUnSettleReq queryUserUnSettleReq = new QueryUserUnSettleReq();
         queryUserUnSettleReq.endTime = System.currentTimeMillis();
-        RequestBodyEntity requestBodyEntity = Unirest.post(endpoints.INTEGRATION_ENGINE + "/api/integration/binance/query-user-unsettle")
+        RequestBodyEntity requestBodyEntity = Unirest.post(endpoints.INTEGRATION_ENGINE + "/integration/binance/query-user-unsettle")
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .body(new ApiRequest<>(queryUserUnSettleReq));
         log.debug("Request url: {}", requestBodyEntity.getUrl());
@@ -64,7 +64,7 @@ public class BinanceSettleService {
     public void settleCreditOrders() {
         SettleCreditOrdersReq settleCreditOrdersReq = new SettleCreditOrdersReq();
         settleCreditOrdersReq.endTime = System.currentTimeMillis();
-        RequestBodyEntity requestBodyEntity = Unirest.post(endpoints.INTEGRATION_ENGINE + "/api/integration/binance/settle-credit-orders")
+        RequestBodyEntity requestBodyEntity = Unirest.post(endpoints.INTEGRATION_ENGINE + "/integration/binance/settle-credit-orders")
                 .header(HeaderNames.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType())
                 .body(new ApiRequest<>(settleCreditOrdersReq));
         log.debug("Request url: {}", requestBodyEntity.getUrl());

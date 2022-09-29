@@ -41,7 +41,7 @@ public class MatchMoveInitConfig {
     private void hookMatchMoveAccount() {
         // Retrieve list of webhook categories
         HttpResponse<RetrieveWebhookCategoriesResp> retrieveWebhookCategoriesResp = Unirest.get(endpoints.INTEGRATION_ENGINE
-                        + "/api/integration/match-move/webhook-categories")
+                        + "/integration/match-move/webhook-categories")
                 .asObject(new GenericType<RetrieveWebhookCategoriesResp>() {
                 })
                 .ifFailure(resp -> {
@@ -53,7 +53,7 @@ public class MatchMoveInitConfig {
         }
         // Retrieve list of webhooks
         HttpResponse<RetrieveWebhooksResp> retrieveWebhooksResp = Unirest.get(endpoints.INTEGRATION_ENGINE
-                        + "/api/integration/match-move/webhooks")
+                        + "/integration/match-move/webhooks")
                 .asObject(new GenericType<RetrieveWebhooksResp>() {
                 })
                 .ifFailure(resp -> {
@@ -92,7 +92,7 @@ public class MatchMoveInitConfig {
 
     private GetWebhookDetailResp getWebhookDetails(String webhookId) {
         final HttpResponse<GetWebhookDetailResp> webhookDetailResponse = Unirest.get(endpoints.INTEGRATION_ENGINE
-                        + "/api/integration/match-move/webhook/{}")
+                        + "/integration/match-move/webhook/{}")
                 .routeParam("webhookId", webhookId)
                 .asObject(new GenericType<GetWebhookDetailResp>() {
                 }).ifFailure(resp -> {
@@ -107,7 +107,7 @@ public class MatchMoveInitConfig {
 
     public void registerWebhook(CreateWebhooksReq createWebhooksReq) {
         final HttpResponse<CreateWebhooksResp> createWebhooksRespHttpResponse = Unirest.post(endpoints.INTEGRATION_ENGINE
-                        + "/api/integration/match-move/webhooks")
+                        + "/integration/match-move/webhooks")
                 .body(new ApiRequest<>(createWebhooksReq))
                 .asObject(new GenericType<CreateWebhooksResp>() {
                 })
