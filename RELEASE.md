@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.94.0] - 29 Sep 2022
+
+* Hotfix integration url normalize
+
 [0.93.0] - 27 Sep 2022
 
 * Update parent
