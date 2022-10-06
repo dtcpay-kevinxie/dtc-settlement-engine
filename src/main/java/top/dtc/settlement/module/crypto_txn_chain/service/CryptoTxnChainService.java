@@ -107,6 +107,8 @@ public class CryptoTxnChainService {
             send.currency = mainNet.nativeCurrency;
             send.inputs.add(new CryptoInOutSend(gasWallet));
             send.outputs.add(new CryptoInOutSend(senderWallet, feeEstimateResult.propose));
+            send.advancedSettings = new CryptoAdvancedSettings();
+            send.advancedSettings.notifyInstantly = true;
 
             topUpGasThenTransfer.gasTxnId = cryptoEngineClient.txnSend(mainNet, gasSend);
 
