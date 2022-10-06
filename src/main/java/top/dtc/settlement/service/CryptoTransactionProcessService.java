@@ -10,6 +10,7 @@ import top.dtc.addon.integration.crypto_engine.CryptoEngineClient;
 import top.dtc.addon.integration.crypto_engine.domain.*;
 import top.dtc.addon.integration.crypto_engine.util.CryptoEngineUtils;
 import top.dtc.addon.integration.notification.NotificationEngineClient;
+import top.dtc.common.core.data.redis.SettlementRedisOps;
 import top.dtc.common.enums.*;
 import top.dtc.common.exception.ValidationException;
 import top.dtc.common.json.JSON;
@@ -40,11 +41,13 @@ import top.dtc.data.risk.service.KycWalletAddressService;
 import top.dtc.data.wallet.model.WalletAccount;
 import top.dtc.data.wallet.service.WalletAccountService;
 import top.dtc.settlement.constant.NotificationConstant;
+import top.dtc.settlement.constant.RedisConstant;
 import top.dtc.settlement.constant.SseConstant;
 import top.dtc.settlement.core.properties.CryptoTransactionProperties;
 import top.dtc.settlement.core.properties.NotificationProperties;
 import top.dtc.settlement.handler.pdf.PdfGenerator;
 import top.dtc.settlement.model.api.ApiResponse;
+import top.dtc.settlement.module.crypto_txn_chain.service.CryptoTxnChainService;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -116,6 +119,12 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     NotificationEngineClient notificationEngineClient;
+
+    @Autowired
+    SettlementRedisOps settlementRedisOps;
+
+    @Autowired
+    CryptoTxnChainService cryptoTxnChainService;
 
     /**
      * Auto-sweep logic:
@@ -232,6 +241,10 @@ public class CryptoTransactionProcessService {
     public void notify(CryptoTransactionResult result) {
         if (CryptoEngineUtils.isResultEmpty(result)) {
             log.error("Notify txn result invalid {}", JSON.stringify(result, true));
+        }
+        if (settlementRedisOps.exists(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, result.id))) {
+            cryptoTxnChainService.topUpGasThenTransfer(result);
+            return;
         }
         if (result.state != CryptoTransactionState.COMPLETED) {
             // Transaction REJECTED by blockchain case

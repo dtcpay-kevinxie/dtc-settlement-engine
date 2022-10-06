@@ -3,6 +3,8 @@
 [0.95.0] -
 
 * MatchMoveInitConfig optimization
+* Update parent & data-core & addon-integration
+* CryptoTxnChainService topUpGasThenTransfer
 
 [0.94.0] - 29 Sep 2022
 

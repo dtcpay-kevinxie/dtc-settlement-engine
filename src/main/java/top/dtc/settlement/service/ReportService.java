@@ -261,7 +261,7 @@ public class ReportService {
         List<PaymentTransactionReport> paymentTransactionList = getPaymentTransactionReportList(startDate, endDate, ratesMap);
         Set<Long> paymentClientIds = getOnboardedMonitoringMatrix().stream()
                 .filter(monitoringMatrix -> monitoringMatrix.paymentEnabled)
-                .map(MonitoringMatrix::getClientId)
+                .map(monitoringMatrix -> monitoringMatrix.clientId)
                 .collect(Collectors.toSet());
         List<NonIndividual> merchantList = nonIndividualService.getByParams(
                         null, null, null, null, null)
@@ -299,7 +299,7 @@ public class ReportService {
         List<OtcReport> otcList = getOtcReportList(startDate, endDate, ratesMap);
         List<CryptoTransactionReport> cryptoTransactionList = getCryptoTransactionReportList(startDate, endDate, ratesMap);
         Set<String> highRiskCountryList = countryService.getByParams(null, true, null)
-                .stream().map(Country::getCodeAlpha3).collect(Collectors.toSet());
+                .stream().map(c -> c.codeAlpha3).collect(Collectors.toSet());
         Set<Long> dptClientInSGP = new HashSet<>();
         Set<Long> dptClientOutsideSGP = new HashSet<>();
         Set<Long> highRiskCountryClientIds = new HashSet<>();
@@ -362,11 +362,11 @@ public class ReportService {
     private List<MonitoringMatrix> getOnboardedMonitoringMatrix() {
         Set<Long> onboardedIndividual = individualService.list().stream()
                 .filter(individual -> individual.status != ClientStatus.PENDING_KYC && individual.status != ClientStatus.REGISTERED)
-                .map(Individual::getId)
+                .map(individual -> individual.id)
                 .collect(Collectors.toSet());
         Set<Long> onboardedNonIndividual = nonIndividualService.list().stream()
                 .filter(nonIndividual -> nonIndividual.status != ClientStatus.PENDING_KYC && nonIndividual.status != ClientStatus.REGISTERED)
-                .map(NonIndividual::getId)
+                .map(nonIndividual -> nonIndividual.id)
                 .collect(Collectors.toSet());
         return monitoringMatrixService.list().stream()
                 .filter(monitoringMatrix -> onboardedIndividual.contains(monitoringMatrix.clientId) || onboardedNonIndividual.contains(monitoringMatrix.clientId))
@@ -393,7 +393,7 @@ public class ReportService {
                 null,
                 null
         ).stream()
-                .map(Individual::getId)
+                .map(individual -> individual.id)
                 .collect(Collectors.toSet());
     }
 
@@ -405,7 +405,7 @@ public class ReportService {
                 null,
                 null
         ).stream()
-                .map(NonIndividual::getId)
+                .map(nonIndividual -> nonIndividual.id)
                 .collect(Collectors.toSet());
     }
 
@@ -418,7 +418,7 @@ public class ReportService {
                 null
         ).stream()
                 .filter(nonIndividual -> nonIndividual.type == ClientType.INSTITUTION)
-                .map(NonIndividual::getId)
+                .map(nonIndividual -> nonIndividual.id)
                 .collect(Collectors.toSet());
     }
 

@@ -15,7 +15,6 @@ import top.dtc.data.core.enums.OtcType;
 import top.dtc.data.core.enums.TerminalType;
 import top.dtc.data.core.model.MonitoringMatrix;
 import top.dtc.data.core.model.NonIndividual;
-import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.model.Terminal;
 import top.dtc.data.finance.model.DailyBalanceRecord;
 import top.dtc.data.risk.enums.RiskLevel;
@@ -737,7 +736,7 @@ public class MasReportXlsxProcessor {
         List<TotalSortingObject> totalCountByMerchantList =
                 paymentTransactionList.stream()
                         .collect(Collectors.toMap(
-                                PaymentTransaction::getCountry,
+                                paymentTransactionReport -> paymentTransactionReport.country,
                                 x -> {
                                     TotalSortingObject totalCountByMerchant = new TotalSortingObject(x.merchantId, null, null);
                                     totalCountByMerchant.clientName = x.merchantName;
@@ -1068,7 +1067,7 @@ public class MasReportXlsxProcessor {
     private static Stream<TotalSortingObject> getUnsortedStream(List<OtcReport> otcListToSort) {
         return otcListToSort.stream()
                 .collect(Collectors.toMap(
-                        OtcReport::getCryptoCurrency,
+                        otcReport -> otcReport.cryptoCurrency,
                         x -> {
                             TotalSortingObject totalByCurrency = new TotalSortingObject(null, null, x.cryptoCurrency);
                             totalByCurrency.totalAmountInSGD = x.fiatAmount.multiply(x.rateToSGD);
