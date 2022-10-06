@@ -2,6 +2,7 @@ package top.dtc.settlement.module.crypto_txn_chain.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import top.dtc.addon.integration.crypto_engine.CryptoEngineClient;
 import top.dtc.addon.integration.crypto_engine.domain.*;
@@ -28,7 +29,8 @@ import java.util.UUID;
 @Service
 public class CryptoTxnChainService {
 
-    private static final BigDecimal TRON_FREEZE_AMOUNT = new BigDecimal(1000);
+    @Value("TRON_FEE_LIMIT")
+    private static BigDecimal TRON_FEE_LIMIT;
 
     @Autowired
     CryptoEngineClient cryptoEngineClient;
@@ -42,7 +44,8 @@ public class CryptoTxnChainService {
     /**
      * Check balance -> Gas estimate -> Top up gas -> async topUpGasThenTransfer(CryptoTransactionResult)
      * try-catch is needed
-     * TODO: bitcoin support
+     * TODO bitcoin support
+     * TODO use balance to pay gas
      *
      * @param currency For transfer
      * @param gasWallet CryptoWallet.unhostedWallet(account, addressIndex)
@@ -89,8 +92,9 @@ public class CryptoTxnChainService {
             CryptoFreeze freeze = new CryptoFreeze();
             freeze.wallet = gasWallet;
             freeze.receiverWallet = senderWallet;
-            freeze.amount = TRON_FREEZE_AMOUNT;
+            freeze.amount = TRON_FEE_LIMIT.divide(new BigDecimal(1_000_000));
             freeze.resource = CryptoFreezeResource.ENERGY;
+            freeze.notifyInstantly = true;
 
             topUpGasThenTransfer.gasTxnId = cryptoEngineClient.freeze(mainNet, freeze);
         } else {
