@@ -124,8 +124,9 @@ public class CryptoTxnChainService {
             internalTransfer.currency = mainNet.nativeCurrency;
             internalTransfer.feeCurrency = mainNet.nativeCurrency;
             internalTransfer.senderAccountId = Long.valueOf(gasWallet.addressIndex);
-            internalTransfer.senderAccountType = AccountType.DTC_WALLET;
-            internalTransfer.recipientAccountType = AccountType.CRYPTO;
+            internalTransfer.senderAccountType = AccountType.CRYPTO;
+            internalTransfer.recipientAccountType = AccountType.PAY_ADDRESS;
+            internalTransfer.recipientAccountId = transactionId;
             internalTransfer.description = "Top Up gas for " + senderWallet.address;
             internalTransfer.referenceNo = topUpGasThenTransfer.gasTxnId;
             internalTransferService.save(internalTransfer);
@@ -178,9 +179,10 @@ public class CryptoTxnChainService {
             internalTransfer.amount = output.amount;
             internalTransfer.currency = send.currency;
             internalTransfer.feeCurrency = result.mainNet.nativeCurrency;
-            internalTransfer.senderAccountType = AccountType.CRYPTO;
+            internalTransfer.senderAccountType = AccountType.PAY_ADDRESS;
+            internalTransfer.senderAccountId = topUpGasThenTransfer.transactionId;
             internalTransfer.recipientAccountId = Long.valueOf(output.wallet.addressIndex);
-            internalTransfer.recipientAccountType = AccountType.DTC_WALLET;
+            internalTransfer.recipientAccountType = AccountType.CRYPTO;
             internalTransfer.description = "Sweep from " + send.inputs.get(0).wallet.address;
             internalTransfer.referenceNo = topUpGasThenTransfer.transferTxnId;
             internalTransferService.save(internalTransfer);

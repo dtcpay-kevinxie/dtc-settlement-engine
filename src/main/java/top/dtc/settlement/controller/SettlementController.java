@@ -5,8 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.addon.integration.scheduler.SchedulerEngineClient;
 import top.dtc.common.constant.DateTime;
-import top.dtc.settlement.constant.ApiHeaderConstant;
-import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.PaymentSettlementService;
 
 import java.time.LocalDate;
@@ -36,16 +34,18 @@ public class SettlementController {
     }
 
     @GetMapping(value = "/process/{processDate}")
-    public ApiResponse<?> processSettlement(@PathVariable("processDate") String processDate) {
-        try {
-            log.debug("/settlement/process {}", processDate);
-            LocalDate date = LocalDate.parse(processDate, DateTime.FORMAT.YYMMDD);
+    public String processSettlement(
+            @RequestParam("group") String group,
+            @RequestParam("name") String name,
+            @RequestParam("async") boolean async,
+            @PathVariable("processDate") String processDate
+    ) {
+        log.debug("/settlement/process {}", processDate);
+        LocalDate date = LocalDate.parse(processDate, DateTime.FORMAT.YYMMDD);
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
             paymentSettlementService.processSettlement(date);
-            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
-        } catch (Exception e) {
-            log.error("Cannot process settlement", e);
-            return new ApiResponse<>(ApiHeaderConstant.COMMON.API_UNKNOWN_ERROR);
-        }
+            return null;
+        });
     }
 
 }

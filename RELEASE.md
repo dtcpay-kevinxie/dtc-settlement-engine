@@ -3,8 +3,9 @@
 [0.95.0] -
 
 * MatchMoveInitConfig optimization
-* Update parent & data-core & addon-integration
+* Update parent & data-core & data-finance & addon-integration
 * CryptoTxnChainService topUpGasThenTransfer
+* Complete Receivable process logic and Settlement logic
 
 [0.94.0] - 29 Sep 2022
 

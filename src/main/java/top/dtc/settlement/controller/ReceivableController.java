@@ -2,11 +2,10 @@ package top.dtc.settlement.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import top.dtc.addon.integration.scheduler.SchedulerEngineClient;
 import top.dtc.common.constant.DateTime;
+import top.dtc.common.enums.Module;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.ReceivableProcessService;
@@ -21,10 +20,16 @@ public class ReceivableController {
     @Autowired
     private ReceivableProcessService receivableProcessService;
 
-    @GetMapping(value = "/process/{receivableDate}")
-    public ApiResponse<?> processReceivable(@PathVariable("receivableDate") String receivableDate) {
+    @Autowired
+    SchedulerEngineClient schedulerEngineClient;
+
+    @GetMapping(value = "/process/{module}/{receivableDate}")
+    public ApiResponse<?> processReceivableByRequest(
+            @PathVariable("module") Module module,
+            @PathVariable("receivableDate") String receivableDate
+    ) {
         try {
-            log.debug("[GET] /process/{}", receivableDate);
+            log.debug("[GET] /receivable/process/{}/{}", module, receivableDate);
             LocalDate date = LocalDate.parse(receivableDate, DateTime.FORMAT.YYMMDD);
             receivableProcessService.processReceivable(date);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
@@ -32,6 +37,19 @@ public class ReceivableController {
             log.error("Cannot process receivable", e);
             return new ApiResponse<>(ApiHeaderConstant.RECEIVABLE.OTHER_ERROR(e.getMessage()));
         }
+    }
+
+    @GetMapping(value = "/scheduled")
+    public String processReceivable(
+            @RequestParam("group") String group,
+            @RequestParam("name") String name,
+            @RequestParam("async") boolean async
+    ) {
+        log.debug("[GET] /receivable/scheduled");
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
+            receivableProcessService.processReceivable(LocalDate.now().minusDays(1));
+            return null;
+        });
     }
 
 }
