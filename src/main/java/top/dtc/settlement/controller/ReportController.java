@@ -5,6 +5,8 @@ import net.sf.jsqlparser.util.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.addon.integration.scheduler.SchedulerEngineClient;
+import top.dtc.common.json.JSON;
+import top.dtc.common.model.api.ApiRequest;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.report_processor.service.MasReportService;
@@ -14,6 +16,7 @@ import java.time.LocalDate;
 import java.time.Year;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 
 @Log4j2
@@ -159,17 +162,17 @@ public class ReportController {
         });
     }
 
-    @GetMapping(value = "/settlement/send-settlement-report/{settlementId}/{recipientEmail}")
+    @PostMapping(value = "/settlement/send-settlement-report/{settlementId}")
     public String sendSettlementReport(
             @RequestParam("group") String group,
             @RequestParam("name") String name,
             @RequestParam("async") boolean async,
             @PathVariable("settlementId") Long settlementId,
-            @PathVariable("recipientEmail") String recipientEmail
+            @RequestBody ApiRequest<List<String>> req
     ) {
-        log.debug("/settlement/to-merchant/{}", settlementId);
+        log.debug("/settlement/to-merchant/{} {}", settlementId, JSON.stringify(req, true));
         return schedulerEngineClient.executeTask(group, name, async, () -> {
-            settlementReportService.sendSettlementReport(settlementId, recipientEmail);
+            settlementReportService.sendSettlementReport(settlementId, req.query);
             return null;
         });
     }

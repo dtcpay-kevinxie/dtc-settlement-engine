@@ -126,7 +126,7 @@ public class SettlementReportService {
         }
     }
 
-    public void sendSettlementReport(Long settlementId, String recipientEmail) {
+    public void sendSettlementReport(Long settlementId, List<String> recipientEmails) {
         Settlement settlement = settlementService.getById(settlementId);
         if (settlement == null) {
             throw new ValidationException("Invalid Settlement Id");
@@ -134,7 +134,7 @@ public class SettlementReportService {
         try {
             notificationEngineClient
                     .by(NotificationConstant.NAMES.SETTLEMENT_REPORT)
-                    .to(recipientEmail)
+                    .to(recipientEmails)
                     .dataMap(Map.of(
                             "client_name", commonValidationService.getClientName(settlement.merchantId),
                             "invoice_number", settlement.invoiceNumber
