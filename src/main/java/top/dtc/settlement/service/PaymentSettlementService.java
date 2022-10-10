@@ -9,7 +9,6 @@ import top.dtc.common.exception.ValidationException;
 import top.dtc.data.core.model.BinInfo;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.BinInfoService;
-import top.dtc.data.core.service.NonIndividualService;
 import top.dtc.data.core.service.PaymentTransactionService;
 import top.dtc.data.finance.enums.*;
 import top.dtc.data.finance.model.*;
@@ -56,9 +55,6 @@ public class PaymentSettlementService {
 
     @Autowired
     private PaymentTransactionService transactionService;
-
-    @Autowired
-    private NonIndividualService nonIndividualService;
 
     @Autowired
     PaymentFeeStructureService paymentFeeStructureService;
@@ -213,50 +209,46 @@ public class PaymentSettlementService {
                 settlementService.save(settlement); // Get settlement id for payoutReconcile
             }
             payoutReconcile.settlementId = settlement.id;
-            BigDecimal processingFee;
             if (flatFeeStructure != null) {
-                processingFee = calculateFee(settlement, paymentTransaction, flatFeeStructure);
+                calculateFee(settlement, paymentTransaction, flatFeeStructure);
             } else {
                 BinInfo binInfo = binInfoService.getFirstByBinNumber(paymentTransaction.truncatedPan.substring(0, 6));
                 //TODO Call getBinInfo API if null
-                processingFee = calculateFee(settlement, paymentTransaction, (binInfo == null || !"SGP".equals(binInfo.country)) ? foreignFeeStructure : localFeeStructure);
+                calculateFee(settlement, paymentTransaction, (binInfo == null || !"SGP".equals(binInfo.country)) ? foreignFeeStructure : localFeeStructure);
             }
             // payoutAmount = totalAmount + processingFee, processingFee is negate
-            payoutReconcile.payoutAmount = paymentTransaction.totalAmount.add(processingFee);
+            payoutReconcile.payoutAmount = paymentTransaction.totalAmount.add(paymentTransaction.mdr).add(paymentTransaction.processingFee);
             payoutReconcileService.saveOrUpdate(payoutReconcile);
         }
         return isSettlementUpdated;
     }
 
-    private BigDecimal calculateFee(Settlement settlement, PaymentTransaction paymentTransaction, PaymentFeeStructure paymentFeeStructure) {
-        BigDecimal perTxnFee = BigDecimal.ZERO;
-        BigDecimal txnMdrFee = BigDecimal.ZERO;
+    private void calculateFee(Settlement settlement, PaymentTransaction paymentTransaction, PaymentFeeStructure paymentFeeStructure) {
         switch (paymentTransaction.type) {
             case SALE, CAPTURE, MERCHANT_DYNAMIC_QR, CONSUMER_QR -> {
                 settlement.saleCount++;
                 settlement.saleAmount = settlement.saleAmount.add(paymentTransaction.totalAmount);
-                // saleProcessingFee is "-"
-                perTxnFee = paymentFeeStructure.saleFee.negate();
-                settlement.saleProcessingFee = settlement.saleProcessingFee.add(perTxnFee);
-                // mdrFee is "-"
-                txnMdrFee = paymentFeeStructure.mdr.multiply(paymentTransaction.totalAmount).setScale(paymentTransaction.requestCurrency.exponent, RoundingMode.HALF_UP).negate();
-                settlement.mdrFee = settlement.mdrFee.add(txnMdrFee);
+                // paymentTransaction.processingFee is "-"
+                paymentTransaction.processingFee = paymentFeeStructure.saleFee.negate();
+                settlement.saleProcessingFee = settlement.saleProcessingFee.add(paymentTransaction.processingFee);
+                // paymentTransaction.mdr is "-"
+                paymentTransaction.mdr = paymentFeeStructure.mdr.multiply(paymentTransaction.totalAmount).setScale(paymentTransaction.requestCurrency.exponent, RoundingMode.HALF_UP).negate();
+                settlement.mdrFee = settlement.mdrFee.add(paymentTransaction.mdr);
             }
             case REFUND -> {
                 settlement.refundCount++;
                 settlement.refundAmount = settlement.refundAmount.add(paymentTransaction.totalAmount.negate());
-                // saleProcessingFee is "-"
-                perTxnFee = paymentFeeStructure.refundFee.negate();
-                settlement.refundProcessingFee = settlement.refundProcessingFee.add(perTxnFee);
+                // paymentTransaction.processingFee is "-"
+                paymentTransaction.processingFee = paymentFeeStructure.refundFee.negate();
+                settlement.refundProcessingFee = settlement.refundProcessingFee.add(paymentTransaction.processingFee);
                 // REFUND mdr is ZERO (will not be refunded),
                 // if configurable in the future, refunded mdr amount will be totalAmount * mdr (txnMdrFee will be "+" instead of "-")
-                settlement.mdrFee = settlement.mdrFee.add(txnMdrFee);
+                settlement.mdrFee = settlement.mdrFee.add(paymentTransaction.mdr);
             }
             default -> {
                 log.error("Invalid Transaction Type found {}", paymentTransaction);
             }
         }
-        return perTxnFee.add(txnMdrFee);
     }
 
     private void calculateReserve(Settlement settlement) {

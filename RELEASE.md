@@ -6,6 +6,7 @@
 * Update parent & data-core & data-finance & addon-integration
 * CryptoTxnChainService topUpGasThenTransfer
 * Complete Receivable process logic and Settlement logic
+* Add Settlement Report
 
 [0.94.0] - 29 Sep 2022
 

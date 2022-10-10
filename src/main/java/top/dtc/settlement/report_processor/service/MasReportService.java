@@ -1,4 +1,4 @@
-package top.dtc.settlement.service;
+package top.dtc.settlement.report_processor.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.BeanUtils;
@@ -37,7 +37,7 @@ import static top.dtc.settlement.constant.NotificationConstant.NAMES.MAS_REPORT;
 
 @Log4j2
 @Service
-public class ReportService {
+public class MasReportService {
 
     @Autowired
     NotificationProperties notificationProperties;

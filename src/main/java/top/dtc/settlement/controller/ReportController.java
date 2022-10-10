@@ -7,7 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import top.dtc.addon.integration.scheduler.SchedulerEngineClient;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
-import top.dtc.settlement.service.ReportService;
+import top.dtc.settlement.report_processor.service.MasReportService;
+import top.dtc.settlement.report_processor.service.SettlementReportService;
 
 import java.time.LocalDate;
 import java.time.Year;
@@ -23,7 +24,10 @@ public class ReportController {
     private final static YearMonth licenseStartedMonth = YearMonth.parse("202208", DateTimeFormatter.ofPattern("yyyyMM"));
 
     @Autowired
-    ReportService reportService;
+    MasReportService masReportService;
+
+    @Autowired
+    SettlementReportService settlementReportService;
 
     @Autowired
     SchedulerEngineClient schedulerEngineClient;
@@ -38,7 +42,7 @@ public class ReportController {
         return schedulerEngineClient.executeTask(group, name, async, () -> {
             YearMonth reportingMonth = YearMonth.now().minusMonths(1);
             LocalDate reportStartDate = getReportStartDate(reportingMonth, "A");
-            reportService.processMonthlyReport(reportStartDate, reportingMonth.atEndOfMonth());
+            masReportService.processMonthlyReport(reportStartDate, reportingMonth.atEndOfMonth());
             return null;
         });
     }
@@ -53,7 +57,7 @@ public class ReportController {
         return schedulerEngineClient.executeTask(group, name, async, () -> {
             Year reportingYear = Year.now();
             LocalDate reportStartDate = getReportStartDate(reportingYear.atMonth(1), "B");
-            reportService.processHalfYearReport(reportStartDate, reportingYear.atMonth(6).atEndOfMonth());
+            masReportService.processHalfYearReport(reportStartDate, reportingYear.atMonth(6).atEndOfMonth());
             return null;
         });
     }
@@ -68,7 +72,7 @@ public class ReportController {
         return schedulerEngineClient.executeTask(group, name, async, () -> {
             Year reportingYear = Year.now();
             LocalDate reportStartDate = getReportStartDate(reportingYear.atMonth(7), "B");
-            reportService.processHalfYearReport(reportStartDate, reportingYear.atMonth(12).atEndOfMonth());
+            masReportService.processHalfYearReport(reportStartDate, reportingYear.atMonth(12).atEndOfMonth());
             return null;
         });
     }
@@ -82,7 +86,7 @@ public class ReportController {
         log.debug("[GET] /mas/yearly");
         return schedulerEngineClient.executeTask(group, name, async, () -> {
             Year reportingYear = Year.now();
-            reportService.processMonthlyReport(reportingYear.atDay(1), reportingYear.atMonth(12).atEndOfMonth());
+            masReportService.processMonthlyReport(reportingYear.atDay(1), reportingYear.atMonth(12).atEndOfMonth());
             return null;
         });
     }
@@ -99,37 +103,37 @@ public class ReportController {
             LocalDate reportingStartDate = getReportStartDate(reportingMonth, reportType);
             switch (reportType.toUpperCase(Locale.ROOT)) {
                 case "1A":
-                    reportService.masReport1A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
+                    masReportService.masReport1A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
                     break;
                 case "1B":
-                    reportService.masReport1B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth());
+                    masReportService.masReport1B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth());
                     break;
                 case "2A":
-                    reportService.masReport2A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
+                    masReportService.masReport2A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
                     break;
                 case "2B":
-                    reportService.masReport2B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth(), null);
+                    masReportService.masReport2B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth(), null);
                     break;
                 case "3A":
-                    reportService.masReport3A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
+                    masReportService.masReport3A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
                     break;
                 case "3B":
-                    reportService.masReport3B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth(), null);
+                    masReportService.masReport3B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth(), null);
                     break;
                 case "4A":
-                    reportService.masReport4A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
+                    masReportService.masReport4A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
                     break;
                 case "4B":
-                    reportService.masReport4B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth(), null);
+                    masReportService.masReport4B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth(), null);
                     break;
                 case "5":
-                    reportService.masReport5(reportingStartDate, reportingMonth.atEndOfMonth(), null);
+                    masReportService.masReport5(reportingStartDate, reportingMonth.atEndOfMonth(), null);
                     break;
                 case "6A":
-                    reportService.masReport6A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
+                    masReportService.masReport6A(reportingStartDate, reportingMonth.atEndOfMonth(), null);
                     break;
                 case "6B":
-                    reportService.masReport6B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth(), null);
+                    masReportService.masReport6B(reportingStartDate, reportingMonth.plusMonths(5).atEndOfMonth(), null);
                     break;
                 default:
                     return new ApiResponse<>(ApiHeaderConstant.REPORT.INVALID_REPORT_TYPE());
@@ -139,6 +143,35 @@ public class ReportController {
             log.error("Cannot process MAS Report", e);
             return new ApiResponse<>(ApiHeaderConstant.REPORT.OTHER_ERROR(e.getMessage()));
         }
+    }
+
+    @GetMapping(value = "/settlement/to-merchant/{settlementId}")
+    public String sendSettlementReportToMerchant(
+            @RequestParam("group") String group,
+            @RequestParam("name") String name,
+            @RequestParam("async") boolean async,
+            @PathVariable("settlementId") Long settlementId
+    ) {
+        log.debug("/settlement/to-merchant/{}", settlementId);
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
+            settlementReportService.sendSettlementReportToMerchant(settlementId);
+            return null;
+        });
+    }
+
+    @GetMapping(value = "/settlement/send-settlement-report/{settlementId}/{recipientEmail}")
+    public String sendSettlementReport(
+            @RequestParam("group") String group,
+            @RequestParam("name") String name,
+            @RequestParam("async") boolean async,
+            @PathVariable("settlementId") Long settlementId,
+            @PathVariable("recipientEmail") String recipientEmail
+    ) {
+        log.debug("/settlement/to-merchant/{}", settlementId);
+        return schedulerEngineClient.executeTask(group, name, async, () -> {
+            settlementReportService.sendSettlementReport(settlementId, recipientEmail);
+            return null;
+        });
     }
 
     private LocalDate getReportStartDate(YearMonth reportingMonth, String reportType) {
