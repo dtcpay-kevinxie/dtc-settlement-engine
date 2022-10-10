@@ -386,7 +386,7 @@ public class MasReportXlsxProcessor {
         BigDecimal totalAmountHighRisk = ZERO;
         int countHighRisk = 0;
         Set<Long> highRiskClient = riskMatrixList.stream()
-                .map(RiskMatrix::getClientId)
+                .map(riskMatrix -> riskMatrix.clientId)
                 .collect(Collectors.toSet());
         // Calculate POBO Transaction
         for (PoboTransactionReport poboTransaction : poboTransactionList) {
@@ -525,7 +525,7 @@ public class MasReportXlsxProcessor {
         int countHighRisk = 0;
 
         Set<Long> highRiskClient = riskMatrixList.stream()
-                .map(RiskMatrix::getClientId)
+                .map(riskMatrix -> riskMatrix.clientId)
                 .collect(Collectors.toSet());
 
         // POBO transactions are all outward
@@ -889,7 +889,7 @@ public class MasReportXlsxProcessor {
         // Form 6B-3
         long countNonFaceToFace = riskMatrixList.stream()
                 .filter(riskMatrix -> riskMatrix.verificationType == VerificationType.NON_FACE_TO_FACE)
-                .map(RiskMatrix::getClientId)
+                .map(riskMatrix -> riskMatrix.clientId)
                 .count();
         processor.getCellByPos(sheet0, "D23").setCellValue(dptClientInSGP.size());
         processor.getCellByPos(sheet0, "D24").setCellValue(dptClientOutsideSGP.size());
@@ -938,7 +938,7 @@ public class MasReportXlsxProcessor {
         printTop5ByAmountIn6B(processor, sheet0, otcNotSGDList, 54);
         printTop5ByCountIn6B(processor, sheet0, otcNotSGDList, 59);
         // Form 6B-5 (d)
-        Set<Long> highRiskIds = riskMatrixList.stream().filter(riskMatrix -> riskMatrix.riskLevel == RiskLevel.HIGH).map(RiskMatrix::getClientId).collect(Collectors.toSet());
+        Set<Long> highRiskIds = riskMatrixList.stream().filter(riskMatrix -> riskMatrix.riskLevel == RiskLevel.HIGH).map(riskMatrix -> riskMatrix.clientId).collect(Collectors.toSet());
         List<OtcReport> otcHighRiskList = otcList.stream().filter(otc -> highRiskIds.contains(otc.clientId)).toList();
         printTop5ByCountIn6B(processor, sheet0, otcHighRiskList, 64); // Need to update when listed trading crypto is more than 5
         // Form 6B-5 (e)

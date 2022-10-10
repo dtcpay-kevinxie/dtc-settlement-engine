@@ -952,7 +952,7 @@ public class CryptoTransactionProcessService {
         }
     }
 
-    private Long getDefaultAutoSweepAddress(DefaultConfig defaultConfig, MainNet mainNet) {
+    public Long getDefaultAutoSweepAddress(DefaultConfig defaultConfig, MainNet mainNet) {
         return switch (mainNet) {
             case BITCOIN  -> defaultConfig.defaultAutoSweepBtcAddress;
             case ETHEREUM -> defaultConfig.defaultAutoSweepErcAddress;

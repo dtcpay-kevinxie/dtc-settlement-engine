@@ -6,9 +6,11 @@ import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.dtc.addon.integration.crypto_engine.domain.CryptoWallet;
 import top.dtc.common.enums.Module;
 import top.dtc.common.enums.*;
 import top.dtc.common.exception.ValidationException;
+import top.dtc.common.json.JSON;
 import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.DefaultConfigService;
@@ -25,6 +27,10 @@ import top.dtc.data.finance.service.InternalTransferService;
 import top.dtc.data.finance.service.PaymentCostStructureService;
 import top.dtc.data.finance.service.PayoutReconcileService;
 import top.dtc.data.finance.service.ReceivableService;
+import top.dtc.data.risk.enums.WalletAddressType;
+import top.dtc.data.risk.model.KycWalletAddress;
+import top.dtc.data.risk.service.KycWalletAddressService;
+import top.dtc.settlement.module.crypto_txn_chain.service.CryptoTxnChainService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -56,6 +62,15 @@ public class ReceivableProcessService {
 
     @Autowired
     DefaultConfigService defaultConfigService;
+
+    @Autowired
+    CryptoTxnChainService cryptoTxnChainService;
+
+    @Autowired
+    CryptoTransactionProcessService cryptoTransactionProcessService;
+
+    @Autowired
+    KycWalletAddressService kycWalletAddressService;
 
     public void processReceivable(LocalDate transactionDate) {
         for (Module module : Module.values()) {
@@ -234,7 +249,43 @@ public class ReceivableProcessService {
             log.debug("Transaction {} Sweep init or completed already", paymentTransaction.id);
             return;
         }
-        //TODO: Process Sweep logic here
+        try {
+            // Get gas wallet
+            KycWalletAddress gasAddress = kycWalletAddressService.getOneGasAddress(paymentTransaction.module.mainNet());
+            if (gasAddress == null) {
+                log.error("Invalid DTC_GAS address in Auto-sweep {}", JSON.stringify(paymentTransaction, true));
+                return;
+            }
+            // Get ops wallet
+            DefaultConfig defaultConfig = defaultConfigService.getById(1L);
+            Long defaultAutoSweepAddress = cryptoTransactionProcessService.getDefaultAutoSweepAddress(defaultConfig, paymentTransaction.module.mainNet());
+            KycWalletAddress dtcOpsAddress = kycWalletAddressService.getById(defaultAutoSweepAddress);
+            if (dtcOpsAddress == null || !dtcOpsAddress.enabled || dtcOpsAddress.type != WalletAddressType.DTC_OPS) {
+                log.error("Invalid DTC_OPS address {} in Auto-sweep {}", defaultAutoSweepAddress, JSON.stringify(paymentTransaction, true));
+                return;
+            }
+            // process
+            cryptoTxnChainService.topUpGasThenTransfer(
+                    paymentTransaction.module.mainNet(),
+                    paymentTransaction.processingCurrency,
+                    CryptoWallet.unhostedWallet(
+                            gasAddress.type.account,
+                            gasAddress.addressIndex
+                    ),
+                    CryptoWallet.hostedWallet(
+                            (Integer) paymentTransaction.additionalData.get("account"),
+                            (Integer) paymentTransaction.additionalData.get("address_index"),
+                            paymentTransaction.acquirerTid
+                    ),
+                    CryptoWallet.unhostedWallet(
+                            dtcOpsAddress.type.account,
+                            dtcOpsAddress.addressIndex
+                    ),
+                    paymentTransaction.id
+            );
+        } catch (Exception e) {
+            log.error("sweepReceivableCrypto error. {}", JSON.stringify(paymentTransaction, true), e);
+        }
 
     }
 

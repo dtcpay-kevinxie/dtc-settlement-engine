@@ -3,7 +3,7 @@
 [0.95.0] -
 
 * MatchMoveInitConfig optimization
-* Update parent & data-core & data-finance & addon-integration
+* Update parent & data-* & addon-integration
 * CryptoTxnChainService topUpGasThenTransfer
 * Complete Receivable process logic and Settlement logic
 * Add Settlement Report
