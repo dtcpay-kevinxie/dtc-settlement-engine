@@ -20,8 +20,9 @@ public class NotificationConstant {
         public static final String SETTLEMENT_REPORT = "SETTLEMENT_REPORT";
         public static final String MAS_REPORT = "MAS_REPORT";
         public static final String FIAT_NOTIFICATION = "FIAT_NOTIFICATION";
-        public static final String POBO_NOTIFICATION = "POBO_NOTIFICATION";
+        public static final String POBO_TRANSACTION_COMPLETED = "POBO_TRANSACTION_COMPLETED";
         public static final String CRYPTO_NOTIFICATION = "CRYPTO_NOTIFICATION";
+        public static final String POBO_NOTIFICATION = "POBO_NOTIFICATION";
     }
 
 }

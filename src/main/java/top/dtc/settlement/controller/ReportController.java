@@ -164,17 +164,11 @@ public class ReportController {
 
     @PostMapping(value = "/settlement/send-settlement-report/{settlementId}")
     public String sendSettlementReport(
-            @RequestParam("group") String group,
-            @RequestParam("name") String name,
-            @RequestParam("async") boolean async,
             @PathVariable("settlementId") Long settlementId,
             @RequestBody ApiRequest<List<String>> req
     ) {
-        log.debug("/settlement/to-merchant/{} {}", settlementId, JSON.stringify(req, true));
-        return schedulerEngineClient.executeTask(group, name, async, () -> {
-            settlementReportService.sendSettlementReport(settlementId, req.query);
-            return null;
-        });
+        log.debug("/settlement/send-settlement-report/{} {}", settlementId, JSON.stringify(req, true));
+        return settlementReportService.sendSettlementReport(settlementId, req.query);
     }
 
     private LocalDate getReportStartDate(YearMonth reportingMonth, String reportType) {

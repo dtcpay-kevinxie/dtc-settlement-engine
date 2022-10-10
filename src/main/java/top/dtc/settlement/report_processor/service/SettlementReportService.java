@@ -126,7 +126,7 @@ public class SettlementReportService {
         }
     }
 
-    public void sendSettlementReport(Long settlementId, List<String> recipientEmails) {
+    public String sendSettlementReport(Long settlementId, List<String> recipientEmails) {
         Settlement settlement = settlementService.getById(settlementId);
         if (settlement == null) {
             throw new ValidationException("Invalid Settlement Id");
@@ -141,10 +141,11 @@ public class SettlementReportService {
                     ))
                     .attachment(settlement.invoiceNumber + ".xlsx", genSettlementReport(settlement).toByteArray())
                     .send();
+            return "success";
         } catch (Exception e) {
             log.error("Notification Error", e);
         }
-
+            return "failed";
     }
 
     public SettleReportXlsxProcessor genSettlementReport(Settlement settlement) throws IOException, IllegalAccessException {
