@@ -8,6 +8,7 @@
 * Complete Receivable process logic and Settlement logic
 * Add Settlement Report
 * Optimize Lombok annotations usages
+* Set Java DNS TTL to 5 in the Dockerfile
 
 [0.94.0] - 29 Sep 2022
 
