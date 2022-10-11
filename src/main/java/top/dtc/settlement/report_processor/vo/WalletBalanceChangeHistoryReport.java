@@ -1,7 +1,5 @@
 package top.dtc.settlement.report_processor.vo;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 import top.dtc.addon.data_processor.DataRecord;
 import top.dtc.addon.data_processor.RecordField;
 import top.dtc.data.wallet.model.WalletBalanceHistory;
@@ -10,8 +8,6 @@ import java.math.BigDecimal;
 
 import static top.dtc.addon.data_processor.RecordFieldType.ENUM_NAME;
 
-@Data
-@EqualsAndHashCode(callSuper = true)
 @DataRecord(mappings = {
         @RecordField(order = 0, title = "Client ID", path = "clientId"),
         @RecordField(order = 1, title = "Wallet Account ID", path = "walletAccountId"),

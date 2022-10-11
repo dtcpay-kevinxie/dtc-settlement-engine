@@ -1,12 +1,10 @@
 package top.dtc.settlement.module.silvergate.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-@Data
 public class AccountWireSummaryResp {
 
     @JsonProperty("SequenceNumber")
@@ -19,7 +17,6 @@ public class AccountWireSummaryResp {
     @JsonProperty("Errors")
     public List<Error> errors;
 
-    @Data
     public static class EWireSummary {
         @JsonProperty("TransactionNumber_1")
         public String transactionNumber_1;
@@ -71,7 +68,6 @@ public class AccountWireSummaryResp {
         public String uniqueId;
     }
 
-    @Data
     static class Error {
         @JsonProperty("MESSAGEID")
         public String messageId;

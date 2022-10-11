@@ -1,8 +1,5 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import lombok.Data;
-
-@Data
 public class AccountHistoryReq {
 
     public String accountNumber;
