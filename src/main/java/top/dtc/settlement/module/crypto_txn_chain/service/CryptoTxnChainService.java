@@ -25,6 +25,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import static top.dtc.addon.integration.crypto_engine.enums.NotifyInstantly.SETTLEMENT_ENGINE;
+
 @Log4j2
 @Service
 public class CryptoTxnChainService {
@@ -94,7 +96,7 @@ public class CryptoTxnChainService {
             freeze.receiverWallet = senderWallet;
             freeze.amount = TRON_FEE_LIMIT.divide(new BigDecimal(1_000_000));
             freeze.resource = CryptoFreezeResource.ENERGY;
-            freeze.notifyInstantly = true;
+            freeze.notifyInstantly = SETTLEMENT_ENGINE;
 
             topUpGasThenTransfer.gasTxnId = cryptoEngineClient.freeze(mainNet, freeze);
         } else {
@@ -107,12 +109,12 @@ public class CryptoTxnChainService {
             send.advancedSettings = advancedSettings;
 
             CryptoTransactionSend gasSend = new CryptoTransactionSend();
-            send.type = ContractType.TRANSFER;
-            send.currency = mainNet.nativeCurrency;
-            send.inputs.add(new CryptoInOutSend(gasWallet));
-            send.outputs.add(new CryptoInOutSend(senderWallet, feeEstimateResult.propose));
-            send.advancedSettings = new CryptoAdvancedSettings();
-            send.advancedSettings.notifyInstantly = true;
+            gasSend.type = ContractType.TRANSFER;
+            gasSend.currency = mainNet.nativeCurrency;
+            gasSend.inputs.add(new CryptoInOutSend(gasWallet));
+            gasSend.outputs.add(new CryptoInOutSend(senderWallet, feeEstimateResult.propose));
+            gasSend.advancedSettings = new CryptoAdvancedSettings();
+            gasSend.advancedSettings.notifyInstantly = SETTLEMENT_ENGINE;
 
             topUpGasThenTransfer.gasTxnId = cryptoEngineClient.txnSend(mainNet, gasSend);
 
@@ -125,7 +127,7 @@ public class CryptoTxnChainService {
             internalTransfer.feeCurrency = mainNet.nativeCurrency;
             internalTransfer.senderAccountId = Long.valueOf(gasWallet.addressIndex);
             internalTransfer.senderAccountType = AccountType.CRYPTO;
-            internalTransfer.recipientAccountType = AccountType.PAY_ADDRESS;
+            internalTransfer.recipientAccountType = AccountType.PAYMENT_TXN_ID;
             internalTransfer.recipientAccountId = transactionId;
             internalTransfer.description = "Top Up gas for " + senderWallet.address;
             internalTransfer.referenceNo = topUpGasThenTransfer.gasTxnId;
@@ -179,7 +181,7 @@ public class CryptoTxnChainService {
             internalTransfer.amount = output.amount;
             internalTransfer.currency = send.currency;
             internalTransfer.feeCurrency = result.mainNet.nativeCurrency;
-            internalTransfer.senderAccountType = AccountType.PAY_ADDRESS;
+            internalTransfer.senderAccountType = AccountType.PAYMENT_TXN_ID;
             internalTransfer.senderAccountId = topUpGasThenTransfer.transactionId;
             internalTransfer.recipientAccountId = Long.valueOf(output.wallet.addressIndex);
             internalTransfer.recipientAccountType = AccountType.CRYPTO;
