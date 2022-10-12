@@ -2,7 +2,6 @@ package top.dtc.settlement.module.crypto_txn_chain.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import top.dtc.addon.integration.crypto_engine.CryptoEngineClient;
 import top.dtc.addon.integration.crypto_engine.domain.*;
@@ -30,9 +29,6 @@ import static top.dtc.addon.integration.crypto_engine.enums.NotifyInstantly.SETT
 @Log4j2
 @Service
 public class CryptoTxnChainService {
-
-    @Value("TRON_FEE_LIMIT")
-    private static BigDecimal TRON_FEE_LIMIT;
 
     @Autowired
     CryptoEngineClient cryptoEngineClient;
