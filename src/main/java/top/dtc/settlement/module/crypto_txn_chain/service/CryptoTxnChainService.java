@@ -12,7 +12,7 @@ import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.MainNet;
 import top.dtc.common.enums.crypto.ContractType;
-import top.dtc.common.enums.crypto.CryptoFreezeResource;
+import top.dtc.common.enums.crypto.GasLevel;
 import top.dtc.common.json.JSON;
 import top.dtc.data.finance.enums.InternalTransferReason;
 import top.dtc.data.finance.enums.InternalTransferStatus;
@@ -81,6 +81,16 @@ public class CryptoTxnChainService {
         send.currency = currency;
         send.inputs.add(new CryptoInOutSend(senderWallet));
         send.outputs.add(new CryptoInOutSend(recipientWallet, amount));
+        send.advancedSettings = new CryptoAdvancedSettings();
+        send.advancedSettings.gasLevel = GasLevel.PROPOSE;
+
+        CryptoGasAutoTopUp gasAutoTopUp = new CryptoGasAutoTopUp();
+        gasAutoTopUp.gasWallet = gasWallet;
+        gasAutoTopUp.transactionSend = send;
+        gasAutoTopUp.notifyInstantly = SETTLEMENT_ENGINE;
+
+        CryptoGasAutoTopUpResult gasAutoTopUpResult = cryptoEngineClient.gasAutoTopUp(mainNet, gasAutoTopUp);
+        send.advancedSettings = gasAutoTopUpResult.transactionSend.advancedSettings;
 
         // Build object part1
         TopUpGasThenTransfer topUpGasThenTransfer = new TopUpGasThenTransfer();
@@ -88,41 +98,15 @@ public class CryptoTxnChainService {
         topUpGasThenTransfer.gasWallet = gasWallet;
         topUpGasThenTransfer.transfer = send;
         topUpGasThenTransfer.transactionId = transactionId;
+        topUpGasThenTransfer.gasTxnId = gasAutoTopUpResult.id;
 
         // Top Up gas / freeze
-        if (mainNet == MainNet.TRON) {
-            CryptoFreeze freeze = new CryptoFreeze();
-            freeze.wallet = gasWallet;
-            freeze.receiverWallet = senderWallet;
-            freeze.amount = TRON_FEE_LIMIT.divide(new BigDecimal(1_000_000));
-            freeze.resource = CryptoFreezeResource.ENERGY;
-            freeze.notifyInstantly = SETTLEMENT_ENGINE;
-
-            topUpGasThenTransfer.gasTxnId = cryptoEngineClient.freeze(mainNet, freeze);
-        } else {
-            // Gas estimate
-            CryptoTransactionFeeEstimateResult feeEstimateResult = cryptoEngineClient.gasEstimate(mainNet, send);
-            // Fill advancedSettings
-            CryptoAdvancedSettings advancedSettings = new CryptoAdvancedSettings();
-            advancedSettings.gasLimit = feeEstimateResult.gasLimit;
-            advancedSettings.gasPrice = feeEstimateResult.gasPrices.propose; // TODO propose level gas?
-            send.advancedSettings = advancedSettings;
-
-            CryptoTransactionSend gasSend = new CryptoTransactionSend();
-            gasSend.type = ContractType.TRANSFER;
-            gasSend.currency = mainNet.nativeCurrency;
-            gasSend.inputs.add(new CryptoInOutSend(gasWallet));
-            gasSend.outputs.add(new CryptoInOutSend(senderWallet, feeEstimateResult.propose));
-            gasSend.advancedSettings = new CryptoAdvancedSettings();
-            gasSend.advancedSettings.notifyInstantly = SETTLEMENT_ENGINE;
-
-            topUpGasThenTransfer.gasTxnId = cryptoEngineClient.txnSend(mainNet, gasSend);
-
+        if (mainNet != MainNet.TRON) {
             // InternalTransfer
             InternalTransfer internalTransfer = new InternalTransfer();
             internalTransfer.reason = InternalTransferReason.GAS;
             internalTransfer.status = InternalTransferStatus.INIT;
-            internalTransfer.amount = feeEstimateResult.propose; // TODO propose level gas?
+            internalTransfer.amount = gasAutoTopUpResult.gasAmount;
             internalTransfer.currency = mainNet.nativeCurrency;
             internalTransfer.feeCurrency = mainNet.nativeCurrency;
             internalTransfer.senderAccountId = Long.valueOf(gasWallet.addressIndex);
