@@ -86,26 +86,26 @@ public class SilvergateApiService {
     private void storeAccessTokenAndKey(String accountNumber, String accessToken, String subscriptionKey) {
         String accessTokenAccount = getAccountType(accountNumber) + accountNumber;
         settlementRedisOps.set(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(accessTokenAccount),
+                RedisConstant.DB.SETTLEMENT.KEY.SILVERGATE_ACCESS_TOKEN(accessTokenAccount),
                 accessToken,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN
+                RedisConstant.DB.SETTLEMENT.TIMEOUT.SILVERGATE_ACCESS_TOKEN
         );
         settlementRedisOps.set(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(accessTokenAccount),
+                RedisConstant.DB.SETTLEMENT.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(accessTokenAccount),
                 subscriptionKey,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.SILVERGATE_ACCESS_TOKEN
+                RedisConstant.DB.SETTLEMENT.TIMEOUT.SILVERGATE_ACCESS_TOKEN
         );
     }
 
     private String getAccessTokenFromCache(String accountNumber) {
         String token = settlementRedisOps.get(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber),
+                RedisConstant.DB.SETTLEMENT.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber),
                 String.class
         );
         if (StringUtils.isBlank(token)) {
             refreshAccessToken(accountNumber);
             token = settlementRedisOps.get(
-                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber),
+                    RedisConstant.DB.SETTLEMENT.KEY.SILVERGATE_ACCESS_TOKEN(getAccountType(accountNumber) + accountNumber),
                     String.class
             );
         }
@@ -115,13 +115,13 @@ public class SilvergateApiService {
 
     private String getAccessTokenSubscriptionKeyFromCache(String accountNumber) {
         String subscriptionKey = settlementRedisOps.get(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber),
+                RedisConstant.DB.SETTLEMENT.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber),
                 String.class
         );
         if (StringUtils.isBlank(subscriptionKey)) {
             refreshAccessToken(accountNumber);
             subscriptionKey = settlementRedisOps.get(
-                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber),
+                    RedisConstant.DB.SETTLEMENT.KEY.SILVERGATE_ACCESS_TOKEN_SUBSCRIPTION_KEY(getAccountType(accountNumber) + accountNumber),
                     String.class
             );
         }

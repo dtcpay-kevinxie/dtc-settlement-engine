@@ -119,27 +119,27 @@ public class CryptoTxnChainService {
         // Save redis
         String uuid = UUID.randomUUID().toString();
         settlementRedisOps.set(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(uuid),
+                RedisConstant.DB.SETTLEMENT.KEY.CTC(uuid),
                 topUpGasThenTransfer,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
         );
         settlementRedisOps.set(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(transactionId),
+                RedisConstant.DB.SETTLEMENT.KEY.CTC(transactionId),
                 uuid,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
         );
         settlementRedisOps.set(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(mainNet, topUpGasThenTransfer.gasTxnId),
+                RedisConstant.DB.SETTLEMENT.KEY.CTC(mainNet, topUpGasThenTransfer.gasTxnId),
                 uuid,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
         );
 
         return uuid;
     }
 
     public void topUpGasThenTransfer(CryptoTransactionResult result) {
-        String uuid = settlementRedisOps.get(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, result.id), String.class);
-        TopUpGasThenTransfer topUpGasThenTransfer = settlementRedisOps.get(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(uuid), TopUpGasThenTransfer.class);
+        String uuid = settlementRedisOps.get(RedisConstant.DB.SETTLEMENT.KEY.CTC(result.mainNet, result.id), String.class);
+        TopUpGasThenTransfer topUpGasThenTransfer = settlementRedisOps.get(RedisConstant.DB.SETTLEMENT.KEY.CTC(uuid), TopUpGasThenTransfer.class);
         CryptoTransactionSend send = topUpGasThenTransfer.transfer;
         CryptoInOutSend output = send.outputs.get(0);
 
@@ -172,22 +172,22 @@ public class CryptoTxnChainService {
             topUpGasThenTransfer.transferInternalTransferId = internalTransfer.id;
 
             settlementRedisOps.set(
-                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(uuid),
+                    RedisConstant.DB.SETTLEMENT.KEY.CTC(uuid),
                     topUpGasThenTransfer,
-                    RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                    RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
             );
             settlementRedisOps.set(
-                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, topUpGasThenTransfer.transferTxnId),
+                    RedisConstant.DB.SETTLEMENT.KEY.CTC(result.mainNet, topUpGasThenTransfer.transferTxnId),
                     uuid,
-                    RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                    RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
             );
         } else if (result.id.equals(topUpGasThenTransfer.transferTxnId)) { // transfer
             boolean completed = this.handleInternalTransferResult(result, topUpGasThenTransfer, topUpGasThenTransfer.transferInternalTransferId);
             if (completed) {
-                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, topUpGasThenTransfer.transferTxnId));
-                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, topUpGasThenTransfer.gasTxnId));
-                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(topUpGasThenTransfer.transactionId));
-                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(uuid));
+                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT.KEY.CTC(result.mainNet, topUpGasThenTransfer.transferTxnId));
+                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT.KEY.CTC(result.mainNet, topUpGasThenTransfer.gasTxnId));
+                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT.KEY.CTC(topUpGasThenTransfer.transactionId));
+                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT.KEY.CTC(uuid));
             }
         }
     }

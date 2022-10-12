@@ -242,7 +242,7 @@ public class CryptoTransactionProcessService {
         if (CryptoEngineUtils.isResultEmpty(result)) {
             log.error("Notify txn result invalid {}", JSON.stringify(result, true));
         }
-        if (settlementRedisOps.exists(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, result.id))) {
+        if (settlementRedisOps.exists(RedisConstant.DB.SETTLEMENT.KEY.CTC(result.mainNet, result.id))) {
             cryptoTxnChainService.topUpGasThenTransfer(result);
             return;
         }
