@@ -54,17 +54,19 @@ public class SettleReportXlsxProcessor {
         for (Brand brand : feeStructureMap.keySet()) {
             List<PaymentFeeStructure> feeStructures = feeStructureMap.get(brand);
             feeStructures.forEach(paymentFeeStructure -> {
-                processor.txnFeeConfig += String.format("%s %s (%s%%)\n", brand, paymentFeeStructure.feeType.desc, paymentFeeStructure.mdr.multiply(new BigDecimal(100)));
-                processor.perSaleFeeConfig += String.format("%s %s (%s)\n", brand, paymentFeeStructure.feeType.desc, paymentFeeStructure.saleFee);
-                processor.perRefundFeeConfig += String.format("%s %s (%s)\n", brand, paymentFeeStructure.feeType.desc, paymentFeeStructure.refundFee);
-                processor.perChargebackFeeConfig += String.format("%s %s (%s)\n", brand, paymentFeeStructure.feeType.desc, paymentFeeStructure.chargebackFee);
+                if (paymentFeeStructure.enabled) {
+                    processor.txnFeeConfig += String.format("%s %s (%s%%)\n", brand, paymentFeeStructure.feeType.desc, paymentFeeStructure.mdr.multiply(new BigDecimal(100)));
+                    processor.perSaleFeeConfig += String.format("%s %s (%s)\n", brand, paymentFeeStructure.feeType.desc, paymentFeeStructure.saleFee);
+                    processor.perRefundFeeConfig += String.format("%s %s (%s)\n", brand, paymentFeeStructure.feeType.desc, paymentFeeStructure.refundFee);
+                    processor.perChargebackFeeConfig += String.format("%s %s (%s)\n", brand, paymentFeeStructure.feeType.desc, paymentFeeStructure.chargebackFee);
+                }
             });
         }
         processor.fill();
         return processor;
     }
 
-    private void fill() throws IllegalAccessException {
+    private void fill() {
         CellStyle percentCellStyle = this.workbook.createCellStyle();
         percentCellStyle.setDataFormat(this.workbook.createDataFormat().getFormat("0%"));
         /*

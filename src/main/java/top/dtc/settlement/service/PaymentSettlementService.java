@@ -60,6 +60,9 @@ public class PaymentSettlementService {
     PaymentFeeStructureService paymentFeeStructureService;
 
     @Autowired
+    PaymentTransactionService paymentTransactionService;
+
+    @Autowired
     BinInfoService binInfoService;
 
     // Process All types of auto-settlement
@@ -124,8 +127,8 @@ public class PaymentSettlementService {
             log.debug("Settlement Not Updated");
             return;
         }
-        calculateFinalAmount(settlement);
         calculateReserve(settlement);
+        calculateFinalAmount(settlement);
         settlementService.updateById(settlement);
     }
 
@@ -176,13 +179,16 @@ public class PaymentSettlementService {
 
     private boolean calculateTransaction(List<PaymentTransaction> transactionList, SettlementConfig settlementConfig, Settlement settlement) {
         boolean isSettlementUpdated = false;
-        PaymentFeeStructure flatFeeStructure = paymentFeeStructureService.getOneBySettlementConfigIdAndFeeTypeAndCurrency(settlementConfig.id, FeeType.FLAT_FEE, settlementConfig.currency);
+        PaymentFeeStructure flatFeeStructure = paymentFeeStructureService.getOneBySettlementConfigIdAndFeeTypeAndCurrencyAndEnabled(
+                settlementConfig.id, FeeType.FLAT_FEE, settlementConfig.currency, true);
         PaymentFeeStructure localFeeStructure = null;
         PaymentFeeStructure foreignFeeStructure = null;
         if (flatFeeStructure == null) {
             // No flatFee setup
-            localFeeStructure = paymentFeeStructureService.getOneBySettlementConfigIdAndFeeTypeAndCurrency(settlementConfig.id, FeeType.LOCAL_CARD, settlementConfig.currency);
-            foreignFeeStructure = paymentFeeStructureService.getOneBySettlementConfigIdAndFeeTypeAndCurrency(settlementConfig.id, FeeType.FOREIGN_CARD, settlementConfig.currency);
+            localFeeStructure = paymentFeeStructureService.getOneBySettlementConfigIdAndFeeTypeAndCurrencyAndEnabled(
+                    settlementConfig.id, FeeType.LOCAL_CARD, settlementConfig.currency, true);
+            foreignFeeStructure = paymentFeeStructureService.getOneBySettlementConfigIdAndFeeTypeAndCurrencyAndEnabled(
+                    settlementConfig.id, FeeType.FOREIGN_CARD, settlementConfig.currency, true);
             if (localFeeStructure == null || foreignFeeStructure == null) {
                 log.error("Fee Structure is not setup properly.");
                 throw new ValidationException("Fee Structure is not setup properly.");
@@ -218,6 +224,8 @@ public class PaymentSettlementService {
             }
             // payoutAmount = totalAmount + processingFee, processingFee is negate
             payoutReconcile.payoutAmount = paymentTransaction.totalAmount.add(paymentTransaction.mdr).add(paymentTransaction.processingFee);
+            paymentTransaction.settlementStatus = SettlementStatus.SUBMITTED;
+            paymentTransactionService.updateById(paymentTransaction);
             payoutReconcileService.saveOrUpdate(payoutReconcile);
         }
         return isSettlementUpdated;
@@ -254,6 +262,7 @@ public class PaymentSettlementService {
     private void calculateReserve(Settlement settlement) {
         ReserveConfig reserveConfig = reserveConfigService.getOneByClientIdAndCurrency(settlement.merchantId, settlement.currency);
         if (reserveConfig == null
+                || !reserveConfig.enabled
                 || reserveConfig.type == ReserveType.FIXED && reserveConfig.amount.compareTo(BigDecimal.ZERO) <= 0
                 || reserveConfig.type == ReserveType.ROLLING && reserveConfig.percentage.compareTo(BigDecimal.ZERO) <= 0
         ) {
