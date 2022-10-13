@@ -1,12 +1,10 @@
 package top.dtc.settlement.report_processor.vo;
 
 import com.google.common.base.Objects;
-import lombok.Data;
 import top.dtc.common.enums.Currency;
 
 import java.math.BigDecimal;
 
-@Data
 public class TotalSortingObject {
 
     public Long clientId;

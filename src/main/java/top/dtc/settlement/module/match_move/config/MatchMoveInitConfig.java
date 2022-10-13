@@ -70,7 +70,7 @@ public class MatchMoveInitConfig {
                     if (webhookDetails != null && !webhookDetails.items.isEmpty()) {
                         final List<GetWebhookDetailResp.Item> items = webhookDetails.items;
                         Map<String, GetWebhookDetailResp.Item> webhooksMap = items.stream()
-                                .collect(Collectors.toMap(GetWebhookDetailResp.Item::getId, itemsResp -> itemsResp));
+                                .collect(Collectors.toMap(item -> item.id, itemsResp -> itemsResp));
                         if (webhooksMap.containsKey(webhookId)
                                 && matchMoveProperties.webhookUrl.equalsIgnoreCase(webhooksMap.get(webhookId).url)) {
                             log.info("Webhook registered");

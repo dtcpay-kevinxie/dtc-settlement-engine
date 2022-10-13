@@ -583,7 +583,7 @@ public class MasReportXlsxProcessor {
                 outwardCountByCountry
                         .values()
                         .stream()
-                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                        .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalCount)))
                         .limit(10)
                         .toList();
 
@@ -750,7 +750,7 @@ public class MasReportXlsxProcessor {
                         ))
                         .values()
                         .stream()
-                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                        .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalCount)))
                         .limit(10)
                         .toList();
         for (int i = 0; i < totalCountByMerchantList.size(); i++) {
@@ -945,7 +945,7 @@ public class MasReportXlsxProcessor {
         List<TotalSortingObject> top5HeldDPT = cryptoAccountList.stream()
                 .filter(walletAccount -> walletAccount.currency.isCrypto() && walletAccount.status == WalletStatus.ACTIVE)
                 .collect(Collectors.toMap(
-                        WalletAccount::getCurrency,
+                        walletAccount -> walletAccount.currency,
                         x -> {
                             TotalSortingObject totalByCurrency = new TotalSortingObject(null, null, x.currency);
                             totalByCurrency.totalAmountInSGD = x.balance.multiply(ratesMap.get(endDate).get(x.currency));
@@ -959,7 +959,7 @@ public class MasReportXlsxProcessor {
                 ))
                 .values()
                 .stream()
-                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
+                .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalAmountInSGD)))
                 .limit(5)
                 .toList();
         for (int i = 0; i < top5HeldDPT.size(); i++) {
@@ -977,7 +977,7 @@ public class MasReportXlsxProcessor {
         List<TotalSortingObject> heldByHighRiskDPT = cryptoAccountList.stream()
                 .filter(walletAccount -> highRiskIds.contains(walletAccount.clientId))
                 .collect(Collectors.toMap(
-                        WalletAccount::getCurrency,
+                        walletAccount -> walletAccount.currency,
                         x -> {
                             TotalSortingObject totalByCurrency = new TotalSortingObject(null, null, x.currency);
                             totalByCurrency.totalAmountInSGD = x.balance.multiply(ratesMap.get(endDate).get(x.currency));
@@ -991,7 +991,7 @@ public class MasReportXlsxProcessor {
                 ))
                 .values()
                 .stream()
-                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
+                .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalAmountInSGD)))
                 .limit(5)
                 .toList();
         for (int i = 0; i < heldByHighRiskDPT.size(); i++) {
@@ -1050,7 +1050,7 @@ public class MasReportXlsxProcessor {
 
     private static void printTop5ByAmountIn6B(MasReportXlsxProcessor processor, XSSFSheet sheet, List<OtcReport> otcListToSort, int startedRow) {
         List<TotalSortingObject> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
-                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
+                .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalAmountInSGD)))
                 .limit(5)
                 .toList();
         print6bTop5(processor, sheet, otcNotSGDSortedByAmount, startedRow);
@@ -1058,7 +1058,7 @@ public class MasReportXlsxProcessor {
 
     private static void printTop5ByCountIn6B(MasReportXlsxProcessor processor, XSSFSheet sheet, List<OtcReport> otcListToSort, int startedRow) {
         List<TotalSortingObject> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
-                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalCount)))
                 .limit(5)
                 .toList();
         print6bTop5(processor, sheet, otcNotSGDSortedByAmount, startedRow);

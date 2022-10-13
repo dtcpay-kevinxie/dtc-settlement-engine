@@ -2,7 +2,6 @@ package top.dtc.settlement.module.crypto_txn_chain.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import top.dtc.addon.integration.crypto_engine.CryptoEngineClient;
 import top.dtc.addon.integration.crypto_engine.domain.*;
@@ -12,7 +11,7 @@ import top.dtc.common.enums.CryptoTransactionState;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.MainNet;
 import top.dtc.common.enums.crypto.ContractType;
-import top.dtc.common.enums.crypto.CryptoFreezeResource;
+import top.dtc.common.enums.crypto.GasLevel;
 import top.dtc.common.json.JSON;
 import top.dtc.data.finance.enums.InternalTransferReason;
 import top.dtc.data.finance.enums.InternalTransferStatus;
@@ -25,12 +24,11 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import static top.dtc.addon.integration.crypto_engine.enums.NotifyInstantly.SETTLEMENT_ENGINE;
+
 @Log4j2
 @Service
 public class CryptoTxnChainService {
-
-    @Value("TRON_FEE_LIMIT")
-    private static BigDecimal TRON_FEE_LIMIT;
 
     @Autowired
     CryptoEngineClient cryptoEngineClient;
@@ -79,6 +77,16 @@ public class CryptoTxnChainService {
         send.currency = currency;
         send.inputs.add(new CryptoInOutSend(senderWallet));
         send.outputs.add(new CryptoInOutSend(recipientWallet, amount));
+        send.advancedSettings = new CryptoAdvancedSettings();
+        send.advancedSettings.gasLevel = GasLevel.PROPOSE;
+
+        CryptoGasAutoTopUp gasAutoTopUp = new CryptoGasAutoTopUp();
+        gasAutoTopUp.gasWallet = gasWallet;
+        gasAutoTopUp.transactionSend = send;
+        gasAutoTopUp.notifyInstantly = SETTLEMENT_ENGINE;
+
+        CryptoGasAutoTopUpResult gasAutoTopUpResult = cryptoEngineClient.gasAutoTopUp(mainNet, gasAutoTopUp);
+        send.advancedSettings = gasAutoTopUpResult.transactionSend.advancedSettings;
 
         // Build object part1
         TopUpGasThenTransfer topUpGasThenTransfer = new TopUpGasThenTransfer();
@@ -86,41 +94,15 @@ public class CryptoTxnChainService {
         topUpGasThenTransfer.gasWallet = gasWallet;
         topUpGasThenTransfer.transfer = send;
         topUpGasThenTransfer.transactionId = transactionId;
+        topUpGasThenTransfer.gasTxnId = gasAutoTopUpResult.id;
 
         // Top Up gas / freeze
-        if (mainNet == MainNet.TRON) {
-            CryptoFreeze freeze = new CryptoFreeze();
-            freeze.wallet = gasWallet;
-            freeze.receiverWallet = senderWallet;
-            freeze.amount = TRON_FEE_LIMIT.divide(new BigDecimal(1_000_000));
-            freeze.resource = CryptoFreezeResource.ENERGY;
-            freeze.notifyInstantly = true;
-
-            topUpGasThenTransfer.gasTxnId = cryptoEngineClient.freeze(mainNet, freeze);
-        } else {
-            // Gas estimate
-            CryptoTransactionFeeEstimateResult feeEstimateResult = cryptoEngineClient.gasEstimate(mainNet, send);
-            // Fill advancedSettings
-            CryptoAdvancedSettings advancedSettings = new CryptoAdvancedSettings();
-            advancedSettings.gasLimit = feeEstimateResult.gasLimit;
-            advancedSettings.gasPrice = feeEstimateResult.gasPrices.propose; // TODO propose level gas?
-            send.advancedSettings = advancedSettings;
-
-            CryptoTransactionSend gasSend = new CryptoTransactionSend();
-            send.type = ContractType.TRANSFER;
-            send.currency = mainNet.nativeCurrency;
-            send.inputs.add(new CryptoInOutSend(gasWallet));
-            send.outputs.add(new CryptoInOutSend(senderWallet, feeEstimateResult.propose));
-            send.advancedSettings = new CryptoAdvancedSettings();
-            send.advancedSettings.notifyInstantly = true;
-
-            topUpGasThenTransfer.gasTxnId = cryptoEngineClient.txnSend(mainNet, gasSend);
-
+        if (mainNet != MainNet.TRON) {
             // InternalTransfer
             InternalTransfer internalTransfer = new InternalTransfer();
             internalTransfer.reason = InternalTransferReason.GAS;
             internalTransfer.status = InternalTransferStatus.INIT;
-            internalTransfer.amount = feeEstimateResult.propose; // TODO propose level gas?
+            internalTransfer.amount = gasAutoTopUpResult.gasAmount;
             internalTransfer.currency = mainNet.nativeCurrency;
             internalTransfer.feeCurrency = mainNet.nativeCurrency;
             internalTransfer.senderAccountId = Long.valueOf(gasWallet.addressIndex);
@@ -137,27 +119,27 @@ public class CryptoTxnChainService {
         // Save redis
         String uuid = UUID.randomUUID().toString();
         settlementRedisOps.set(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(uuid),
+                RedisConstant.DB.SETTLEMENT.KEY.CTC(uuid),
                 topUpGasThenTransfer,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
         );
         settlementRedisOps.set(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(transactionId),
+                RedisConstant.DB.SETTLEMENT.KEY.CTC(transactionId),
                 uuid,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
         );
         settlementRedisOps.set(
-                RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(mainNet, topUpGasThenTransfer.gasTxnId),
+                RedisConstant.DB.SETTLEMENT.KEY.CTC(mainNet, topUpGasThenTransfer.gasTxnId),
                 uuid,
-                RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
         );
 
         return uuid;
     }
 
     public void topUpGasThenTransfer(CryptoTransactionResult result) {
-        String uuid = settlementRedisOps.get(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, result.id), String.class);
-        TopUpGasThenTransfer topUpGasThenTransfer = settlementRedisOps.get(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(uuid), TopUpGasThenTransfer.class);
+        String uuid = settlementRedisOps.get(RedisConstant.DB.SETTLEMENT.KEY.CTC(result.mainNet, result.id), String.class);
+        TopUpGasThenTransfer topUpGasThenTransfer = settlementRedisOps.get(RedisConstant.DB.SETTLEMENT.KEY.CTC(uuid), TopUpGasThenTransfer.class);
         CryptoTransactionSend send = topUpGasThenTransfer.transfer;
         CryptoInOutSend output = send.outputs.get(0);
 
@@ -190,22 +172,22 @@ public class CryptoTxnChainService {
             topUpGasThenTransfer.transferInternalTransferId = internalTransfer.id;
 
             settlementRedisOps.set(
-                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(uuid),
+                    RedisConstant.DB.SETTLEMENT.KEY.CTC(uuid),
                     topUpGasThenTransfer,
-                    RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                    RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
             );
             settlementRedisOps.set(
-                    RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, topUpGasThenTransfer.transferTxnId),
+                    RedisConstant.DB.SETTLEMENT.KEY.CTC(result.mainNet, topUpGasThenTransfer.transferTxnId),
                     uuid,
-                    RedisConstant.DB.SETTLEMENT_ENGINE.TIMEOUT.CTC
+                    RedisConstant.DB.SETTLEMENT.TIMEOUT.CTC
             );
         } else if (result.id.equals(topUpGasThenTransfer.transferTxnId)) { // transfer
             boolean completed = this.handleInternalTransferResult(result, topUpGasThenTransfer, topUpGasThenTransfer.transferInternalTransferId);
             if (completed) {
-                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, topUpGasThenTransfer.transferTxnId));
-                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(result.mainNet, topUpGasThenTransfer.gasTxnId));
-                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(topUpGasThenTransfer.transactionId));
-                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT_ENGINE.KEY.CTC(uuid));
+                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT.KEY.CTC(result.mainNet, topUpGasThenTransfer.transferTxnId));
+                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT.KEY.CTC(result.mainNet, topUpGasThenTransfer.gasTxnId));
+                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT.KEY.CTC(topUpGasThenTransfer.transactionId));
+                settlementRedisOps.delete(RedisConstant.DB.SETTLEMENT.KEY.CTC(uuid));
             }
         }
     }

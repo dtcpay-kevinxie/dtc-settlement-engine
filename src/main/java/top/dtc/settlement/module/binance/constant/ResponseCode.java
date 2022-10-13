@@ -4,12 +4,10 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.Maps;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 import java.util.Arrays;
 import java.util.Map;
 
-@Getter
 @AllArgsConstructor
 public enum ResponseCode {
 
@@ -26,7 +24,7 @@ public enum ResponseCode {
 
     public static final Map<String, ResponseCode> CODE_MAP = Maps.uniqueIndex(
             Arrays.asList(values()),
-            ResponseCode::getCode
+            responseCode -> responseCode.code
     );
 
     public static ResponseCode getMessage(String code) {

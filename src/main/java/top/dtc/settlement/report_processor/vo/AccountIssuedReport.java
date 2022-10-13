@@ -1,13 +1,9 @@
 package top.dtc.settlement.report_processor.vo;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 import top.dtc.addon.data_processor.DataRecord;
 import top.dtc.addon.data_processor.RecordField;
 import top.dtc.data.core.model.MonitoringMatrix;
 
-@EqualsAndHashCode(callSuper = true)
-@Data
 @DataRecord(mappings = {
         @RecordField(order = 0, title = "Client ID", path = "clientId")
 })

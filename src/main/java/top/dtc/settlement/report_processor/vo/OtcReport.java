@@ -1,7 +1,5 @@
 package top.dtc.settlement.report_processor.vo;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 import top.dtc.addon.data_processor.DataRecord;
 import top.dtc.addon.data_processor.RecordField;
 import top.dtc.data.core.model.Otc;
@@ -12,8 +10,6 @@ import static top.dtc.addon.data_processor.RecordFieldType.AMOUNT;
 import static top.dtc.addon.data_processor.RecordFieldType.ENUM_NAME;
 import static top.dtc.settlement.constant.DateConstant.FORMAT.DATETIME;
 
-@Data
-@EqualsAndHashCode(callSuper = true)
 @DataRecord(mappings = {
         @RecordField(order = 0, title = "ID", path = "id"),
         @RecordField(order = 1, title = "Client ID", path = "clientId"),

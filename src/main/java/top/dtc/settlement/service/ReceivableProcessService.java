@@ -2,7 +2,6 @@ package top.dtc.settlement.service;
 
 import com.google.common.base.Objects;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -320,7 +319,6 @@ public class ReceivableProcessService {
     }
 
 
-    @Data
     @AllArgsConstructor
     private static class CostStructureKey {
         public Currency currency;

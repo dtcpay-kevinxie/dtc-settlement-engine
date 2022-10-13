@@ -1,11 +1,9 @@
 package top.dtc.settlement.module.silvergate.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
 
 import java.util.List;
 
-@Data
 public class AccountListResp {
 
     @JsonProperty("SEQUENCE")
@@ -15,7 +13,6 @@ public class AccountListResp {
     @JsonProperty("ERROR")
     public List<Error> errorList;
 
-    @Data
     static class ResponseData {
         @JsonProperty("RECS_RETURNED")
         public Integer recs_returned; //default: 0
@@ -25,7 +22,6 @@ public class AccountListResp {
         public List<CustAcct> custAcctList;
     }
 
-    @Data
     static class CustAcct {
         @JsonProperty("APPLCD")
         public String applCD;
@@ -60,7 +56,6 @@ public class AccountListResp {
 
     }
 
-    @Data
     static class Error {
         @JsonProperty("MESSAGEID")
         public String messageId;
