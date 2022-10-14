@@ -1,12 +1,12 @@
 package top.dtc.settlement.report_processor.service;
 
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.addon.integration.notification.NotificationEngineClient;
 import top.dtc.common.enums.Brand;
 import top.dtc.common.exception.ValidationException;
+import top.dtc.common.json.JSON;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.BinInfoService;
 import top.dtc.data.core.service.CountryService;
@@ -173,9 +173,7 @@ public class SettlementReportService {
                 = transactionIds.stream()
                 .map(transactionId -> {
                     PaymentTransaction paymentTransaction = paymentTransactionService.getById(transactionId);
-                    SettlementTransactionReport settlementTransactionReport = new SettlementTransactionReport();
-                    BeanUtils.copyProperties(paymentTransaction, settlementTransactionReport);
-                    return settlementTransactionReport;
+                    return JSON.clone(paymentTransaction, SettlementTransactionReport.class);
                 })
                 .toList()
                 .stream()

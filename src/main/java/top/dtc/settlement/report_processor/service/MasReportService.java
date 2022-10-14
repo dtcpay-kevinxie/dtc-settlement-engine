@@ -1,12 +1,12 @@
 package top.dtc.settlement.report_processor.service;
 
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.dtc.addon.integration.notification.NotificationEngineClient;
 import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.*;
+import top.dtc.common.json.JSON;
 import top.dtc.common.util.ClientTypeUtils;
 import top.dtc.data.core.enums.ClientStatus;
 import top.dtc.data.core.enums.OtcStatus;
@@ -446,8 +446,7 @@ public class MasReportService {
                 ).stream()
                 .filter(poboTransaction -> poboTransaction.recipientCurrency.isFiat())
                 .map(poboTransaction -> {
-                    PoboTransactionReport poboTransactionReport = new PoboTransactionReport();
-                    BeanUtils.copyProperties(poboTransaction, poboTransactionReport);
+                    PoboTransactionReport poboTransactionReport = JSON.clone(poboTransaction, PoboTransactionReport.class);
                     poboTransactionReport.recipientCountry = remitInfoService.getById(poboTransactionReport.recipientAccountId).beneficiaryBankCountry;
                     poboTransactionReport.rateToSGD = ratesMap.get(poboTransactionReport.approvedTime.toLocalDate()).get(poboTransactionReport.recipientCurrency);
                     return poboTransactionReport;
@@ -482,8 +481,7 @@ public class MasReportService {
                         endDate.plusDays(1).atStartOfDay()
                 ).stream()
                 .map(fiatTransaction -> {
-                    FiatTransactionReport fiatTransactionReport = new FiatTransactionReport();
-                    BeanUtils.copyProperties(fiatTransaction, fiatTransactionReport);
+                    FiatTransactionReport fiatTransactionReport = JSON.clone(fiatTransaction, FiatTransactionReport.class);
                     fiatTransactionReport.recipientCountry = remitInfoService.getById(fiatTransaction.remitInfoId).beneficiaryBankCountry;
                     fiatTransactionReport.rateToSGD = ratesMap.get(fiatTransactionReport.completedTime.toLocalDate()).get(fiatTransactionReport.currency);
                     return fiatTransactionReport;
@@ -505,8 +503,7 @@ public class MasReportService {
                 null,
                 null
         ).stream().map(paymentTransaction -> {
-            PaymentTransactionReport paymentTransactionReport = new PaymentTransactionReport();
-            BeanUtils.copyProperties(paymentTransaction, paymentTransactionReport);
+            PaymentTransactionReport paymentTransactionReport = JSON.clone(paymentTransaction, PaymentTransactionReport.class);
             paymentTransactionReport.rateToSGD = ratesMap.get(paymentTransactionReport.dtcTimestamp.toLocalDate()).get(paymentTransactionReport.requestCurrency);
             return paymentTransactionReport;
         }).toList();
@@ -521,8 +518,7 @@ public class MasReportService {
                 startDate.atStartOfDay(),
                 endDate.plusDays(1).atStartOfDay()
         ).stream().filter(otc -> otc.clientId != 1L).map(otc -> {
-            OtcReport otcReport = new OtcReport();
-            BeanUtils.copyProperties(otc, otcReport);
+            OtcReport otcReport = JSON.clone(otc, OtcReport.class);
             otcReport.rateToSGD = ratesMap.get(otcReport.completedTime.toLocalDate()).get(otcReport.fiatCurrency);
             return otcReport;
         }).toList();
@@ -540,8 +536,7 @@ public class MasReportService {
                 startDate.atStartOfDay(),
                 endDate.plusDays(1).atStartOfDay()
         ).stream().map(cryptoTransaction -> {
-            CryptoTransactionReport cryptoTransactionReport = new CryptoTransactionReport();
-            BeanUtils.copyProperties(cryptoTransaction, cryptoTransactionReport);
+            CryptoTransactionReport cryptoTransactionReport = JSON.clone(cryptoTransaction, CryptoTransactionReport.class);
             cryptoTransactionReport.rateToSGD = ratesMap.get(cryptoTransaction.requestTimestamp.toLocalDate()).get(cryptoTransaction.currency);
             return cryptoTransactionReport;
         }).toList();
@@ -556,10 +551,8 @@ public class MasReportService {
                         endDate.plusDays(1).atStartOfDay()
                 ).stream()
                 .map(walletBalanceHistory -> {
-                    WalletBalanceChangeHistoryReport walletBalanceChangeHistoryReport = new WalletBalanceChangeHistoryReport();
-                    BeanUtils.copyProperties(walletBalanceHistory, walletBalanceChangeHistoryReport);
-                    walletBalanceChangeHistoryReport.flowDirection
-                            = walletBalanceHistory.changeAmount.compareTo(BigDecimal.ZERO) > 0 ? "PLACEMENT" : "WITHDRAWAL";
+                    WalletBalanceChangeHistoryReport walletBalanceChangeHistoryReport = JSON.clone(walletBalanceHistory, WalletBalanceChangeHistoryReport.class);
+                    walletBalanceChangeHistoryReport.flowDirection = walletBalanceHistory.changeAmount.compareTo(BigDecimal.ZERO) > 0 ? "PLACEMENT" : "WITHDRAWAL";
                     walletBalanceChangeHistoryReport.rateToSGD = ratesMap.get(walletBalanceHistory.lastUpdatedDate.toLocalDate()).get(walletBalanceHistory.currency);
                     return walletBalanceChangeHistoryReport;
                 })
