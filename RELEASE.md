@@ -4,7 +4,7 @@
 
 * MatchMoveInitConfig optimization
 * Update parent & data-* & addon-*
-* CryptoTxnChainService topUpGasThenTransfer
+* CryptoTxnChainService sweepChain
 * Complete Receivable process logic and Settlement logic
 * Add Settlement Report
 * Optimize Lombok annotations usages
