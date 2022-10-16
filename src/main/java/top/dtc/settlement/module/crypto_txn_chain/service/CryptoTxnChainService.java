@@ -86,6 +86,7 @@ public class CryptoTxnChainService {
                         send.outputs.add(new CryptoInOutSend(chain.recipientWallet, amount));
                         send.advancedSettings = new CryptoAdvancedSettings();
                         send.advancedSettings.gasLevel = GasLevel.PROPOSE;
+                        send.notifyTarget = CryptoNotifyTarget.SETTLEMENT_ENGINE;
 
                         // Auto top-up
                         CryptoGasAutoTopUp gasAutoTopUp = new CryptoGasAutoTopUp();
@@ -149,7 +150,7 @@ public class CryptoTxnChainService {
                         CryptoTransactionSend send = chain.transfer;
                         CryptoInOutSend output = send.outputs.get(0);
 
-                        chain.transferTxnId = cryptoEngineClient.txnSend(result.mainNet, send);
+                        chain.transferTxnId = cryptoEngineClient.txnSend(result.mainNet, send, true);
 
                         // InternalTransfer
                         InternalTransfer internalTransfer = new InternalTransfer();
@@ -220,7 +221,7 @@ public class CryptoTxnChainService {
                 gasAddress.addressIndex
         );
         chain.senderWallet = CryptoWallet.hostedWallet(
-                Integer.valueOf(paymentTransaction.additionalData.get("account")),
+                (int) (8500000000L - paymentTransaction.merchantId),
                 Integer.valueOf(paymentTransaction.additionalData.get("address_index")),
                 paymentTransaction.acquirerTid
         );
