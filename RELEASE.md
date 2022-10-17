@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.95.0] -
+[0.95.0] - 17 Oct 2022
 
 * MatchMoveInitConfig optimization
 * Update parent & data-* & addon-*
