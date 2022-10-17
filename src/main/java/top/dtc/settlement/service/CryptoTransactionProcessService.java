@@ -807,7 +807,11 @@ public class CryptoTransactionProcessService {
         input.wallet = CryptoWallet.unhostedWallet(senderAddress.type.account, senderAddress.addressIndex);
         input.amount = amount;
         if (recipientAddress.securityType == SecurityType.KMS) {
-            output.wallet = CryptoWallet.unhostedWallet(recipientAddress.type.account, recipientAddress.addressIndex);
+            output.wallet = CryptoWallet.unhostedWallet(
+                    recipientAddress.type.account,
+                    recipientAddress.addressIndex,
+                    recipientAddress.address
+            );
         } else {
             output.wallet = CryptoWallet.addressOnly(recipientAddress.address);
         }
