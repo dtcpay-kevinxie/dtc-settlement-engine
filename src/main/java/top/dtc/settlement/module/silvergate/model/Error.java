@@ -1,9 +1,7 @@
 package top.dtc.settlement.module.silvergate.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
 
-@Data
 public class Error {
     @JsonProperty("MESSAGEID")
     public String messageId;

@@ -1,6 +1,5 @@
 package top.dtc.settlement.module.wechat.model;
 
-import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 
 import java.lang.reflect.Field;
@@ -11,7 +10,6 @@ import java.lang.reflect.Method;
  * Created by luo ting on 2017/11/09.
  */
 @Log4j2
-@Data
 public class WechatReconcileData {
 
     public String transactiontime;

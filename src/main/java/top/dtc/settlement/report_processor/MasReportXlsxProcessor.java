@@ -15,7 +15,6 @@ import top.dtc.data.core.enums.OtcType;
 import top.dtc.data.core.enums.TerminalType;
 import top.dtc.data.core.model.MonitoringMatrix;
 import top.dtc.data.core.model.NonIndividual;
-import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.model.Terminal;
 import top.dtc.data.finance.model.DailyBalanceRecord;
 import top.dtc.data.risk.enums.RiskLevel;
@@ -387,7 +386,7 @@ public class MasReportXlsxProcessor {
         BigDecimal totalAmountHighRisk = ZERO;
         int countHighRisk = 0;
         Set<Long> highRiskClient = riskMatrixList.stream()
-                .map(RiskMatrix::getClientId)
+                .map(riskMatrix -> riskMatrix.clientId)
                 .collect(Collectors.toSet());
         // Calculate POBO Transaction
         for (PoboTransactionReport poboTransaction : poboTransactionList) {
@@ -526,7 +525,7 @@ public class MasReportXlsxProcessor {
         int countHighRisk = 0;
 
         Set<Long> highRiskClient = riskMatrixList.stream()
-                .map(RiskMatrix::getClientId)
+                .map(riskMatrix -> riskMatrix.clientId)
                 .collect(Collectors.toSet());
 
         // POBO transactions are all outward
@@ -584,7 +583,7 @@ public class MasReportXlsxProcessor {
                 outwardCountByCountry
                         .values()
                         .stream()
-                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                        .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalCount)))
                         .limit(10)
                         .toList();
 
@@ -737,7 +736,7 @@ public class MasReportXlsxProcessor {
         List<TotalSortingObject> totalCountByMerchantList =
                 paymentTransactionList.stream()
                         .collect(Collectors.toMap(
-                                PaymentTransaction::getCountry,
+                                paymentTransactionReport -> paymentTransactionReport.country,
                                 x -> {
                                     TotalSortingObject totalCountByMerchant = new TotalSortingObject(x.merchantId, null, null);
                                     totalCountByMerchant.clientName = x.merchantName;
@@ -751,7 +750,7 @@ public class MasReportXlsxProcessor {
                         ))
                         .values()
                         .stream()
-                        .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                        .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalCount)))
                         .limit(10)
                         .toList();
         for (int i = 0; i < totalCountByMerchantList.size(); i++) {
@@ -890,7 +889,7 @@ public class MasReportXlsxProcessor {
         // Form 6B-3
         long countNonFaceToFace = riskMatrixList.stream()
                 .filter(riskMatrix -> riskMatrix.verificationType == VerificationType.NON_FACE_TO_FACE)
-                .map(RiskMatrix::getClientId)
+                .map(riskMatrix -> riskMatrix.clientId)
                 .count();
         processor.getCellByPos(sheet0, "D23").setCellValue(dptClientInSGP.size());
         processor.getCellByPos(sheet0, "D24").setCellValue(dptClientOutsideSGP.size());
@@ -939,14 +938,14 @@ public class MasReportXlsxProcessor {
         printTop5ByAmountIn6B(processor, sheet0, otcNotSGDList, 54);
         printTop5ByCountIn6B(processor, sheet0, otcNotSGDList, 59);
         // Form 6B-5 (d)
-        Set<Long> highRiskIds = riskMatrixList.stream().filter(riskMatrix -> riskMatrix.riskLevel == RiskLevel.HIGH).map(RiskMatrix::getClientId).collect(Collectors.toSet());
+        Set<Long> highRiskIds = riskMatrixList.stream().filter(riskMatrix -> riskMatrix.riskLevel == RiskLevel.HIGH).map(riskMatrix -> riskMatrix.clientId).collect(Collectors.toSet());
         List<OtcReport> otcHighRiskList = otcList.stream().filter(otc -> highRiskIds.contains(otc.clientId)).toList();
         printTop5ByCountIn6B(processor, sheet0, otcHighRiskList, 64); // Need to update when listed trading crypto is more than 5
         // Form 6B-5 (e)
         List<TotalSortingObject> top5HeldDPT = cryptoAccountList.stream()
                 .filter(walletAccount -> walletAccount.currency.isCrypto() && walletAccount.status == WalletStatus.ACTIVE)
                 .collect(Collectors.toMap(
-                        WalletAccount::getCurrency,
+                        walletAccount -> walletAccount.currency,
                         x -> {
                             TotalSortingObject totalByCurrency = new TotalSortingObject(null, null, x.currency);
                             totalByCurrency.totalAmountInSGD = x.balance.multiply(ratesMap.get(endDate).get(x.currency));
@@ -960,7 +959,7 @@ public class MasReportXlsxProcessor {
                 ))
                 .values()
                 .stream()
-                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
+                .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalAmountInSGD)))
                 .limit(5)
                 .toList();
         for (int i = 0; i < top5HeldDPT.size(); i++) {
@@ -978,7 +977,7 @@ public class MasReportXlsxProcessor {
         List<TotalSortingObject> heldByHighRiskDPT = cryptoAccountList.stream()
                 .filter(walletAccount -> highRiskIds.contains(walletAccount.clientId))
                 .collect(Collectors.toMap(
-                        WalletAccount::getCurrency,
+                        walletAccount -> walletAccount.currency,
                         x -> {
                             TotalSortingObject totalByCurrency = new TotalSortingObject(null, null, x.currency);
                             totalByCurrency.totalAmountInSGD = x.balance.multiply(ratesMap.get(endDate).get(x.currency));
@@ -992,7 +991,7 @@ public class MasReportXlsxProcessor {
                 ))
                 .values()
                 .stream()
-                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
+                .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalAmountInSGD)))
                 .limit(5)
                 .toList();
         for (int i = 0; i < heldByHighRiskDPT.size(); i++) {
@@ -1051,7 +1050,7 @@ public class MasReportXlsxProcessor {
 
     private static void printTop5ByAmountIn6B(MasReportXlsxProcessor processor, XSSFSheet sheet, List<OtcReport> otcListToSort, int startedRow) {
         List<TotalSortingObject> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
-                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalAmountInSGD)))
+                .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalAmountInSGD)))
                 .limit(5)
                 .toList();
         print6bTop5(processor, sheet, otcNotSGDSortedByAmount, startedRow);
@@ -1059,7 +1058,7 @@ public class MasReportXlsxProcessor {
 
     private static void printTop5ByCountIn6B(MasReportXlsxProcessor processor, XSSFSheet sheet, List<OtcReport> otcListToSort, int startedRow) {
         List<TotalSortingObject> otcNotSGDSortedByAmount = getUnsortedStream(otcListToSort)
-                .sorted(Collections.reverseOrder(Comparator.comparing(TotalSortingObject::getTotalCount)))
+                .sorted(Collections.reverseOrder(Comparator.comparing(totalSortingObject -> totalSortingObject.totalCount)))
                 .limit(5)
                 .toList();
         print6bTop5(processor, sheet, otcNotSGDSortedByAmount, startedRow);
@@ -1068,7 +1067,7 @@ public class MasReportXlsxProcessor {
     private static Stream<TotalSortingObject> getUnsortedStream(List<OtcReport> otcListToSort) {
         return otcListToSort.stream()
                 .collect(Collectors.toMap(
-                        OtcReport::getCryptoCurrency,
+                        otcReport -> otcReport.cryptoCurrency,
                         x -> {
                             TotalSortingObject totalByCurrency = new TotalSortingObject(null, null, x.cryptoCurrency);
                             totalByCurrency.totalAmountInSGD = x.fiatAmount.multiply(x.rateToSGD);

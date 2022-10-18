@@ -52,7 +52,7 @@ public class SilvergateInitConfig {
         log.info("Registered WebHook {}", registerRespList);
         if (registerRespList != null && registerRespList.size() > 0) {
             Map<String, WebHooksGetRegisterResp> webHookMap = registerRespList.stream()
-                    .collect(Collectors.toMap(WebHooksGetRegisterResp::getAccountNumber, registerResp -> registerResp));
+                    .collect(Collectors.toMap(webHooksGetRegisterResp -> webHooksGetRegisterResp.accountNumber, registerResp -> registerResp));
             if (webHookMap.containsKey(accountNumber)
                     && silvergateProperties.webHookUrl.equals(webHookMap.get(accountNumber).webHookUrl)
                     && silvergateProperties.webHookEmails.equals(webHookMap.get(accountNumber).emails)

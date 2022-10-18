@@ -1,10 +1,8 @@
 package top.dtc.settlement.model.api;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
 @NoArgsConstructor
 public class ApiRequest<T> {
 

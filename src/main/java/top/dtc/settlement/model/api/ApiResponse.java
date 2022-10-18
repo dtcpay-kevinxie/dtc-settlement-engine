@@ -1,12 +1,10 @@
 package top.dtc.settlement.model.api;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-@Data
 @NoArgsConstructor
 public class ApiResponse<T> {
 

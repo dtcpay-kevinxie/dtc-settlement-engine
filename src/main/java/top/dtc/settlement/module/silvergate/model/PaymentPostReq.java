@@ -1,10 +1,7 @@
 package top.dtc.settlement.module.silvergate.model;
 
-import lombok.Data;
-
 import java.math.BigDecimal;
 
-@Data
 public class PaymentPostReq {
 
     public String originator_account_number; //required

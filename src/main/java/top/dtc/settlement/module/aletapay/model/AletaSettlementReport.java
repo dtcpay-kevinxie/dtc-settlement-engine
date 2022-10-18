@@ -1,18 +1,15 @@
 package top.dtc.settlement.module.aletapay.model;
 
-import lombok.Data;
 import top.dtc.addon.data_processor.RecordField;
 import top.dtc.common.enums.Currency;
 
 import java.util.Date;
 import java.util.List;
 
-@Data
 public class AletaSettlementReport {
 
     public List<Record> records;
 
-    @Data
     public static class Record {
         @RecordField(order = 0)
         public String num;

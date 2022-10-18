@@ -2,27 +2,30 @@ package top.dtc.settlement.service;
 
 import com.google.common.base.Objects;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.dtc.common.enums.ActivityType;
-import top.dtc.common.enums.Currency;
 import top.dtc.common.enums.Module;
-import top.dtc.common.enums.SettlementStatus;
-import top.dtc.data.core.model.AcqRoute;
+import top.dtc.common.enums.*;
+import top.dtc.common.exception.ValidationException;
+import top.dtc.common.json.JSON;
+import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.model.PaymentTransaction;
-import top.dtc.data.core.service.AcqRouteService;
+import top.dtc.data.core.service.DefaultConfigService;
 import top.dtc.data.core.service.PaymentTransactionService;
+import top.dtc.data.finance.enums.FeeType;
+import top.dtc.data.finance.enums.InternalTransferStatus;
 import top.dtc.data.finance.enums.ReceivableStatus;
 import top.dtc.data.finance.enums.ReconcileStatus;
+import top.dtc.data.finance.model.InternalTransfer;
+import top.dtc.data.finance.model.PaymentCostStructure;
 import top.dtc.data.finance.model.PayoutReconcile;
 import top.dtc.data.finance.model.Receivable;
+import top.dtc.data.finance.service.InternalTransferService;
+import top.dtc.data.finance.service.PaymentCostStructureService;
 import top.dtc.data.finance.service.PayoutReconcileService;
 import top.dtc.data.finance.service.ReceivableService;
-import top.dtc.data.finance.service.SettlementCalendarService;
-import top.dtc.settlement.constant.SettlementConstant;
-import top.dtc.settlement.exception.ReceivableException;
+import top.dtc.settlement.module.crypto_txn_chain.service.CryptoTxnChainService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -38,37 +41,121 @@ import java.util.stream.Collectors;
 public class ReceivableProcessService {
 
     @Autowired
-    private PaymentTransactionService transactionService;
+    PaymentTransactionService paymentTransactionService;
 
     @Autowired
-    private AcqRouteService acqRouteService;
+    PayoutReconcileService payoutReconcileService;
 
     @Autowired
-    private PayoutReconcileService payoutReconcileService;
+    ReceivableService receivableService;
 
     @Autowired
-    private ReceivableService receivableService;
+    PaymentCostStructureService paymentCostStructureService;
 
     @Autowired
-    private SettlementCalendarService settlementCalendarService;
+    InternalTransferService internalTransferService;
 
-    public void processReceivable(LocalDate date) {
-        Map<ReceivableKey, List<PaymentTransaction>> txnReceivableMap = processReceivable(null, date.minusDays(1).atStartOfDay(), date.atStartOfDay());
-        if (txnReceivableMap == null) {
-            return;
-        }
-        for (ReceivableKey key : txnReceivableMap.keySet()) {
-            switch (key.module) {
-                case ALETA     -> processAletaReceivable(key, txnReceivableMap.get(key));
-                case CS_GP_CNP -> processGlobalPaymentReceivable(key, txnReceivableMap.get(key));
-                default -> log.error("Undefined Settlement Host {}", key.module);
-            }
+    @Autowired
+    DefaultConfigService defaultConfigService;
+
+    @Autowired
+    CryptoTxnChainService cryptoTxnChainService;
+
+    public void processReceivable(LocalDate transactionDate) {
+        for (Module module : Module.values()) {
+            processReceivable(transactionDate, module);
         }
     }
 
-    private Map<ReceivableKey, List<PaymentTransaction>> processReceivable(Module module, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+    public void processReceivable(LocalDate transactionDate, Module module) {
+        log.info("process {} Receivable {}", module, transactionDate);
+        switch (module) {
+            case WECHAT -> processWeChatPayReceivable(transactionDate);
+            case TRON -> processTronReceivable(transactionDate);
+            case BITCOIN -> processBtcReceivable(transactionDate);
+            case ETHEREUM -> processEthReceivable(transactionDate);
+            case POLYGON -> processPolygonReceivable(transactionDate);
+            case RD_DAPI -> {}
+            case RD_RAPI -> {}
+            case CS_GP_CNP -> processGlobalPaymentReceivable(transactionDate);
+            case ALETA -> {}
+        }
+    }
+
+    public void processGlobalPaymentReceivable(LocalDate transactionDate) {
+        Map<Currency, List<PaymentTransaction>> txnReceivableMap = processReceivable(
+                Module.CS_GP_CNP, transactionDate.atStartOfDay(), transactionDate.plusDays(1).atStartOfDay()); // From today 00:00 to tomorrow 00:00
+        if (txnReceivableMap == null) {
+            log.info("No CS_GP_CNP transactions at {}", transactionDate.minusDays(1));
+            return;
+        }
+        for (Currency processingCurrency : txnReceivableMap.keySet()) {
+            txnReceivableMap.get(processingCurrency).forEach(paymentTransaction -> {
+                paymentTransaction.settlementStatus = SettlementStatus.ACQ_SETTLED; // GP is PSP mode, no settlement needed
+                paymentTransactionService.updateById(paymentTransaction);
+            });
+        }
+    }
+
+    public void processWeChatPayReceivable(LocalDate transactionDate) {
+        Map<Currency, List<PaymentTransaction>> txnReceivableMap = processReceivable(
+                Module.WECHAT, transactionDate.atStartOfDay(), transactionDate.plusDays(1).atStartOfDay()); // From today 00:00 to tomorrow 00:00
+        if (txnReceivableMap == null) {
+            log.info("No WECHAT transactions at {}", transactionDate);
+            return;
+        }
+        for (Currency processingCurrency : txnReceivableMap.keySet()) {
+            //TODO: Call WECHAT API to get Settlement file for Receivable data
+        }
+    }
+
+    public void processEthReceivable(LocalDate transactionDate) {
+        Map<Currency, List<PaymentTransaction>> txnReceivableMap = processReceivable(
+                Module.ETHEREUM, transactionDate.atStartOfDay(), transactionDate.plusDays(1).atStartOfDay()); // From today 00:00 to tomorrow 00:00
+        if (txnReceivableMap == null) {
+            log.info("No ETHEREUM transactions at {}", transactionDate);
+            return;
+        }
+        DefaultConfig defaultConfig = defaultConfigService.getById(1L);
+        processCryptoReceivable(defaultConfig.defaultAutoSweepErcAddress, txnReceivableMap, transactionDate);
+    }
+
+    public void processTronReceivable(LocalDate transactionDate) {
+        Map<Currency, List<PaymentTransaction>> txnReceivableMap = processReceivable(
+                Module.TRON, transactionDate.atStartOfDay(), transactionDate.plusDays(1).atStartOfDay()); // From today 00:00 to tomorrow 00:00
+        if (txnReceivableMap == null) {
+            log.info("No TRON transactions at {}", transactionDate);
+            return;
+        }
+        DefaultConfig defaultConfig = defaultConfigService.getById(1L);
+        processCryptoReceivable(defaultConfig.defaultAutoSweepErcAddress, txnReceivableMap, transactionDate);
+    }
+
+    public void processBtcReceivable(LocalDate transactionDate) {
+        Map<Currency, List<PaymentTransaction>> txnReceivableMap = processReceivable(
+                Module.BITCOIN, transactionDate.atStartOfDay(), transactionDate.plusDays(1).atStartOfDay()); // From today 00:00 to tomorrow 00:00
+        if (txnReceivableMap == null) {
+            log.info("No BITCOIN transactions at {}", transactionDate);
+            return;
+        }
+        DefaultConfig defaultConfig = defaultConfigService.getById(1L);
+        processCryptoReceivable(defaultConfig.defaultAutoSweepErcAddress, txnReceivableMap, transactionDate);
+    }
+
+    public void processPolygonReceivable(LocalDate transactionDate) {
+        Map<Currency, List<PaymentTransaction>> txnReceivableMap = processReceivable(
+                Module.POLYGON, transactionDate.atStartOfDay(), transactionDate.plusDays(1).atStartOfDay()); // From today 00:00 to tomorrow 00:00
+        if (txnReceivableMap == null) {
+            log.info("No POLYGON transactions at {}", transactionDate);
+            return;
+        }
+        DefaultConfig defaultConfig = defaultConfigService.getById(1L);
+        processCryptoReceivable(defaultConfig.defaultAutoSweepErcAddress, txnReceivableMap, transactionDate);
+    }
+
+    private Map<Currency, List<PaymentTransaction>> processReceivable(Module module, LocalDateTime startDateTime, LocalDateTime endDateTime) {
         log.debug("Receivable Process for {}, {} - {}", module, startDateTime, endDateTime);
-        List<PaymentTransaction> transactionList = transactionService.getReceivableTransactions(
+        List<PaymentTransaction> transactionList = paymentTransactionService.getReceivableTransactions(
                 module, // null means ALL modules
                 startDateTime,
                 endDateTime
@@ -79,7 +166,7 @@ public class ReceivableProcessService {
         }
         return transactionList.stream()
                 .collect(Collectors.toMap(
-                        o -> new ReceivableKey(o.settlementCurrency, o.module, o.dtcTimestamp.toLocalDate()),
+                        o -> o.processingCurrency,
                         x -> {
                             List<PaymentTransaction> list = new ArrayList<>();
                             list.add(x);
@@ -93,99 +180,122 @@ public class ReceivableProcessService {
                 ));
     }
 
-    private void processAletaReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList) {
-        LocalDate receivableDate = settlementCalendarService.getClosestSettleDate(
-                receivableKey.module,
-                receivableKey.currency,
-                receivableKey.txnDate.plusDays(receivableKey.currency == Currency.SGD ? 1 : 2) // SGD: T+1; USD: T+2
-        );
-        if (receivableDate == null) {
-            throw new ReceivableException("No acquirer calendar found");
-        }
-        calculateReceivable(receivableKey, transactionList, receivableDate);
-    }
-
-    private void processGlobalPaymentReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList) {
-        transactionList.forEach(transaction -> {
-            transaction.settlementStatus = SettlementStatus.ACQ_SETTLED; // GP is PSP mode, no settlement needed
-            transactionService.updateById(transaction);
-        });
-    }
-
-    private void calculateReceivable(ReceivableKey receivableKey, List<PaymentTransaction> transactionList, LocalDate receivableDate) {
-        Receivable receivable = receivableService.getReceivableByDateAndPayerAndCurrency(
-                receivableDate,
-                SettlementConstant.MODULE.ALETA_SECURE_PAY.NAME,
-                receivableKey.currency
-        );
-        if (receivable == null) {
-            // Create new Receivable
-            receivable = new Receivable();
-            receivable.type = ActivityType.PAYMENT;
-            receivable.status = ReceivableStatus.NOT_RECEIVED;
-            receivable.amount = BigDecimal.ZERO;
-            receivable.currency = receivableKey.currency;
-            //TODO Add ALETA sender_id and sender_account_id
-            receivable.description = SettlementConstant.getDesc(receivableKey.txnDate);
-            receivable.receivableDate = receivableDate;
-            receivableService.save(receivable);
-        }
-        for (PaymentTransaction transaction : transactionList) {
-            PayoutReconcile reconcile = payoutReconcileService.getById(transaction.id);
-            if (reconcile != null) {
-                log.info("Transaction {} is exist with ReceivableId {}", transaction.id, reconcile.receivableId);
+    private void processCryptoReceivable(Long sweepRecipientAddressId, Map<Currency, List<PaymentTransaction>> txnReceivableMap, LocalDate transactionDate) {
+        for (Currency processingCurrency : txnReceivableMap.keySet()) {
+            Receivable receivable = receivableService.getPaymentSweepReceivable(
+                    ActivityType.PAYMENT, processingCurrency, sweepRecipientAddressId, transactionDate.plusDays(1)); // T+1 Receivable by sweeping
+            if (receivable != null &&
+                    (receivable.status == ReceivableStatus.RECEIVED || receivable.status == ReceivableStatus.CANCELLED)) {
+                log.error("Invalid Receivable {}", receivable);
                 continue;
             }
-            AcqRoute acqRoute = acqRouteService.getById(transaction.acqRouteId);
-            initialReconcile(transaction, receivable.id);
-            calculateAmount(receivable, transaction, acqRoute);
+            List<PaymentTransaction> paymentTransactionList = txnReceivableMap.get(processingCurrency).stream()
+                    .filter(paymentTransaction -> paymentTransaction.brand == Brand.CRYPTO_HOSTED)
+                    .toList();
+            if (paymentTransactionList.isEmpty()) {
+                log.info("No PaymentTransaction under currency {}", processingCurrency);
+                continue;
+            }
+            if (receivable == null) {
+                receivable = new Receivable();
+                receivable.type = ActivityType.PAYMENT;
+                receivable.status = ReceivableStatus.NOT_RECEIVED;
+                receivable.receivableDate = transactionDate.plusDays(1); // T+1 Receivable by sweeping
+                receivable.currency = processingCurrency;
+                receivable.recipientAccountId = sweepRecipientAddressId;
+                receivable.amount = BigDecimal.ZERO;
+                receivableService.save(receivable); // Save ZERO amount Receivable to get ID for PayoutReconcile
+            }
+            for (PaymentTransaction paymentTransaction : paymentTransactionList) {
+                PayoutReconcile payoutReconcile = payoutReconcileService.getById(paymentTransaction.id);
+                if (payoutReconcile == null) {
+                    log.debug("New PayoutReconcile ID {}", paymentTransaction.id);
+                    payoutReconcile = new PayoutReconcile();
+                    payoutReconcile.transactionId = paymentTransaction.id;
+                } else {
+                    log.debug("Reset Existing PayoutReconcile {}", payoutReconcile);
+                }
+                payoutReconcile.status = ReconcileStatus.PENDING;
+                payoutReconcile.requestAmount = paymentTransaction.totalAmount;
+                payoutReconcile.requestCurrency = paymentTransaction.requestCurrency;
+                payoutReconcile.receivableId = receivable.id;
+                payoutReconcileService.saveOrUpdate(payoutReconcile);
+                receivable.amount = receivable.amount.add(paymentTransaction.processingAmount); // Full amount receivable from Blockchain
+                if (payoutReconcile.receivedAmount != null) {
+                    receivable.receivedAmount = receivable.receivedAmount.add(payoutReconcile.receivedAmount);
+                }
+                sweepReceivableCrypto(paymentTransaction);
+            }
+            receivableService.updateById(receivable);
         }
-        receivableService.updateById(receivable);
     }
 
-    private void initialReconcile(PaymentTransaction transaction, Long receivableId) {
-        PayoutReconcile payoutReconcile = new PayoutReconcile();
-        payoutReconcile.transactionId = transaction.id;
-        payoutReconcile.status = ReconcileStatus.PENDING;
-        payoutReconcile.requestAmount = transaction.totalAmount;
-        payoutReconcile.requestCurrency = transaction.requestCurrency;
-        payoutReconcile.receivableId = receivableId;
-        payoutReconcileService.save(payoutReconcile);
+    private void sweepReceivableCrypto(PaymentTransaction paymentTransaction) {
+        List<InternalTransfer> sweepTransferList = internalTransferService.getCryptoPaymentSweep(paymentTransaction.id);
+        if (sweepTransferList != null &&
+                sweepTransferList.stream().anyMatch(internalTransfer -> internalTransfer.status == InternalTransferStatus.COMPLETED || internalTransfer.status == InternalTransferStatus.INIT)
+        ) {
+            log.debug("Transaction {} Sweep init or completed already", paymentTransaction.id);
+            return;
+        }
+        try {
+            cryptoTxnChainService.sweep(paymentTransaction);
+        } catch (Exception e) {
+            log.error("sweepReceivableCrypto error. {}", JSON.stringify(paymentTransaction, true), e);
+        }
+
     }
 
-    private void calculateAmount(Receivable receivable, PaymentTransaction transaction, AcqRoute acqRoute) {
-        BigDecimal receivableRate = BigDecimal.ONE.subtract(acqRoute.mdrCost);
+    private HashMap<CostStructureKey, PaymentCostStructure> getCostStructure(Module module) {
+        List<PaymentCostStructure> paymentCostStructureList = paymentCostStructureService.getByParams(
+                module,
+                null,
+                null
+        );
+        if (paymentCostStructureList == null || paymentCostStructureList.isEmpty()) {
+            throw new ValidationException("PaymentCostStructure not setup");
+        }
+        HashMap<CostStructureKey, PaymentCostStructure> paymentCostStructureHashMap = new HashMap<>();
+        paymentCostStructureList.forEach(paymentCostStructure -> {
+            paymentCostStructureHashMap.put(
+                    new CostStructureKey(paymentCostStructure.currency, paymentCostStructure.specialMccId, paymentCostStructure.feeType),
+                    paymentCostStructure
+            );
+        });
+        return paymentCostStructureHashMap;
+    }
+
+    private void calculateReceivableAmount(Receivable receivable, PaymentTransaction transaction, PaymentCostStructure paymentCostStructure) {
+        BigDecimal mdrCost = transaction.processingAmount.multiply(paymentCostStructure.mdr).negate();
+        BigDecimal perTxnCost = BigDecimal.ZERO;
         switch (transaction.type) {
-            case SALE, CONSUMER_QR, CAPTURE, MERCHANT_DYNAMIC_QR -> receivable.amount = receivable.amount
-                    .add(receivableRate.multiply(transaction.processingAmount.subtract(transaction.processingFee)))
-                    .subtract(acqRoute.saleCost);
-            case REFUND -> receivable.amount = receivable.amount
-                    .subtract(transaction.processingAmount)
-                    .subtract(acqRoute.refundCost);
+            case SALE, CAPTURE, MERCHANT_DYNAMIC_QR, CONSUMER_QR -> perTxnCost = paymentCostStructure.saleFee.negate();
+            case REFUND -> perTxnCost = paymentCostStructure.refundFee.negate();
         }
+        receivable.amount = receivable.amount.add(transaction.totalAmount).add(mdrCost).add(perTxnCost);
         log.debug("Receivable Amount {}", receivable.amount);
     }
 
-    @Data
+
     @AllArgsConstructor
-    private static class ReceivableKey {
+    private static class CostStructureKey {
         public Currency currency;
-        public Module module;
-        public LocalDate txnDate;
+        public Long mccId;
+        public FeeType feeType;
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            ReceivableKey key = (ReceivableKey) o;
+            CostStructureKey key = (CostStructureKey) o;
             return currency == key.currency &&
-                    module == key.module &&
-                    Objects.equal(txnDate, key.txnDate);
+                    mccId.equals(key.mccId) &&
+                    feeType == key.feeType;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(currency, module, txnDate);
+            return Objects.hashCode(currency, mccId, feeType);
         }
     }
 

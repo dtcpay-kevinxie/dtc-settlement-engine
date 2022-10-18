@@ -1,10 +1,10 @@
 package top.dtc.settlement.module.exchangerates.core;
 
-import lombok.Data;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@Data
+@Setter
 @Component
 @ConfigurationProperties("exchangerates")
 public class ExchangeRatesProperties {

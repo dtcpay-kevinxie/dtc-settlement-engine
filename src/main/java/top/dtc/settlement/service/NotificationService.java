@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import top.dtc.addon.integration.notification.NotificationEngineClient;
 import top.dtc.common.util.StringUtils;
 import top.dtc.data.core.model.CryptoTransaction;
+import top.dtc.data.core.model.PoboTransaction;
 import top.dtc.settlement.constant.NotificationConstant;
 
 import java.util.Map;
@@ -30,6 +31,26 @@ public class NotificationService {
                     .dataMap(Map.of(
                             "fiatTransactionId", cryptoTransaction.id + "",
                             "clientId", cryptoTransaction.clientId +""
+                    ))
+                    .send();
+        } catch (Exception e) {
+            log.error("Notification Error", e);
+        }
+    }
+
+    public void callbackNotification(PoboTransaction poboTransaction) {
+        String url = poboTransaction.notificationUrl;
+        log.debug("Notify {}, {}", url, poboTransaction.id);
+        if (StringUtils.isBlank(url)) {
+            return;
+        }
+        try {
+            notificationEngineClient
+                    .by(NotificationConstant.NAMES.POBO_NOTIFICATION)
+                    .to(url)
+                    .dataMap(Map.of(
+                            "poboTransactionId", poboTransaction.id + "",
+                            "clientId", poboTransaction.clientId +""
                     ))
                     .send();
         } catch (Exception e) {

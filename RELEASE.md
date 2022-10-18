@@ -1,5 +1,16 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.95.0] - 17 Oct 2022
+
+* MatchMoveInitConfig optimization
+* Update parent & data-* & addon-*
+* CryptoTxnChainService sweepChain
+* Complete Receivable process logic and Settlement logic
+* Add Settlement Report
+* Optimize Lombok annotations usages
+* Set Java DNS TTL to 5 in the Dockerfile
+* Stop using BeanUtils.copyProperties
+
 [0.94.0] - 29 Sep 2022
 
 * Hotfix integration url normalize

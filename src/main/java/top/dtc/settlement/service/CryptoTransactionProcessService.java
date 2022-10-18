@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import top.dtc.addon.integration.crypto_engine.CryptoEngineClient;
+import top.dtc.addon.integration.crypto_engine.CryptoTxnChainProcessor;
 import top.dtc.addon.integration.crypto_engine.domain.*;
 import top.dtc.addon.integration.crypto_engine.util.CryptoEngineUtils;
 import top.dtc.addon.integration.notification.NotificationEngineClient;
@@ -116,6 +117,9 @@ public class CryptoTransactionProcessService {
 
     @Autowired
     NotificationEngineClient notificationEngineClient;
+
+    @Autowired
+    CryptoTxnChainProcessor cryptoTxnChainProcessor;
 
     /**
      * Auto-sweep logic:
@@ -232,6 +236,9 @@ public class CryptoTransactionProcessService {
     public void notify(CryptoTransactionResult result) {
         if (CryptoEngineUtils.isResultEmpty(result)) {
             log.error("Notify txn result invalid {}", JSON.stringify(result, true));
+        }
+        if (cryptoTxnChainProcessor.handleTransaction(result)) {
+            return;
         }
         if (result.state != CryptoTransactionState.COMPLETED) {
             // Transaction REJECTED by blockchain case
@@ -741,7 +748,7 @@ public class CryptoTransactionProcessService {
                 transferAmount = amount.subtract(defaultConfig.maxTronGas);
             }
             default -> {
-                log.error("Unsupported Currency, {}", currency);
+                log.warn("Unsupported Currency, {}", currency);
                 return null;
             }
         }
@@ -799,12 +806,16 @@ public class CryptoTransactionProcessService {
         transactionSend.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, currency);
         input.wallet = CryptoWallet.unhostedWallet(senderAddress.type.account, senderAddress.addressIndex);
         input.amount = amount;
-        output.wallet = CryptoWallet.addressOnly(recipientAddress.address);
-        output.amount = amount;
         if (recipientAddress.securityType == SecurityType.KMS) {
-            input.wallet.account = recipientAddress.type.account;
-            input.wallet.addressIndex = recipientAddress.addressIndex;
+            output.wallet = CryptoWallet.unhostedWallet(
+                    recipientAddress.type.account,
+                    recipientAddress.addressIndex,
+                    recipientAddress.address
+            );
+        } else {
+            output.wallet = CryptoWallet.addressOnly(recipientAddress.address);
         }
+        output.amount = amount;
 
         String result = cryptoEngineClient.txnSend(senderAddress.mainNet, transactionSend);
         log.info("transfer sent txnHash: {}", result);
@@ -939,7 +950,7 @@ public class CryptoTransactionProcessService {
         }
     }
 
-    private Long getDefaultAutoSweepAddress(DefaultConfig defaultConfig, MainNet mainNet) {
+    public Long getDefaultAutoSweepAddress(DefaultConfig defaultConfig, MainNet mainNet) {
         return switch (mainNet) {
             case BITCOIN  -> defaultConfig.defaultAutoSweepBtcAddress;
             case ETHEREUM -> defaultConfig.defaultAutoSweepErcAddress;
