@@ -748,7 +748,7 @@ public class CryptoTransactionProcessService {
                 transferAmount = amount.subtract(defaultConfig.maxTronGas);
             }
             default -> {
-                log.error("Unsupported Currency, {}", currency);
+                log.warn("Unsupported Currency, {}", currency);
                 return null;
             }
         }
@@ -806,12 +806,16 @@ public class CryptoTransactionProcessService {
         transactionSend.type = CryptoEngineUtils.getContractType(recipientAddress.mainNet, currency);
         input.wallet = CryptoWallet.unhostedWallet(senderAddress.type.account, senderAddress.addressIndex);
         input.amount = amount;
-        output.wallet = CryptoWallet.addressOnly(recipientAddress.address);
-        output.amount = amount;
         if (recipientAddress.securityType == SecurityType.KMS) {
-            input.wallet.account = recipientAddress.type.account;
-            input.wallet.addressIndex = recipientAddress.addressIndex;
+            output.wallet = CryptoWallet.unhostedWallet(
+                    recipientAddress.type.account,
+                    recipientAddress.addressIndex,
+                    recipientAddress.address
+            );
+        } else {
+            output.wallet = CryptoWallet.addressOnly(recipientAddress.address);
         }
+        output.amount = amount;
 
         String result = cryptoEngineClient.txnSend(senderAddress.mainNet, transactionSend);
         log.info("transfer sent txnHash: {}", result);
