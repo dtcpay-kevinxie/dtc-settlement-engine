@@ -748,7 +748,7 @@ public class CryptoTransactionProcessService {
                 transferAmount = amount.subtract(defaultConfig.maxTronGas);
             }
             default -> {
-                log.error("Unsupported Currency, {}", currency);
+                log.warn("Unsupported Currency, {}", currency);
                 return null;
             }
         }
