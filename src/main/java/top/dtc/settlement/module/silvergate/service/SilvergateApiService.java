@@ -18,8 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.SILVERGATE_ACCOUNT_NUMBER_NOT_REGISTERED;
-import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.SILVERGATE_TOKEN_RETRIEVAL_FAILED;
+import static top.dtc.settlement.constant.ErrorMessage.PAYABLE.*;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.ACCOUNTS_SPLITTER;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.ACCOUNT_INFO_SPLITTER;
 import static top.dtc.settlement.module.silvergate.constant.SilvergateConstant.ACCOUNT_TYPE.SEN;
@@ -46,6 +45,8 @@ public class SilvergateApiService {
             unirest = Unirest.spawnInstance();
             unirest.config()
                     .clientCertificateStore(silvergateProperties.certificatePath, silvergateProperties.certificatePassword);
+        } else {
+            unirest = new UnirestInstance(new Config());
         }
     }
 
