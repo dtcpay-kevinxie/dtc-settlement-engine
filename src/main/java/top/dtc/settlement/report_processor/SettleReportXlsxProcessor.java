@@ -84,8 +84,9 @@ public class SettleReportXlsxProcessor {
         if (reserve != null) {
             this.getCellByPos(sheet0, "A7").setCellValue("Reserve-" + reserve.id);
             this.getCellByPos(sheet0, "D7").setCellValue(reserve.totalAmount.negate().doubleValue());
+            this.getCellByPos(sheet0, "D8").setCellValue(settlement.settleFinalAmount.add(reserve.totalAmount).doubleValue());
         }
-        this.getCellByPos(sheet0, "D8").setCellValue(settlement.settleFinalAmount.add(reserve.totalAmount).doubleValue());
+        this.getCellByPos(sheet0, "D8").setCellValue(settlement.settleFinalAmount.doubleValue());
         /*
                 SHEET 1 Settlement Report
          */
