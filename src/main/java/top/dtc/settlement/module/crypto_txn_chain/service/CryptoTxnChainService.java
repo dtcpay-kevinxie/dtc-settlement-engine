@@ -19,8 +19,14 @@ import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.DefaultConfigService;
 import top.dtc.data.finance.enums.InternalTransferReason;
 import top.dtc.data.finance.enums.InternalTransferStatus;
+import top.dtc.data.finance.enums.ReceivableStatus;
+import top.dtc.data.finance.enums.ReconcileStatus;
 import top.dtc.data.finance.model.InternalTransfer;
+import top.dtc.data.finance.model.PayoutReconcile;
+import top.dtc.data.finance.model.Receivable;
 import top.dtc.data.finance.service.InternalTransferService;
+import top.dtc.data.finance.service.PayoutReconcileService;
+import top.dtc.data.finance.service.ReceivableService;
 import top.dtc.data.risk.enums.WalletAddressType;
 import top.dtc.data.risk.model.KycWalletAddress;
 import top.dtc.data.risk.service.KycWalletAddressService;
@@ -54,6 +60,12 @@ public class CryptoTxnChainService {
 
     @Autowired
     CryptoTransactionProcessService cryptoTransactionProcessService;
+
+    @Autowired
+    PayoutReconcileService payoutReconcileService;
+
+    @Autowired
+    ReceivableService receivableService;
 
     @PostConstruct
     public void init() {
@@ -182,6 +194,28 @@ public class CryptoTxnChainService {
 
                         // Update transfer InternalTransfer
                         this.handleInternalTransferResult(completed, chain.transferInternalTransferId);
+
+                        if (completed) {
+                            PayoutReconcile payoutReconcile = payoutReconcileService.getById(chain.transactionId);
+                            payoutReconcile.receivedAmount = result.outputs.get(0).amount;
+                            payoutReconcile.status = ReconcileStatus.MATCHED;
+                            payoutReconcileService.updateById(payoutReconcile);
+
+                            List<PayoutReconcile> payoutReconciles = payoutReconcileService.getByReceivableId(payoutReconcile.receivableId);
+                            BigDecimal totalReceivedAmount = payoutReconciles.stream()
+                                    .filter(pr -> pr.receivedAmount != null)
+                                    .map(pr -> pr.receivedAmount)
+                                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                            Receivable receivable = receivableService.getById(payoutReconcile.receivableId);
+                            receivable.receivedAmount = totalReceivedAmount;
+                            if (receivable.amount.compareTo(totalReceivedAmount) == 0) {
+                                receivable.status = ReceivableStatus.RECEIVED;
+                            } else {
+                                receivable.status = ReceivableStatus.PARTIAL;
+                            }
+                            receivableService.updateById(receivable);
+                        }
 
                         return completed;
                     }
