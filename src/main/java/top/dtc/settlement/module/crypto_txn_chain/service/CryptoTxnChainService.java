@@ -171,7 +171,7 @@ public class CryptoTxnChainService {
 
                         // Save additionalData then callback
                         cryptoTxnChain.additionalData = JSON.stringify(chain);
-                        callback.accept(chain.mainNet, chain.gasTxnId);
+                        callback.accept(chain.mainNet, chain.transferTxnId);
 
                         return true;
                     },
@@ -221,13 +221,14 @@ public class CryptoTxnChainService {
                 gasAddress.addressIndex
         );
         chain.senderWallet = CryptoWallet.hostedWallet(
-                (int) (8500000000L - paymentTransaction.merchantId),
+                (int) (paymentTransaction.merchantId - 8500000000L),
                 Integer.valueOf(paymentTransaction.additionalData.get("address_index")),
                 paymentTransaction.acquirerTid
         );
         chain.recipientWallet = CryptoWallet.unhostedWallet(
                 dtcOpsAddress.type.account,
-                dtcOpsAddress.addressIndex
+                dtcOpsAddress.addressIndex,
+                dtcOpsAddress.address
         );
 
         cryptoTxnChainProcessor.start(NAME_SWEEP, JSON.stringify(chain));
