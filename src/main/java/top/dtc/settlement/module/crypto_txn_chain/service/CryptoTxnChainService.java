@@ -227,7 +227,8 @@ public class CryptoTxnChainService {
         );
         chain.recipientWallet = CryptoWallet.unhostedWallet(
                 dtcOpsAddress.type.account,
-                dtcOpsAddress.addressIndex
+                dtcOpsAddress.addressIndex,
+                dtcOpsAddress.address
         );
 
         cryptoTxnChainProcessor.start(NAME_SWEEP, JSON.stringify(chain));
