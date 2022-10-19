@@ -171,7 +171,7 @@ public class CryptoTxnChainService {
 
                         // Save additionalData then callback
                         cryptoTxnChain.additionalData = JSON.stringify(chain);
-                        callback.accept(chain.mainNet, chain.gasTxnId);
+                        callback.accept(chain.mainNet, chain.transferTxnId);
 
                         return true;
                     },
