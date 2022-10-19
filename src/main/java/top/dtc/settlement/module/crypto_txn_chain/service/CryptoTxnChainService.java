@@ -203,10 +203,13 @@ public class CryptoTxnChainService {
                             PaymentTransaction paymentTransaction = paymentTransactionService.getById(chain.transactionId);
                             PayoutReconcile payoutReconcile = payoutReconcileService.getById(chain.transactionId);
                             payoutReconcile.receivedAmount = result.outputs.get(0).amount;
-                            if (payoutReconcile.receivedAmount.compareTo(paymentTransaction.processingAmount) >= 0) {
+                            int amountCompare = payoutReconcile.receivedAmount.compareTo(paymentTransaction.processingAmount);
+                            if (amountCompare == 0) {
                                 payoutReconcile.status = ReconcileStatus.MATCHED;
-                            } else {
+                            } else if (amountCompare >= 0) {
                                 payoutReconcile.status = ReconcileStatus.UNMATCHED;
+                            } else {
+                                payoutReconcile.status = ReconcileStatus.DEFICIT;
                             }
                             payoutReconcileService.updateById(payoutReconcile);
 
