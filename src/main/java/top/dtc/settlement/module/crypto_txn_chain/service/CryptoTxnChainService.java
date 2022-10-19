@@ -205,6 +205,8 @@ public class CryptoTxnChainService {
                             payoutReconcile.receivedAmount = result.outputs.get(0).amount;
                             if (payoutReconcile.receivedAmount.compareTo(paymentTransaction.processingAmount) >= 0) {
                                 payoutReconcile.status = ReconcileStatus.MATCHED;
+                            } else {
+                                payoutReconcile.status = ReconcileStatus.UNMATCHED;
                             }
                             payoutReconcileService.updateById(payoutReconcile);
 
