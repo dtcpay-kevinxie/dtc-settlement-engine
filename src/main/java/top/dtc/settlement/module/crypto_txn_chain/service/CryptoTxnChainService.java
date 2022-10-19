@@ -17,6 +17,7 @@ import top.dtc.common.json.JSON;
 import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.DefaultConfigService;
+import top.dtc.data.core.service.PaymentTransactionService;
 import top.dtc.data.finance.enums.InternalTransferReason;
 import top.dtc.data.finance.enums.InternalTransferStatus;
 import top.dtc.data.finance.enums.ReceivableStatus;
@@ -66,6 +67,9 @@ public class CryptoTxnChainService {
 
     @Autowired
     ReceivableService receivableService;
+
+    @Autowired
+    PaymentTransactionService paymentTransactionService;
 
     @PostConstruct
     public void init() {
@@ -196,9 +200,12 @@ public class CryptoTxnChainService {
                         this.handleInternalTransferResult(completed, chain.transferInternalTransferId);
 
                         if (completed) {
+                            PaymentTransaction paymentTransaction = paymentTransactionService.getById(chain.transactionId);
                             PayoutReconcile payoutReconcile = payoutReconcileService.getById(chain.transactionId);
                             payoutReconcile.receivedAmount = result.outputs.get(0).amount;
-                            payoutReconcile.status = ReconcileStatus.MATCHED;
+                            if (payoutReconcile.receivedAmount.compareTo(paymentTransaction.processingAmount) >= 0) {
+                                payoutReconcile.status = ReconcileStatus.MATCHED;
+                            }
                             payoutReconcileService.updateById(payoutReconcile);
 
                             List<PayoutReconcile> payoutReconciles = payoutReconcileService.getByReceivableId(payoutReconcile.receivableId);
@@ -209,7 +216,7 @@ public class CryptoTxnChainService {
 
                             Receivable receivable = receivableService.getById(payoutReconcile.receivableId);
                             receivable.receivedAmount = totalReceivedAmount;
-                            if (receivable.amount.compareTo(totalReceivedAmount) == 0) {
+                            if (receivable.amount.compareTo(totalReceivedAmount) >= 0) {
                                 receivable.status = ReceivableStatus.RECEIVED;
                             } else {
                                 receivable.status = ReceivableStatus.PARTIAL;
