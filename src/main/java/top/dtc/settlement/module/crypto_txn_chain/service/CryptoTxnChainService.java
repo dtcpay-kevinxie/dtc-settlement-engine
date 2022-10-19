@@ -221,7 +221,7 @@ public class CryptoTxnChainService {
                 gasAddress.addressIndex
         );
         chain.senderWallet = CryptoWallet.hostedWallet(
-                (int) (8500000000L - paymentTransaction.merchantId),
+                (int) (paymentTransaction.merchantId - 8500000000L),
                 Integer.valueOf(paymentTransaction.additionalData.get("address_index")),
                 paymentTransaction.acquirerTid
         );
