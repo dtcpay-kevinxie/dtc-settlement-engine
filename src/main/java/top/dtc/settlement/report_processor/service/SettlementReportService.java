@@ -132,14 +132,15 @@ public class SettlementReportService {
             throw new ValidationException("Invalid Settlement Id");
         }
         try {
+            String invoice = settlement.invoiceNumber != null ? settlement.invoiceNumber : String.format("%s(Pending Approval)", settlement.id);
             notificationEngineClient
                     .by(NotificationConstant.NAMES.SETTLEMENT_REPORT)
                     .to(recipientEmails)
                     .dataMap(Map.of(
                             "client_name", commonValidationService.getClientName(settlement.merchantId),
-                            "invoice_number", settlement.invoiceNumber
+                            "invoice_number", invoice
                     ))
-                    .attachment(settlement.invoiceNumber + ".xlsx", genSettlementReport(settlement).toByteArray())
+                    .attachment(invoice + ".xlsx", genSettlementReport(settlement).toByteArray())
                     .send();
             return "success";
         } catch (Exception e) {

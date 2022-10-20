@@ -17,10 +17,17 @@ import top.dtc.common.json.JSON;
 import top.dtc.data.core.model.DefaultConfig;
 import top.dtc.data.core.model.PaymentTransaction;
 import top.dtc.data.core.service.DefaultConfigService;
+import top.dtc.data.core.service.PaymentTransactionService;
 import top.dtc.data.finance.enums.InternalTransferReason;
 import top.dtc.data.finance.enums.InternalTransferStatus;
+import top.dtc.data.finance.enums.ReceivableStatus;
+import top.dtc.data.finance.enums.ReconcileStatus;
 import top.dtc.data.finance.model.InternalTransfer;
+import top.dtc.data.finance.model.PayoutReconcile;
+import top.dtc.data.finance.model.Receivable;
 import top.dtc.data.finance.service.InternalTransferService;
+import top.dtc.data.finance.service.PayoutReconcileService;
+import top.dtc.data.finance.service.ReceivableService;
 import top.dtc.data.risk.enums.WalletAddressType;
 import top.dtc.data.risk.model.KycWalletAddress;
 import top.dtc.data.risk.service.KycWalletAddressService;
@@ -54,6 +61,15 @@ public class CryptoTxnChainService {
 
     @Autowired
     CryptoTransactionProcessService cryptoTransactionProcessService;
+
+    @Autowired
+    PayoutReconcileService payoutReconcileService;
+
+    @Autowired
+    ReceivableService receivableService;
+
+    @Autowired
+    PaymentTransactionService paymentTransactionService;
 
     @PostConstruct
     public void init() {
@@ -171,7 +187,7 @@ public class CryptoTxnChainService {
 
                         // Save additionalData then callback
                         cryptoTxnChain.additionalData = JSON.stringify(chain);
-                        callback.accept(chain.mainNet, chain.gasTxnId);
+                        callback.accept(chain.mainNet, chain.transferTxnId);
 
                         return true;
                     },
@@ -182,6 +198,36 @@ public class CryptoTxnChainService {
 
                         // Update transfer InternalTransfer
                         this.handleInternalTransferResult(completed, chain.transferInternalTransferId);
+
+                        if (completed) {
+                            PaymentTransaction paymentTransaction = paymentTransactionService.getById(chain.transactionId);
+                            PayoutReconcile payoutReconcile = payoutReconcileService.getById(chain.transactionId);
+                            payoutReconcile.receivedAmount = result.outputs.get(0).amount;
+                            int amountCompare = payoutReconcile.receivedAmount.compareTo(paymentTransaction.processingAmount);
+                            if (amountCompare == 0) {
+                                payoutReconcile.status = ReconcileStatus.MATCHED;
+                            } else if (amountCompare >= 0) {
+                                payoutReconcile.status = ReconcileStatus.UNMATCHED;
+                            } else {
+                                payoutReconcile.status = ReconcileStatus.DEFICIT;
+                            }
+                            payoutReconcileService.updateById(payoutReconcile);
+
+                            List<PayoutReconcile> payoutReconciles = payoutReconcileService.getByReceivableId(payoutReconcile.receivableId);
+                            BigDecimal totalReceivedAmount = payoutReconciles.stream()
+                                    .filter(pr -> pr.receivedAmount != null)
+                                    .map(pr -> pr.receivedAmount)
+                                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                            Receivable receivable = receivableService.getById(payoutReconcile.receivableId);
+                            receivable.receivedAmount = totalReceivedAmount;
+                            if (receivable.amount.compareTo(totalReceivedAmount) >= 0) {
+                                receivable.status = ReceivableStatus.RECEIVED;
+                            } else {
+                                receivable.status = ReceivableStatus.PARTIAL;
+                            }
+                            receivableService.updateById(receivable);
+                        }
 
                         return completed;
                     }
@@ -221,13 +267,14 @@ public class CryptoTxnChainService {
                 gasAddress.addressIndex
         );
         chain.senderWallet = CryptoWallet.hostedWallet(
-                (int) (8500000000L - paymentTransaction.merchantId),
+                (int) (paymentTransaction.merchantId - 8500000000L),
                 Integer.valueOf(paymentTransaction.additionalData.get("address_index")),
                 paymentTransaction.acquirerTid
         );
         chain.recipientWallet = CryptoWallet.unhostedWallet(
                 dtcOpsAddress.type.account,
-                dtcOpsAddress.addressIndex
+                dtcOpsAddress.addressIndex,
+                dtcOpsAddress.address
         );
 
         cryptoTxnChainProcessor.start(NAME_SWEEP, JSON.stringify(chain));

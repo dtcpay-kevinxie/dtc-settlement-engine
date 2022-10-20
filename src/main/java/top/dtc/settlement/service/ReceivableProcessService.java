@@ -128,7 +128,7 @@ public class ReceivableProcessService {
             return;
         }
         DefaultConfig defaultConfig = defaultConfigService.getById(1L);
-        processCryptoReceivable(defaultConfig.defaultAutoSweepErcAddress, txnReceivableMap, transactionDate);
+        processCryptoReceivable(defaultConfig.defaultAutoSweepTrcAddress, txnReceivableMap, transactionDate);
     }
 
     public void processBtcReceivable(LocalDate transactionDate) {
@@ -139,7 +139,7 @@ public class ReceivableProcessService {
             return;
         }
         DefaultConfig defaultConfig = defaultConfigService.getById(1L);
-        processCryptoReceivable(defaultConfig.defaultAutoSweepErcAddress, txnReceivableMap, transactionDate);
+        processCryptoReceivable(defaultConfig.defaultAutoSweepBtcAddress, txnReceivableMap, transactionDate);
     }
 
     public void processPolygonReceivable(LocalDate transactionDate) {
@@ -150,7 +150,7 @@ public class ReceivableProcessService {
             return;
         }
         DefaultConfig defaultConfig = defaultConfigService.getById(1L);
-        processCryptoReceivable(defaultConfig.defaultAutoSweepErcAddress, txnReceivableMap, transactionDate);
+        processCryptoReceivable(defaultConfig.defaultAutoSweepPolygonAddress, txnReceivableMap, transactionDate);
     }
 
     private Map<Currency, List<PaymentTransaction>> processReceivable(Module module, LocalDateTime startDateTime, LocalDateTime endDateTime) {
@@ -186,7 +186,7 @@ public class ReceivableProcessService {
                     ActivityType.PAYMENT, processingCurrency, sweepRecipientAddressId, transactionDate.plusDays(1)); // T+1 Receivable by sweeping
             if (receivable != null &&
                     (receivable.status == ReceivableStatus.RECEIVED || receivable.status == ReceivableStatus.CANCELLED)) {
-                log.error("Invalid Receivable {}", receivable);
+                log.info("Receivable has been handled {}", JSON.stringify(receivable,true));
                 continue;
             }
             List<PaymentTransaction> paymentTransactionList = txnReceivableMap.get(processingCurrency).stream()

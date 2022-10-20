@@ -66,7 +66,7 @@ public class SettleReportXlsxProcessor {
         return processor;
     }
 
-    private void fill() {
+    private void fill() throws IllegalAccessException {
         CellStyle percentCellStyle = this.workbook.createCellStyle();
         percentCellStyle.setDataFormat(this.workbook.createDataFormat().getFormat("0%"));
         /*
@@ -84,8 +84,9 @@ public class SettleReportXlsxProcessor {
         if (reserve != null) {
             this.getCellByPos(sheet0, "A7").setCellValue("Reserve-" + reserve.id);
             this.getCellByPos(sheet0, "D7").setCellValue(reserve.totalAmount.negate().doubleValue());
+            this.getCellByPos(sheet0, "D8").setCellValue(settlement.settleFinalAmount.add(reserve.totalAmount).doubleValue());
         }
-        this.getCellByPos(sheet0, "D8").setCellValue(settlement.settleFinalAmount.add(reserve.totalAmount).doubleValue());
+        this.getCellByPos(sheet0, "D8").setCellValue(settlement.settleFinalAmount.doubleValue());
         /*
                 SHEET 1 Settlement Report
          */
@@ -157,12 +158,13 @@ public class SettleReportXlsxProcessor {
             this.getCellByPos(sheet2, "C6").setCellValue(reserve.reserveRate.doubleValue());
             this.getCellByPos(sheet2, "C7").setCellValue(reserve.totalAmount.negate().doubleValue());
         }
-    }
-
-    private void generateTransactionsByBrand() throws IllegalAccessException {
         /*
                 SHEET Transaction List
          */
+        generateTransactionsByBrand();
+    }
+
+    private void generateTransactionsByBrand() throws IllegalAccessException {
         for (Brand brand : transactionMap.keySet()) {
             XlsxProcessor
                     .records(workbook, transactionMap.get(brand), SettlementTransactionReport.class)

@@ -253,9 +253,7 @@ public class PaymentSettlementService {
                 // if configurable in the future, refunded mdr amount will be totalAmount * mdr (txnMdrFee will be "+" instead of "-")
                 settlement.mdrFee = settlement.mdrFee.add(paymentTransaction.mdr);
             }
-            default -> {
-                log.error("Invalid Transaction Type found {}", paymentTransaction);
-            }
+            default -> log.error("Invalid Transaction Type found {}", paymentTransaction);
         }
     }
 

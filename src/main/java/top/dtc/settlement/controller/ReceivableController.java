@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.addon.integration.scheduler.SchedulerEngineClient;
 import top.dtc.common.constant.DateTime;
-import top.dtc.common.enums.Module;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.ReceivableProcessService;
@@ -23,13 +22,12 @@ public class ReceivableController {
     @Autowired
     SchedulerEngineClient schedulerEngineClient;
 
-    @GetMapping(value = "/process/{module}/{receivableDate}")
+    @GetMapping(value = "/process/{receivableDate}")
     public ApiResponse<?> processReceivableByRequest(
-            @PathVariable("module") Module module,
             @PathVariable("receivableDate") String receivableDate
     ) {
         try {
-            log.debug("[GET] /receivable/process/{}/{}", module, receivableDate);
+            log.debug("[GET] /receivable/process/{}", receivableDate);
             LocalDate date = LocalDate.parse(receivableDate, DateTime.FORMAT.YYMMDD);
             receivableProcessService.processReceivable(date);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
