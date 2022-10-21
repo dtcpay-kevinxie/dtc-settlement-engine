@@ -163,12 +163,17 @@ public class ReportController {
     }
 
     @PostMapping(value = "/settlement/send-settlement-report/{settlementId}")
-    public String sendSettlementReport(
+    public ApiResponse<?> sendSettlementReport(
             @PathVariable("settlementId") Long settlementId,
             @RequestBody ApiRequest<List<String>> req
     ) {
         log.debug("/settlement/send-settlement-report/{} {}", settlementId, JSON.stringify(req, true));
-        return settlementReportService.sendSettlementReport(settlementId, req.query);
+        try {
+            settlementReportService.sendSettlementReport(settlementId, req.query);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
+        } catch (Exception e) {
+            return new ApiResponse<>(ApiHeaderConstant.REPORT.OTHER_ERROR(e.getMessage()));
+        }
     }
 
     private LocalDate getReportStartDate(YearMonth reportingMonth, String reportType) {
