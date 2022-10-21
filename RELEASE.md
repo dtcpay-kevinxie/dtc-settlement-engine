@@ -10,6 +10,7 @@
 * Optimize Lombok annotations usages
 * Set Java DNS TTL to 5 in the Dockerfile
 * Stop using BeanUtils.copyProperties
+* Fix send-settlement-report
 
 [0.94.0] - 29 Sep 2022
 
