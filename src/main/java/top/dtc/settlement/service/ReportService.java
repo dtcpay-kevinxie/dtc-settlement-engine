@@ -571,9 +571,6 @@ public class ReportService {
                     walletBalanceChangeHistoryReport.flowDirection
                             = walletBalanceHistory.changeAmount.compareTo(BigDecimal.ZERO) > 0 ? "PLACEMENT" : "WITHDRAWAL";
                     walletBalanceChangeHistoryReport.rateToSGD = ratesMap.get(walletBalanceHistory.lastUpdatedDate.toLocalDate()).get(walletBalanceHistory.currency);
-                    if (walletBalanceChangeHistoryReport.rateToSGD == null) {
-                        System.out.println(1);
-                    }
                     return walletBalanceChangeHistoryReport;
                 })
                 .toList();
