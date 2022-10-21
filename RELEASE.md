@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.95.0] - 21 Oct 2022
+
+* HOTFIX: Crypto rate calculation
+
 [0.94.0] - 29 Sep 2022
 
 * Hotfix integration url normalize
