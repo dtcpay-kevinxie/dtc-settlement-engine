@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.95.0] - 17 Oct 2022
+[0.95.0] - 21 Oct 2022
 
 * MatchMoveInitConfig optimization
 * Update parent & data-* & addon-*
@@ -11,6 +11,7 @@
 * Set Java DNS TTL to 5 in the Dockerfile
 * Stop using BeanUtils.copyProperties
 * Fix send-settlement-report
+* Fix Crypto rate calculation
 
 [0.94.0] - 29 Sep 2022
 
