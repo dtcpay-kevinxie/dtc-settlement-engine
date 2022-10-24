@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.96.0] - 
+
+* Add OtcBonusProcess logic
+
 [0.95.0] - 24 Oct 2022
 
 * MatchMoveInitConfig optimization

@@ -63,4 +63,12 @@ public class KycCommonService {
         }
     }
 
+    public Long getVipLevel(Long clientId) {
+        if (ClientTypeUtils.isIndividual(clientId)) {
+            return individualService.getById(clientId).vipLevel;
+        } else {
+            return nonIndividualService.getById(clientId).vipLevel;
+        }
+    }
+
 }
