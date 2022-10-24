@@ -95,6 +95,7 @@ public class MasReportService {
 
     public HashMap<LocalDate, HashMap<Currency, BigDecimal>> getRatesMap(LocalDate startDate, LocalDate endDate) {
         HashMap<LocalDate, HashMap<Currency, BigDecimal>> ratesMap = new HashMap<>();
+        HashMap<String, ExchangeRate> cache = new HashMap<>();
         for (LocalDate rateDate = startDate; rateDate.isBefore(endDate.plusDays(1)); rateDate = rateDate.plusDays(1)) {
             HashMap<Currency, BigDecimal> dateRateToSGD = new HashMap<>();
             for (Currency sellCurrency : Currency.values()) {
@@ -102,9 +103,18 @@ public class MasReportService {
                     dateRateToSGD.put(Currency.SGD, BigDecimal.ONE);
                     continue;
                 }
-                ExchangeRate exchangeRate = exchangeRateService.getRateByDate(sellCurrency, Currency.SGD, rateDate);
-                if (exchangeRate != null) {
-                    dateRateToSGD.put(sellCurrency, exchangeRate.exchangeRate);
+                final LocalDate finalRateDate = rateDate;
+                if (sellCurrency.isCrypto()) {
+                    ExchangeRate toUsd = cache.computeIfAbsent(sellCurrency.name + Currency.USD + finalRateDate, key -> exchangeRateService.getRateByDate(sellCurrency, Currency.USD, finalRateDate));
+                    ExchangeRate toSgd = cache.computeIfAbsent(Currency.USD.name + Currency.SGD + finalRateDate, key -> exchangeRateService.getRateByDate(Currency.USD, Currency.SGD, finalRateDate));
+                    if (toUsd != null && toSgd != null) {
+                        dateRateToSGD.put(sellCurrency, toUsd.exchangeRate.multiply(toSgd.exchangeRate));
+                    }
+                } else {
+                    ExchangeRate exchangeRate = cache.computeIfAbsent(sellCurrency.name + Currency.SGD + finalRateDate, key -> exchangeRateService.getRateByDate(sellCurrency, Currency.SGD, finalRateDate));
+                    if (exchangeRate != null) {
+                        dateRateToSGD.put(sellCurrency, exchangeRate.exchangeRate);
+                    }
                 }
             }
             ratesMap.put(rateDate, dateRateToSGD);
