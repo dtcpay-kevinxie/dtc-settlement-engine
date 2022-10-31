@@ -105,6 +105,7 @@ public class OtcBonusProcessService {
                     otcBonus.type = OtcBonusType.REFERRAL_BONUS;
                     otcBonus.status = BonusStatus.PENDING;
                     otcBonus.clientId = referralBonusKey.referrerId;
+                    otcBonus.refereeId = referralBonusKey.refereeId;
                     otcBonus.currency = buyCurrency;
                     otcBonus.createDate = LocalDateTime.now();
                     otcBonus.cycleStartDate = startDate;
