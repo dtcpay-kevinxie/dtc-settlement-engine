@@ -1,6 +1,6 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
-[0.96.0] - 
+[0.96.0] - 01 Nov 2022
 
 * Add OtcBonusProcess logic
 
