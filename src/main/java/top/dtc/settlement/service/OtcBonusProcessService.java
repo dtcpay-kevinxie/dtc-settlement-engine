@@ -223,7 +223,7 @@ public class OtcBonusProcessService {
                     if (otc.fiatCurrency == Currency.USD) {
                         return otc.fiatAmount;
                     } else {
-                        return otc.fiatAmount.divide(otc.fiatConvertRate).setScale(otc.fiatCurrency.exponent, RoundingMode.HALF_UP);
+                        return otc.fiatAmount.divide(otc.fiatConvertRate, otc.fiatCurrency.exponent, RoundingMode.HALF_UP);
                     }
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
