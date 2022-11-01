@@ -6,7 +6,7 @@
     <parent>
         <groupId>top.dtc</groupId>
         <artifactId>dtc-parent</artifactId>
-        <version>0.56.0</version>
+        <version>0.57.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
@@ -38,12 +38,12 @@
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-core</artifactId>
-            <version>0.70.0</version>
+            <version>0.71.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
             <artifactId>dtc-data-finance</artifactId>
-            <version>0.47.0</version>
+            <version>0.48.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>top.dtc</groupId>
