@@ -232,14 +232,14 @@ public class OtcBonusProcessService {
             // VIP 1 conditionVolume is 0, won't have downgrade case
             if (ClientTypeUtils.isIndividual(clientId)) {
                 Individual individual = individualService.getById(clientId);
-                if (!individual.vipLocked && individual.vipLevel > 1) {
+                if (individual.vipLocked != null &&!individual.vipLocked && individual.vipLevel > 1) {
                     // Downgrade 1 level
                     individual.vipLevel = individual.vipLevel - 1;
                     individualService.updateById(individual);
                 }
             } else {
                 NonIndividual nonIndividual = nonIndividualService.getById(clientId);
-                if (!nonIndividual.vipLocked && nonIndividual.vipLevel > 1) {
+                if (nonIndividual.vipLocked != null && !nonIndividual.vipLocked && nonIndividual.vipLevel > 1) {
                     // Downgrade 1 level
                     nonIndividual.vipLevel = nonIndividual.vipLevel - 1;
                     nonIndividualService.updateById(nonIndividual);
