@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.97.0] - 01 Nov 2022
+
+* Upgrade dtc_parent version to '0.58.0'
+
 [0.96.0] - 01 Nov 2022
 
 * Add OtcBonusProcess logic
