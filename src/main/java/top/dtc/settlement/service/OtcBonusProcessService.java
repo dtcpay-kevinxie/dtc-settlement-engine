@@ -31,7 +31,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -64,12 +63,6 @@ public class OtcBonusProcessService {
 
     @Autowired
     VipSchemeService vipSchemeService;
-
-    public void processReferralBonus(LocalDate processDate) {
-        LocalDate startDate = processDate.with(TemporalAdjusters.firstDayOfMonth());
-        LocalDate endDate = processDate.with(TemporalAdjusters.lastDayOfMonth());
-        processReferralBonus(startDate, endDate);
-    }
 
     public void processReferralBonus(LocalDate startDate, LocalDate endDate) {
         HashMap<ReferralBonusKey, List<Otc>> referrerOtcSets = referralMappingService.list().stream()
@@ -127,12 +120,6 @@ public class OtcBonusProcessService {
                 otcBonusService.saveOrUpdate(otcBonus);
             }
         }
-    }
-
-    public void processAllUserBonus(LocalDate processDate) {
-        LocalDate startDate = processDate.with(TemporalAdjusters.firstDayOfMonth());
-        LocalDate endDate = processDate.with(TemporalAdjusters.lastDayOfMonth());
-        processAllUserBonus(startDate, endDate);
     }
 
     public void processAllUserBonus(LocalDate startDate, LocalDate endDate) {

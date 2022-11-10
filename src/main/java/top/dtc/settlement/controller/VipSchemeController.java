@@ -4,13 +4,13 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import top.dtc.addon.integration.scheduler.SchedulerEngineClient;
-import top.dtc.common.constant.DateTime;
+import top.dtc.common.model.tuple.Tuple2;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.service.OtcBonusProcessService;
+import top.dtc.settlement.util.PayoutUtils;
 
 import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
 
 @Log4j2
 @RestController
@@ -25,13 +25,12 @@ public class VipSchemeController {
 
     @GetMapping(value = "/otc-referral-bonus/{month}")
     public ApiResponse<?> processOtcReferralBonusByMonth(
-            @PathVariable("month") String month
+            @PathVariable("month") String yymm
     ) {
         try {
-            log.debug("[GET] /vip-scheme/otc-referral-bonus/{}", month);
-            LocalDate startDate = LocalDate.parse(month + "01", DateTime.FORMAT.YYMMDD);
-            LocalDate endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
-            otcBonusProcessService.processReferralBonus(startDate, endDate);
+            log.debug("[GET] /vip-scheme/otc-referral-bonus/{}", yymm);
+            Tuple2<LocalDate, LocalDate> range = PayoutUtils.monthRange(yymm);
+            otcBonusProcessService.processReferralBonus(range.first, range.second);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process Otc ReferralBonus By Month", e);
@@ -47,20 +46,20 @@ public class VipSchemeController {
     ) {
         log.debug("[GET] /vip-scheme/otc-referral-bonus/scheduled");
         return schedulerEngineClient.executeTask(group, name, async, () -> {
-            otcBonusProcessService.processReferralBonus(LocalDate.now());
+            Tuple2<LocalDate, LocalDate> range = PayoutUtils.lastMonthRange();
+            otcBonusProcessService.processReferralBonus(range.first, range.second);
             return null;
         });
     }
 
     @GetMapping(value = "/otc-user-bonus/{month}")
     public ApiResponse<?> processOtcUserBonusByMonth(
-            @PathVariable("month") String month
+            @PathVariable("month") String yymm
     ) {
         try {
-            log.debug("[GET] /vip-scheme/otc-user-bonus/{}", month);
-            LocalDate startDate = LocalDate.parse(month + "01", DateTime.FORMAT.YYMMDD);
-            LocalDate endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
-            otcBonusProcessService.processAllUserBonus(startDate, endDate);
+            log.debug("[GET] /vip-scheme/otc-user-bonus/{}", yymm);
+            Tuple2<LocalDate, LocalDate> range = PayoutUtils.monthRange(yymm);
+            otcBonusProcessService.processAllUserBonus(range.first, range.second);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process Otc UserBonus By Month", e);
@@ -76,20 +75,20 @@ public class VipSchemeController {
     ) {
         log.debug("[GET] /vip-scheme/otc-user-bonus/scheduled");
         return schedulerEngineClient.executeTask(group, name, async, () -> {
-            otcBonusProcessService.processAllUserBonus(LocalDate.now());
+            Tuple2<LocalDate, LocalDate> range = PayoutUtils.lastMonthRange();
+            otcBonusProcessService.processAllUserBonus(range.first, range.second);
             return null;
         });
     }
 
     @GetMapping(value = "/process-user-vip-level/{month}")
     public ApiResponse<?> processUserVipLevel(
-            @PathVariable("month") String month
+            @PathVariable("month") String yymm
     ) {
         try {
-            log.debug("[GET] /vip-scheme/process-user-vip-level/{}", month);
-            LocalDate startDate = LocalDate.parse(month + "01", DateTime.FORMAT.YYMMDD);
-            LocalDate endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
-            otcBonusProcessService.calculateAllUserVipLevels(startDate, endDate);
+            log.debug("[GET] /vip-scheme/process-user-vip-level/{}", yymm);
+            Tuple2<LocalDate, LocalDate> range = PayoutUtils.monthRange(yymm);
+            otcBonusProcessService.calculateAllUserVipLevels(range.first, range.second);
             return new ApiResponse<>(ApiHeaderConstant.SUCCESS);
         } catch (Exception e) {
             log.error("Cannot process User Vip Level", e);
@@ -105,9 +104,8 @@ public class VipSchemeController {
     ) {
         log.debug("[GET] /vip-scheme/process-user-vip-level/scheduled");
         return schedulerEngineClient.executeTask(group, name, async, () -> {
-            LocalDate startDate = LocalDate.now().with(TemporalAdjusters.firstDayOfMonth());
-            LocalDate endDate = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
-            otcBonusProcessService.calculateAllUserVipLevels(startDate, endDate);
+            Tuple2<LocalDate, LocalDate> range = PayoutUtils.lastMonthRange();
+            otcBonusProcessService.calculateAllUserVipLevels(range.first, range.second);
             return null;
         });
     }
