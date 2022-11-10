@@ -1,5 +1,10 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.98.0] - 10 Nov 2022
+
+* Sweep to external crypto address
+* VipScheme date range optimize
+
 [0.97.0] - 01 Nov 2022
 
 * Upgrade dtc_parent version to '0.58.0'

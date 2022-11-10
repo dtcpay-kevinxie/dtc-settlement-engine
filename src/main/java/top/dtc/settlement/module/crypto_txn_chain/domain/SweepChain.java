@@ -19,6 +19,8 @@ public class SweepChain {
 
     public CryptoWallet recipientWallet;
 
+    public Long recipientAddressId;
+
     public String gasTxnId;
 
     public Long gasInternalTransferId;

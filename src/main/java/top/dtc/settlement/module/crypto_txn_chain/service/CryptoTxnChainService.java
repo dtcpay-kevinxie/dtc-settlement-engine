@@ -177,7 +177,7 @@ public class CryptoTxnChainService {
                         internalTransfer.feeCurrency = result.mainNet.nativeCurrency;
                         internalTransfer.senderAccountType = AccountType.PAYMENT_TXN_ID;
                         internalTransfer.senderAccountId = chain.transactionId;
-                        internalTransfer.recipientAccountId = Long.valueOf(output.wallet.addressIndex);
+                        internalTransfer.recipientAccountId = chain.recipientAddressId;
                         internalTransfer.recipientAccountType = AccountType.CRYPTO;
                         internalTransfer.description = "Sweep from " + send.inputs.get(0).wallet.address;
                         internalTransfer.referenceNo = chain.transferTxnId;
@@ -271,9 +271,8 @@ public class CryptoTxnChainService {
                 Integer.valueOf(paymentTransaction.additionalData.get("address_index")),
                 paymentTransaction.acquirerTid
         );
-        chain.recipientWallet = CryptoWallet.unhostedWallet(
-                dtcOpsAddress.type.account,
-                dtcOpsAddress.addressIndex,
+        chain.recipientAddressId = dtcOpsAddress.id;
+        chain.recipientWallet = CryptoWallet.addressOnly(
                 dtcOpsAddress.address
         );
 

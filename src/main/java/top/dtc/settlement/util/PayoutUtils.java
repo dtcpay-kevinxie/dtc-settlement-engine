@@ -7,6 +7,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import top.dtc.common.constant.DateTime;
+import top.dtc.common.model.tuple.Tuple2;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -17,10 +19,27 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 @Log4j2
 public class PayoutUtils {
+
+    public static Tuple2<LocalDate, LocalDate> lastMonthRange() {
+        return monthRange(LocalDate.now().minusMonths(1));
+    }
+
+    public static Tuple2<LocalDate, LocalDate> monthRange(String yymm) {
+        return monthRange(LocalDate.parse(yymm + "01", DateTime.FORMAT.YYMMDD));
+    }
+
+    public static Tuple2<LocalDate, LocalDate> monthRange(LocalDate time) {
+        return new Tuple2<>(
+                time.with(TemporalAdjusters.firstDayOfMonth()),
+                time.with(TemporalAdjusters.lastDayOfMonth())
+        );
+    }
 
     public static InputStream getStringStream(String sInputString) {
         ByteArrayInputStream tInputStringStream = null;
