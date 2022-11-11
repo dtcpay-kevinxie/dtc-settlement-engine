@@ -117,24 +117,22 @@ public class CryptoTxnChainService {
                         chain.gasTxnId = gasAutoTopUpResult.id;
                         chain.transfer = send;
 
-                        if (mainNet != MainNet.TRON) {
-                            // InternalTransfer
-                            InternalTransfer internalTransfer = new InternalTransfer();
-                            internalTransfer.reason = InternalTransferReason.GAS;
-                            internalTransfer.status = InternalTransferStatus.INIT;
-                            internalTransfer.amount = gasAutoTopUpResult.gasAmount;
-                            internalTransfer.currency = mainNet.nativeCurrency;
-                            internalTransfer.feeCurrency = mainNet.nativeCurrency;
-                            internalTransfer.senderAccountId = Long.valueOf(chain.gasWallet.addressIndex);
-                            internalTransfer.senderAccountType = AccountType.CRYPTO;
-                            internalTransfer.recipientAccountType = AccountType.PAYMENT_TXN_ID;
-                            internalTransfer.recipientAccountId = chain.transactionId;
-                            internalTransfer.description = "Top Up gas for " + chain.senderWallet.address;
-                            internalTransfer.referenceNo = chain.gasTxnId;
-                            internalTransferService.save(internalTransfer);
+                        // InternalTransfer
+                        InternalTransfer internalTransfer = new InternalTransfer();
+                        internalTransfer.reason = InternalTransferReason.GAS;
+                        internalTransfer.status = InternalTransferStatus.INIT;
+                        internalTransfer.amount = gasAutoTopUpResult.gasAmount;
+                        internalTransfer.currency = mainNet.nativeCurrency;
+                        internalTransfer.feeCurrency = mainNet.nativeCurrency;
+                        internalTransfer.senderAccountId = Long.valueOf(chain.gasWallet.addressIndex);
+                        internalTransfer.senderAccountType = AccountType.CRYPTO;
+                        internalTransfer.recipientAccountType = AccountType.PAYMENT_TXN_ID;
+                        internalTransfer.recipientAccountId = chain.transactionId;
+                        internalTransfer.description = "Top Up gas for " + chain.senderWallet.address;
+                        internalTransfer.referenceNo = chain.gasTxnId;
+                        internalTransferService.save(internalTransfer);
 
-                            chain.gasInternalTransferId = internalTransfer.id;
-                        }
+                        chain.gasInternalTransferId = internalTransfer.id;
 
                         // Save additionalData then callback
                         cryptoTxnChain.additionalData = JSON.stringify(chain);
@@ -148,18 +146,9 @@ public class CryptoTxnChainService {
 
                         // Check result
                         if (result.state != CryptoTransactionState.COMPLETED) {
-                            if (result.mainNet != MainNet.TRON) {
-                                this.handleInternalTransferResult(false, chain.gasInternalTransferId);
-                                log.error("Top up gas failed {}", JSON.stringify(chain, true));
-                            } else {
-                                log.error("Tron freeze failed {}", JSON.stringify(chain, true));
-                            }
+                            this.handleInternalTransferResult(false, chain.gasInternalTransferId);
+                            log.error("Top up gas failed {}", JSON.stringify(chain, true));
                             return false;
-                        }
-
-                        // Update gas InternalTransfer
-                        if (result.mainNet != MainNet.TRON) {
-                            this.handleInternalTransferResult(true, chain.gasInternalTransferId);
                         }
 
                         // Transfer

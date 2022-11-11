@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.99.0] - 11 Nov 2022
+
+* CryptoTxnChainService remove TRON special logics
+
 [0.98.0] - 10 Nov 2022
 
 * Sweep to external crypto address
