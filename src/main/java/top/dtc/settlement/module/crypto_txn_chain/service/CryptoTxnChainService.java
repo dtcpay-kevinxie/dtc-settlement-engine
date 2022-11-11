@@ -191,6 +191,7 @@ public class CryptoTxnChainService {
                         if (completed) {
                             PaymentTransaction paymentTransaction = paymentTransactionService.getById(chain.transactionId);
                             PayoutReconcile payoutReconcile = payoutReconcileService.getById(chain.transactionId);
+                            payoutReconcile.receivedCurrency = result.currency;
                             payoutReconcile.receivedAmount = result.outputs.get(0).amount;
                             int amountCompare = payoutReconcile.receivedAmount.compareTo(paymentTransaction.processingAmount);
                             if (amountCompare == 0) {

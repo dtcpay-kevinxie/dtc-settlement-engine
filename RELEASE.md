@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.100.0] - 11 Nov 2022
+
+* payoutReconcile.receivedCurrency missing
+
 [0.99.0] - 11 Nov 2022
 
 * CryptoTxnChainService remove TRON special logics
