@@ -144,16 +144,11 @@ public class CryptoTxnChainService {
                     (cryptoTxnChain, result, callback) -> {
                         SweepChain chain = JSON.parse(cryptoTxnChain.additionalData, SweepChain.class);
 
-                        // Check result
-                        if (result.state != CryptoTransactionState.COMPLETED) {
-                            this.handleInternalTransferResult(false, chain.gasInternalTransferId);
-                            log.error("Top up gas failed {}", JSON.stringify(chain, true));
+                        // Update transfer InternalTransfer
+                        boolean completed = this.handleInternalTransferResult(result, chain.gasInternalTransferId, chain);
+                        if (!completed) {
                             return false;
                         }
-
-                        InternalTransfer gasInternalTransfer = internalTransferService.getById(chain.gasInternalTransferId);
-                        gasInternalTransfer.status = InternalTransferStatus.COMPLETED;
-                        internalTransferService.updateById(gasInternalTransfer);
 
                         // Transfer
                         CryptoTransactionSend send = chain.transfer;
@@ -187,43 +182,43 @@ public class CryptoTxnChainService {
                     // Step 3: Sweep completion
                     (cryptoTxnChain, result, callback) -> {
                         SweepChain chain = JSON.parse(cryptoTxnChain.additionalData, SweepChain.class);
-                        boolean completed = result.state == CryptoTransactionState.COMPLETED;
 
                         // Update transfer InternalTransfer
-                        this.handleInternalTransferResult(completed, chain.transferInternalTransferId);
-
-                        if (completed) {
-                            PaymentTransaction paymentTransaction = paymentTransactionService.getById(chain.transactionId);
-                            PayoutReconcile payoutReconcile = payoutReconcileService.getById(chain.transactionId);
-                            payoutReconcile.receivedCurrency = result.currency;
-                            payoutReconcile.receivedAmount = result.outputs.get(0).amount;
-                            int amountCompare = payoutReconcile.receivedAmount.compareTo(paymentTransaction.processingAmount);
-                            if (amountCompare == 0) {
-                                payoutReconcile.status = ReconcileStatus.MATCHED;
-                            } else if (amountCompare >= 0) {
-                                payoutReconcile.status = ReconcileStatus.UNMATCHED;
-                            } else {
-                                payoutReconcile.status = ReconcileStatus.DEFICIT;
-                            }
-                            payoutReconcileService.updateById(payoutReconcile);
-
-                            List<PayoutReconcile> payoutReconciles = payoutReconcileService.getByReceivableId(payoutReconcile.receivableId);
-                            BigDecimal totalReceivedAmount = payoutReconciles.stream()
-                                    .filter(pr -> pr.receivedAmount != null)
-                                    .map(pr -> pr.receivedAmount)
-                                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                            Receivable receivable = receivableService.getById(payoutReconcile.receivableId);
-                            receivable.receivedAmount = totalReceivedAmount;
-                            if (receivable.amount.compareTo(totalReceivedAmount) >= 0) {
-                                receivable.status = ReceivableStatus.RECEIVED;
-                            } else {
-                                receivable.status = ReceivableStatus.PARTIAL;
-                            }
-                            receivableService.updateById(receivable);
+                        boolean completed = this.handleInternalTransferResult(result, chain.transferInternalTransferId, chain);
+                        if (!completed) {
+                            return false;
                         }
 
-                        return completed;
+                        PaymentTransaction paymentTransaction = paymentTransactionService.getById(chain.transactionId);
+                        PayoutReconcile payoutReconcile = payoutReconcileService.getById(chain.transactionId);
+                        payoutReconcile.receivedCurrency = result.currency;
+                        payoutReconcile.receivedAmount = result.outputs.get(0).amount;
+                        int amountCompare = payoutReconcile.receivedAmount.compareTo(paymentTransaction.processingAmount);
+                        if (amountCompare == 0) {
+                            payoutReconcile.status = ReconcileStatus.MATCHED;
+                        } else if (amountCompare >= 0) {
+                            payoutReconcile.status = ReconcileStatus.UNMATCHED;
+                        } else {
+                            payoutReconcile.status = ReconcileStatus.DEFICIT;
+                        }
+                        payoutReconcileService.updateById(payoutReconcile);
+
+                        List<PayoutReconcile> payoutReconciles = payoutReconcileService.getByReceivableId(payoutReconcile.receivableId);
+                        BigDecimal totalReceivedAmount = payoutReconciles.stream()
+                                .filter(pr -> pr.receivedAmount != null)
+                                .map(pr -> pr.receivedAmount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                        Receivable receivable = receivableService.getById(payoutReconcile.receivableId);
+                        receivable.receivedAmount = totalReceivedAmount;
+                        if (receivable.amount.compareTo(totalReceivedAmount) >= 0) {
+                            receivable.status = ReceivableStatus.RECEIVED;
+                        } else {
+                            receivable.status = ReceivableStatus.PARTIAL;
+                        }
+                        receivableService.updateById(receivable);
+
+                        return true;
                     }
                 )
         );
@@ -273,10 +268,16 @@ public class CryptoTxnChainService {
         cryptoTxnChainProcessor.start(NAME_SWEEP, JSON.stringify(chain));
     }
 
-    private void handleInternalTransferResult(boolean completed, Long internalTransferId) {
+    private boolean handleInternalTransferResult(CryptoTransactionResult result, Long internalTransferId, SweepChain chain) {
+        boolean completed = result.state == CryptoTransactionState.COMPLETED;
+
         InternalTransfer internalTransfer = internalTransferService.getById(internalTransferId);
         internalTransfer.status = completed ? InternalTransferStatus.COMPLETED : InternalTransferStatus.UNTRANSFERRED;
+        internalTransfer.fee = result.fee;
         internalTransferService.updateById(internalTransfer);
+
+        log.error("Internal-transfer failed {} {}", internalTransfer.reason, JSON.stringify(chain, true));
+        return completed;
     }
 
 }
