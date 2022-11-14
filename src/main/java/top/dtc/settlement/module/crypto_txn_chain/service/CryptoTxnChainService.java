@@ -151,6 +151,10 @@ public class CryptoTxnChainService {
                             return false;
                         }
 
+                        InternalTransfer gasInternalTransfer = internalTransferService.getById(chain.gasInternalTransferId);
+                        gasInternalTransfer.status = InternalTransferStatus.COMPLETED;
+                        internalTransferService.updateById(gasInternalTransfer);
+
                         // Transfer
                         CryptoTransactionSend send = chain.transfer;
                         CryptoInOutSend output = send.outputs.get(0);

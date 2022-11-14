@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.101.0] - 14 Nov 2022
+
+* Gas internal-transfer status didn't set to COMPLETED issue
+
 [0.100.0] - 11 Nov 2022
 
 * payoutReconcile.receivedCurrency missing
