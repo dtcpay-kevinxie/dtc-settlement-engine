@@ -276,7 +276,9 @@ public class CryptoTxnChainService {
         internalTransfer.fee = result.fee;
         internalTransferService.updateById(internalTransfer);
 
-        log.error("Internal-transfer failed {} {}", internalTransfer.reason, JSON.stringify(chain, true));
+        if (!completed) {
+            log.error("Internal-transfer failed {} {}", internalTransfer.reason, JSON.stringify(chain, true));
+        }
         return completed;
     }
 
