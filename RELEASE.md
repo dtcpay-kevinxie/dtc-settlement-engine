@@ -1,5 +1,9 @@
 ## RELEASE NOTES [dtc-settlement-engine] ##
 
+[0.102.0] - 15 Nov 2022
+
+* CryptoTxnChainService logging level issue
+
 [0.101.0] - 14 Nov 2022
 
 * Gas internal-transfer status didn't set to COMPLETED issue
