@@ -85,8 +85,8 @@ public class SilvergateV3Service {
                 .asObject(new GenericType<AccountListResp>() {
                 })
                 .ifFailure(e -> {
-                    log.debug("nonce: {}, timestamp: {}, signature: {}", nonce, timestamp, signature);
-                    log.error("Call silvergate V3 failed, status: {}", e.getStatus());
+                    log.debug("url: {}, nonce: {}, timestamp: {}, signature: {}", url, nonce, timestamp, signature);
+                    log.error("Call silvergate v3 failed, status: {}", e.getStatus());
                 });
         if (resp.isSuccess()) {
             log.info("response successfully, {}", resp.getBody());
