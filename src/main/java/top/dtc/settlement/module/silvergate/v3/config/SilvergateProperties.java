@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Setter
 @Component
-@ConfigurationProperties("silvergate")
+@ConfigurationProperties("silvergate.v3")
 public class SilvergateProperties {
 
     public String subscriptionKey;

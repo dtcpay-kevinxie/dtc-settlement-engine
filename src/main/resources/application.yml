@@ -21,9 +21,10 @@ notification:
   wallet-url-prefix: ${WALLET_URL_PREFIX}
 
 silvergate:
-  subscription-key: ${SILVERGATE_V3_SUBSCRIPTION_KEY}
-  subscription-secret: ${SILVERGATE_V3_SUBSCRIPTION_SECRET}
-  api-url-prefix: ${SILVERGATE_V3_API_URL_PREFIX}
+  v3:
+    subscription-key: ${SILVERGATE_V3_SUBSCRIPTION_KEY}
+    subscription-secret: ${SILVERGATE_V3_SUBSCRIPTION_SECRET}
+    api-url-prefix: ${SILVERGATE_V3_API_URL_PREFIX}
 
 exchangerates:
   api-url-prefix: ${EXCHANGE_RATE_API_URL_PREFIX}
