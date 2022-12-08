@@ -21,15 +21,9 @@ notification:
   wallet-url-prefix: ${WALLET_URL_PREFIX}
 
 silvergate:
-  dev-mode: ${SILVERGATE_DEV_MODE}
-  api-url-prefix: ${SILVERGATE_API_URL_PREFIX}
-  sen-account-info: ${SILVERGATE_SEN_ACCOUNT_INFO}
-  trading-account-info: ${SILVERGATE_TRADING_ACCOUNT_INFO}
-  web-hook-url: ${SILVERGATE_WEB_HOOK_URL}
-  web-hook-emails: ${SILVERGATE_WEB_HOOK_EMAILS}
-  web-hook-sms: ${SILVERGATE_WEB_HOOK_SMS}
-  certificate-path: ${SILVERGATE_CERTIFICATE_PATH}
-  certificate-password: ${SILVERGATE_CERTIFICATE_PASSWORD}
+  subscription-key: ${SILVERGATE_V3_SUBSCRIPTION_KEY}
+  subscription-secret: ${SILVERGATE_V3_SUBSCRIPTION_SECRET}
+  api-url-prefix: ${SILVERGATE_V3_API_URL_PREFIX}
 
 exchangerates:
   api-url-prefix: ${EXCHANGE_RATE_API_URL_PREFIX}
