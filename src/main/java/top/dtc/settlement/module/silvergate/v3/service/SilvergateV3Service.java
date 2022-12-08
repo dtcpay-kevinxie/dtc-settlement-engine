@@ -9,6 +9,7 @@ import software.amazon.awssdk.http.Header;
 import top.dtc.settlement.module.silvergate.v3.config.SilvergateProperties;
 import top.dtc.settlement.module.silvergate.v3.constant.SilvergateV3Constant;
 import top.dtc.settlement.module.silvergate.v3.model.AccountListResp;
+import top.dtc.settlement.module.silvergate.v3.model.PaymentGetResp;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -95,4 +96,7 @@ public class SilvergateV3Service {
     }
 
 
+    public PaymentGetResp getPaymentDetails(Long payableId) {
+        return new PaymentGetResp();
+    }
 }

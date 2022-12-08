@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import top.dtc.settlement.constant.ApiHeaderConstant;
 import top.dtc.settlement.model.api.ApiResponse;
 import top.dtc.settlement.module.silvergate.v3.model.AccountListResp;
+import top.dtc.settlement.module.silvergate.v3.model.PaymentGetResp;
 import top.dtc.settlement.module.silvergate.v3.service.SilvergateV3Service;
 
 
@@ -68,16 +69,16 @@ public class SilvergateV3Controller {
 //        }
 //    }
 //
-//    @GetMapping("/payment/status/{payableId}")
-//    public ApiResponse<?> getPaymentStatus(@PathVariable("payableId") Long payableId) {
-//        log.debug("[GET] /payment/status/{}", payableId);
-//        try {
-//            PaymentGetResp paymentGetResp = silvergateProcessService.getPaymentDetails(payableId);
-//            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentGetResp);
-//        } catch (Exception e) {
-//            return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
-//        }
-//    }
+    @GetMapping("/payment/status/{payableId}")
+    public ApiResponse<?> getPaymentStatus(@PathVariable("payableId") Long payableId) {
+        log.debug("[GET] /payment/status/{}", payableId);
+        try {
+            PaymentGetResp paymentGetResp = apiService.getPaymentDetails(payableId);
+            return new ApiResponse<>(ApiHeaderConstant.SUCCESS, paymentGetResp);
+        } catch (Exception e) {
+            return new ApiResponse<>(ApiHeaderConstant.PAYABLE.OTHER_ERROR(e.getMessage()));
+        }
+    }
 //
 //    @DeleteMapping("/webhooks/delete/{accountNumber}/{webHookId}")
 //    public ApiResponse<?> webHooksDelete(

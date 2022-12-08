@@ -1,9 +1,10 @@
 package top.dtc.settlement.module.silvergate.v3.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.util.List;
 
 public class AccountTransferSenResp {
+    public Message message;
 
+    static final class Message {
+        public String status;
+    }
 }
